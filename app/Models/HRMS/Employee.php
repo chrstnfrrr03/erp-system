@@ -17,9 +17,12 @@ class Employee extends Model
         'middle_name',
         'last_name',
         'gender',
-        'birthdate',
         'email',
-        'phone',
-        'address',
+        'mobile_number',
+        'department',
+        'position',
+        'date_started',
+        'date_ended',
+        'user_id',
     ];
 }
