@@ -16,17 +16,23 @@ class LeaveRequestController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $data = $request->validate([
-            'employee_id' => 'required|exists:employees,id',
-            'leave_type_id' => 'required|exists:leave_types,id',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'reason' => 'nullable|string',
-        ]);
+{
+    $data = $request->validate([
+        'employee_id' => 'required|exists:employees,id',
+        'leave_type_id' => 'required|exists:leave_types,id',
+        'start_date' => 'required|date',
+        'end_date' => 'required|date|after_or_equal:start_date',
+        'reason' => 'nullable|string',
+        'status' => 'nullable|string'
+    ]);
 
-        return LeaveRequest::create($data);
+    if (!isset($data['status'])) {
+        $data['status'] = 'pending';
     }
+
+    return LeaveRequest::create($data);
+}
+
 
     public function show($id)
     {
@@ -40,7 +46,7 @@ class LeaveRequestController extends Controller
         $data = $request->validate([
             'leave_type_id' => 'nullable|exists:leave_types,id',
             'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
             'reason' => 'nullable|string',
             'status' => 'nullable|string',
         ]);

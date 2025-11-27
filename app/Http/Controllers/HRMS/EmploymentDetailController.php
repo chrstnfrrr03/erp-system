@@ -3,55 +3,46 @@
 namespace App\Http\Controllers\HRMS;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use App\Models\HRMS\EmploymentDetail;
 use App\Models\HRMS\Employee;
-use Illuminate\Http\Request;
 
 class EmploymentDetailController extends Controller
 {
-    public function index()
-    {
-        return EmploymentDetail::with('employee')->paginate(10);
-    }
-
-    public function store(Request $request)
-    {
-        $data = $request->validate([
-            'employee_id' => 'required|exists:employees,id',
-            'position' => 'required|string',
-            'department' => 'required|string',
-            'date_hired' => 'required|date',
-            'employment_status' => 'required|string',
-        ]);
-
-        return EmploymentDetail::create($data);
-    }
-
+    // Show employment detail by employee ID
     public function show($id)
     {
-        return EmploymentDetail::with('employee')->findOrFail($id);
+        $employee = Employee::with('employmentDetail')->findOrFail($id);
+
+        return response()->json([
+            'employment_detail' => $employee->employmentDetail
+        ], 200);
     }
 
+    // Update or create employment detail
     public function update(Request $request, $id)
     {
-        $detail = EmploymentDetail::findOrFail($id);
+        $employee = Employee::findOrFail($id);
 
         $data = $request->validate([
-            'position' => 'nullable|string',
             'department' => 'nullable|string',
-            'date_hired' => 'nullable|date',
+            'position' => 'nullable|string',
+            'employment_type' => 'nullable|string',
             'employment_status' => 'nullable|string',
+            'date_hired' => 'nullable|date',
+            'date_terminated' => 'nullable|date',
+            'rate' => 'nullable|numeric',
+            'rate_type' => 'nullable|string',
         ]);
 
-        $detail->update($data);
+        $detail = EmploymentDetail::updateOrCreate(
+            ['employee_id' => $employee->id],
+            $data
+        );
 
-        return $detail;
-    }
-
-    public function destroy($id)
-    {
-        EmploymentDetail::findOrFail($id)->delete();
-
-        return response()->json(['message' => 'Deleted successfully']);
+        return response()->json([
+            'message' => 'Employment detail updated successfully',
+            'employment_detail' => $detail
+        ], 200);
     }
 }

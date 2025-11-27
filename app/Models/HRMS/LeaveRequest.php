@@ -15,6 +15,15 @@ class LeaveRequest extends Model
         'status'
     ];
 
+    protected $casts = [
+        'start_date' => 'date',
+        'end_date'   => 'date'
+    ];
+
+    protected $attributes = [
+        'status' => 'Pending'
+    ];
+
     public function employee()
     {
         return $this->belongsTo(Employee::class);

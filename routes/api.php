@@ -11,6 +11,7 @@ use App\Http\Controllers\HRMS\EmployeeController;
 use App\Http\Controllers\HRMS\EmploymentDetailController;
 use App\Http\Controllers\HRMS\LeaveTypeController;
 use App\Http\Controllers\HRMS\LeaveRequestController;
+use App\Http\Controllers\HRMS\LeaveBalanceController;
 
 // ---------------------------------------------------------
 // AUTHENTICATED USER
@@ -55,6 +56,7 @@ Route::prefix('hrms')->group(function () {
     // ---------------------------------------
     Route::get('/leave-types', [LeaveTypeController::class, 'index']);
     Route::post('/leave-types', [LeaveTypeController::class, 'store']);
+    Route::get('/leave-types/{id}', [LeaveTypeController::class, 'show']); 
     Route::put('/leave-types/{id}', [LeaveTypeController::class, 'update']);
     Route::delete('/leave-types/{id}', [LeaveTypeController::class, 'destroy']);
 
@@ -66,4 +68,13 @@ Route::prefix('hrms')->group(function () {
     Route::get('/leave-requests/{id}', [LeaveRequestController::class, 'show']);
     Route::put('/leave-requests/{id}', [LeaveRequestController::class, 'update']);
     Route::delete('/leave-requests/{id}', [LeaveRequestController::class, 'destroy']);
+
+    // LEAVE BALANCES
+   Route::get('/leave-balances', [LeaveBalanceController::class, 'index']);
+   Route::post('/leave-balances', [LeaveBalanceController::class, 'store']);
+   Route::get('/leave-balances/{id}', [LeaveBalanceController::class, 'show']);
+   Route::put('/leave-balances/{id}', [LeaveBalanceController::class, 'update']);
+   Route::delete('/leave-balances/{id}', [LeaveBalanceController::class, 'destroy']);
 });
+
+   

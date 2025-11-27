@@ -2,80 +2,72 @@
 
 namespace App\Http\Controllers\HRMS;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\Controller;  
 use App\Models\HRMS\LeaveType;
 use Illuminate\Http\Request;
 
 class LeaveTypeController extends Controller
 {
-    /**
-     * Display all leave types.
-     */
+    // Show list
     public function index()
     {
-        return response()->json(LeaveType::all());
+        $leaveTypes = LeaveType::orderBy('name', 'asc')->get();
+        return response()->json($leaveTypes);
     }
 
-    /**
-     * Store a new leave type.
-     */
+    // Store new leave type
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'         => 'required|string|max:255',
-            'description'  => 'nullable|string',
-            'days_allowed' => 'required|integer|min:1',
+            'name'          => 'required|string|max:255',
+            'default_days'  => 'required|integer|min:0',
+            'description'   => 'nullable|string',
+            'is_active'     => 'boolean',
         ]);
 
         $leaveType = LeaveType::create($validated);
 
         return response()->json([
-            'message' => 'Leave type created successfully',
-            'data'    => $leaveType
+            'message' => 'Leave type created successfully.',
+            'data' => $leaveType
         ], 201);
     }
 
-    /**
-     * Show a specific leave type.
-     */
+    // Show single leave type
     public function show($id)
     {
         $leaveType = LeaveType::findOrFail($id);
-
-        return response()->json($leaveType, 200);
+        return response()->json($leaveType);
     }
 
-    /**
-     * Update an existing leave type.
-     */
+    // Update leave type
     public function update(Request $request, $id)
     {
         $leaveType = LeaveType::findOrFail($id);
 
         $validated = $request->validate([
-            'name'         => 'sometimes|required|string|max:255',
-            'description'  => 'nullable|string',
-            'days_allowed' => 'sometimes|required|integer|min:1',
+            'name'          => 'required|string|max:255',
+            'default_days'  => 'required|integer|min:0',
+            'description'   => 'nullable|string',
+            'is_active'     => 'boolean',
         ]);
 
         $leaveType->update($validated);
 
         return response()->json([
-            'message' => 'Leave type updated successfully',
-            'data'    => $leaveType
-        ], 200);
+            'message' => 'Leave type updated successfully.',
+            'data' => $leaveType
+        ]);
     }
 
-    /**
-     * Delete a leave type.
-     */
+    // Delete leave type
     public function destroy($id)
     {
         $leaveType = LeaveType::findOrFail($id);
         $leaveType->delete();
 
         return response()->json([
-            'message' => 'Leave type deleted successfully'
-        ], 200);
+            'message' => 'Leave type deleted successfully.'
+        ]);
     }
 }
