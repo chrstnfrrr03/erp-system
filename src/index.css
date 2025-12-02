@@ -20,36 +20,10 @@ body {
   min-height: 100vh;
 }
 
-/* AdminLTE Customizations */
-.wrapper {
-  min-height: 100vh;
-}
-
-.content-wrapper {
-  background: #f4f6f9;
-  min-height: calc(100vh - 57px);
-}
-
 /* Active menu item styling */
 .nav-sidebar .nav-link.active {
   background-color: #007bff !important;
   color: #fff !important;
 }
 
-/* Sidebar brand */
-.brand-link {
-  padding: 0.8rem 1rem;
-  font-size: 1.25rem;
-  text-align: center;
-}
 
-/* Dashboard cards hover effect */
-.dashboard-card {
-  border-radius: 15px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.dashboard-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
-}

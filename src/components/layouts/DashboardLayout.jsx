@@ -1,23 +1,54 @@
 import Sidebar from "./Sidebar";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaUserCircle } from "react-icons/fa";
 
 export default function DashboardLayout({ children }) {
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+
+    // AUTO-COLLAPSE SIDEBAR ON MOBILE
+    useEffect(() => {
+        const handleResize = () => {
+            const mobile = window.innerWidth < 768;
+            setIsMobile(mobile);
+            if (mobile) {
+                setSidebarOpen(true); // collapsed mode
+            } else {
+                setSidebarOpen(false); // full mode
+            }
+        };
+
+        handleResize();
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
 
     return (
-        <div style={{ 
-            display: "flex", 
-            minHeight: "100vh",
-            background: "#f8f9fa"
-        }}>
+        <div
+            style={{
+                display: "flex",
+                minHeight: "100vh",
+                background: "#f8f9fa",
+                overflow: "hidden"
+            }}
+        >
+            {/* SIDEBAR */}
             <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
 
-            {/* RIGHT AREA */}
-            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-
-                {/* TOP NAVBAR */}
+            {/* MAIN CONTENT */}
+            <div
+                style={{
+                    flex: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    marginLeft: isMobile ? "80px" : (sidebarOpen ? "80px" : "240px"),
+                    transition: "margin-left 0.3s ease",
+                    overflow: "hidden",
+                    width: isMobile ? "calc(100vw - 80px)" : "auto"
+                }}
+            >
+                {/* TOP BAR */}
                 <div
                     style={{
                         height: "60px",
@@ -31,35 +62,36 @@ export default function DashboardLayout({ children }) {
                         position: "sticky",
                         top: 0,
                         zIndex: 50,
+                        flexShrink: 0
                     }}
                 >
-                    {/* User Icon + Name */}
                     <div
                         onClick={() => setShowUserMenu(!showUserMenu)}
-                        style={{ 
-                            cursor: "pointer", 
-                            display: "flex", 
-                            alignItems: "center", 
+                        style={{
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
                             gap: "10px",
-                            position: "relative"
+                            position: "relative",
                         }}
                     >
                         <FaUserCircle size={28} color="#444" />
-                        <span style={{ fontWeight: "500", color: "#333" }}>Christian Ferrer</span>
+                        <span style={{ fontWeight: "500", color: "#333" }}>
+                            Christian Ferrer
+                        </span>
 
-                        {/* DROPDOWN */}
                         {showUserMenu && (
                             <div
                                 style={{
                                     position: "absolute",
                                     top: "45px",
-                                    right: "0",
+                                    right: 0,
                                     background: "#fff",
                                     boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
                                     borderRadius: "8px",
                                     padding: "8px 0",
                                     zIndex: 100,
-                                    minWidth: "150px"
+                                    minWidth: "150px",
                                 }}
                             >
                                 <button
@@ -72,10 +104,14 @@ export default function DashboardLayout({ children }) {
                                         cursor: "pointer",
                                         color: "#444",
                                         fontSize: "14px",
-                                        transition: "background 0.2s"
+                                        transition: "background 0.2s",
                                     }}
-                                    onMouseEnter={(e) => e.target.style.background = "#f5f5f5"}
-                                    onMouseLeave={(e) => e.target.style.background = "none"}
+                                    onMouseEnter={(e) =>
+                                        (e.target.style.background = "#f5f5f5")
+                                    }
+                                    onMouseLeave={(e) =>
+                                        (e.target.style.background = "none")
+                                    }
                                 >
                                     Logout
                                 </button>
@@ -84,12 +120,14 @@ export default function DashboardLayout({ children }) {
                     </div>
                 </div>
 
-                {/* MAIN CONTENT */}
+                {/* PAGE CONTENT */}
                 <main
                     style={{
                         flex: 1,
-                        padding: "30px",
+                        padding: isMobile ? "15px" : "30px",
                         overflowY: "auto",
+                        overflowX: "hidden",
+                        maxWidth: "100%"
                     }}
                 >
                     {children}
