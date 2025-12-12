@@ -5,6 +5,8 @@ namespace App\Models\HRMS;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+use App\Models\HRMS\Shift;
+
 class Employee extends Model
 {
     use HasFactory;
@@ -12,47 +14,61 @@ class Employee extends Model
     protected $table = 'employees';
 
     protected $fillable = [
-        'employee_no',
+        'biometric_id',
+        'employee_number',
+
+        // Full name (moved from employment info)
         'first_name',
         'middle_name',
         'last_name',
-        'gender',
-        'email',
-        'mobile_number',
-        'department',
-        'position',
-        'date_started',
-        'date_ended',
-        'user_id',
+
+        // Shift
+        'shift_id',
     ];
 
-    /**
-     * Automatically cast these columns to Carbon dates.
-     */
     protected $casts = [
-        'date_started' => 'date',
-        'date_ended' => 'date',
+        'biometric_id' => 'string',
+        'employee_number' => 'string',
+        'shift_id' => 'integer',
     ];
 
-    /**
-     * RELATIONSHIPS
-     */
+    protected $hidden = [
+        'created_at',
+        'updated_at',
+    ];
 
-    // One employee has one employment detail
-    public function employmentDetail()
+    // -----------------------------
+    // Relationships
+    // -----------------------------
+
+    public function employmentInformation()
+{
+    return $this->hasOne(EmploymentInformation::class, 'employee_id', 'id');
+}
+
+
+    public function personalInformation()
+{
+    return $this->hasOne(PersonalInformation::class, 'employee_id');
+}
+
+    public function accountInformation()
     {
-        return $this->hasOne(EmploymentDetail::class);
+        return $this->hasOne(AccountInformation::class);
     }
 
-    // One employee can have many leave requests
-    public function leaveRequests()
+    public function leaveCredits()
     {
-        return $this->hasMany(LeaveRequest::class);
+        return $this->hasOne(LeaveCredits::class);
     }
 
-    // If employee is linked to a User account
-    public function user()
+    public function deminimis()
     {
-        return $this->belongsTo(\App\Models\User::class);
+        return $this->hasOne(Deminimis::class);
+    }
+
+    public function shift()
+    {
+        return $this->belongsTo(Shift::class);
     }
 }
