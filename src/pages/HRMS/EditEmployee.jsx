@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import Layout from "../../components/layouts/DashboardLayout";
 import api from "../../api";
 import Swal from "sweetalert2";
@@ -11,12 +11,14 @@ import AccountInformationTab from "./Tabs/AccountInformationTab";
 import LeaveCreditsTab from "./Tabs/LeaveCreditsTab";
 import DeminimisTab from "./Tabs/DeminimisTab";
 
-export default function AddEmployee() {
+export default function EditEmployee() {
   const navigate = useNavigate();
+  const { biometric_id } = useParams();
 
   const [activeTab, setActiveTab] = useState("employment");
   const [employeeId, setEmployeeId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
 
   // ===========================================================
   // LOAD ALL SHIFTS
@@ -39,7 +41,7 @@ export default function AddEmployee() {
   // FORM DATA
   // ===========================================================
   const [formData, setFormData] = useState({
-    // Employment + Employee (biometric_id removed - now auto-generated)
+    // Employment + Employee
     first_name: "",
     middle_name: "",
     last_name: "",
@@ -104,6 +106,103 @@ export default function AddEmployee() {
   });
 
   // ===========================================================
+  // LOAD EMPLOYEE DATA
+  // ===========================================================
+  useEffect(() => {
+    if (biometric_id) {
+      fetchEmployeeData();
+    }
+  }, [biometric_id]);
+
+  const fetchEmployeeData = async () => {
+    setLoadingData(true);
+    try {
+      const res = await api.get(`/employee/${biometric_id}`);
+      const emp = res.data;
+
+      // Pre-fill form data
+      setFormData({
+        // Employment
+        first_name: emp.fullname?.split(' ')[0] || "",
+        middle_name: emp.fullname?.split(' ')[1] || "",
+        last_name: emp.fullname?.split(' ').slice(2).join(' ') || "",
+        department: emp.department || "",
+        position: emp.position || "",
+        department_head: emp.department_head || "",
+        supervisor: emp.supervisor || "",
+        job_location: emp.job_location || "",
+        employee_type: emp.employee_type || "",
+        employment_status: emp.employment_status || "",
+        employment_classification: emp.employment_classification || "",
+        company_email: emp.company_email || "",
+        rate: emp.rate || "",
+        rate_type: emp.rate_type || "",
+        date_started: emp.date_started || "",
+        date_ended: emp.date_ended || "",
+        shift_id: emp.shift_id || "",
+
+        // Personal
+        birthdate: emp.birthdate || "",
+        age: emp.age || "",
+        birthplace: emp.birthplace || "",
+        nationality: emp.nationality || "",
+        civil_status: emp.civil_status || "",
+        religion: emp.religion || "",
+        gender: emp.gender || "",
+        present_address: emp.present_address || "",
+        home_address: emp.home_address || "",
+        same_as_present: false,
+        email_address: emp.email_address || "",
+        mobile_number: emp.mobile_number || "",
+        dependents: emp.dependents || "",
+        lodged: emp.lodged || "",
+        emergency_contact: emp.emergency_contact || "",
+        emergency_number: emp.emergency_number || "",
+
+        // Account
+        nasfund_number: emp.nasfund_number || "",
+        tin_number: emp.tin_number || "",
+        work_permit_number: emp.work_permit_number || "",
+        work_permit_expiry: emp.work_permit_expiry || "",
+        visa_number: emp.visa_number || "",
+        visa_expiry: emp.visa_expiry || "",
+        bsb_code: emp.bsb_code || "",
+        bank_name: emp.bank_name || "",
+        account_number: emp.account_number || "",
+        account_name: emp.account_name || "",
+
+        // Leave Credits
+        vacation_year: emp.vacation_year || "",
+        vacation_credits: emp.vacation_credits || "",
+        sick_year: emp.sick_year || "",
+        sick_credits: emp.sick_credits || "",
+        emergency_year: emp.emergency_year || "",
+        emergency_credits: emp.emergency_credits || "",
+
+        // Deminimis
+        clothing_allowance: emp.clothing_allowance || "",
+        meal_allowance: emp.meal_allowance || "",
+        rice_subsidy: emp.rice_subsidy || "",
+        transportation_allowance: emp.transportation_allowance || "",
+      });
+
+      // Store employee_id for updates
+      setEmployeeId(emp.employee_id);
+    } catch (err) {
+      console.error(err);
+      Swal.fire({
+        icon: "error",
+        title: "Failed to Load Employee",
+        text: "Could not load employee data. Please try again.",
+        confirmButtonColor: "#d33",
+      });
+      navigate("/hrms");
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
+  // ===========================================================
   // INPUT HANDLER
   // ===========================================================
   const handleInputChange = (e) => {
@@ -115,17 +214,12 @@ export default function AddEmployee() {
   };
 
   // ===========================================================
-  // STEP 1 — EMPLOYMENT + EMPLOYEE (biometric_id auto-generated)
+  // UPDATE METHODS (using PUT/PATCH)
   // ===========================================================
-  const submitEmployment = async () => {
+  const updateEmployment = async () => {
     setLoading(true);
     try {
-      const res = await api.post("/employment", {
-        first_name: formData.first_name,
-        middle_name: formData.middle_name,
-        last_name: formData.last_name,
-
-        // Employment fields
+      await api.put(`/employment/${employeeId}`, {
         department: formData.department,
         position: formData.position,
         department_head: formData.department_head,
@@ -139,18 +233,23 @@ export default function AddEmployee() {
         rate_type: formData.rate_type,
         date_started: formData.date_started,
         date_ended: formData.date_ended,
-
         shift_id: formData.shift_id,
       });
 
-      setEmployeeId(res.data.employee_id);
+      Swal.fire({
+        icon: "success",
+        title: "Updated!",
+        text: "Employment information updated successfully.",
+        confirmButtonColor: "#28a745",
+        timer: 2000,
+      });
       return true;
     } catch (err) {
       console.error(err.response?.data);
       Swal.fire({
         icon: "error",
-        title: "Employment Info Failed",
-        text: err.response?.data?.message || "Failed to save employment information. Please try again.",
+        title: "Update Failed",
+        text: err.response?.data?.message || "Failed to update employment information.",
         confirmButtonColor: "#d33",
       });
       return false;
@@ -159,30 +258,10 @@ export default function AddEmployee() {
     }
   };
 
-  // ===========================================================
-  // STEP 2 — PERSONAL (now sends name fields instead of biometric_id)
-  // ===========================================================
-  const submitPersonal = async () => {
-    if (!employeeId) {
-      Swal.fire({
-        icon: "warning",
-        title: "Oops!",
-        text: "Please complete the Employment Info tab first.",
-        confirmButtonColor: "#f39c12",
-      });
-      return false;
-    }
-
+  const updatePersonal = async () => {
     setLoading(true);
     try {
-      await api.post("/personal", {
-        // Send name fields so controller can generate/match biometric_id
-        first_name: formData.first_name,
-        middle_name: formData.middle_name,
-        last_name: formData.last_name,
-        shift_id: formData.shift_id,
-
-        // Personal info fields
+      await api.put(`/personal/${employeeId}`, {
         birthdate: formData.birthdate,
         age: formData.age,
         birthplace: formData.birthplace,
@@ -200,13 +279,20 @@ export default function AddEmployee() {
         emergency_number: formData.emergency_number,
       });
 
+      Swal.fire({
+        icon: "success",
+        title: "Updated!",
+        text: "Personal information updated successfully.",
+        confirmButtonColor: "#28a745",
+        timer: 2000,
+      });
       return true;
     } catch (err) {
       console.error(err.response?.data);
       Swal.fire({
         icon: "error",
-        title: "Personal Info Failed",
-        text: err.response?.data?.message || "Failed to save personal information. Please try again.",
+        title: "Update Failed",
+        text: err.response?.data?.message || "Failed to update personal information.",
         confirmButtonColor: "#d33",
       });
       return false;
@@ -215,24 +301,10 @@ export default function AddEmployee() {
     }
   };
 
-  // ===========================================================
-  // STEP 3 — ACCOUNT
-  // ===========================================================
-  const submitAccount = async () => {
-    if (!employeeId) {
-      Swal.fire({
-        icon: "warning",
-        title: "Oops!",
-        text: "Please complete the Employment Info tab first.",
-        confirmButtonColor: "#f39c12",
-      });
-      return false;
-    }
-
+  const updateAccount = async () => {
     setLoading(true);
     try {
-      await api.post("/account", {
-        employee_id: employeeId,
+      await api.put(`/account/${employeeId}`, {
         nasfund_number: formData.nasfund_number,
         tin_number: formData.tin_number,
         work_permit_number: formData.work_permit_number,
@@ -245,13 +317,20 @@ export default function AddEmployee() {
         account_name: formData.account_name,
       });
 
+      Swal.fire({
+        icon: "success",
+        title: "Updated!",
+        text: "Account information updated successfully.",
+        confirmButtonColor: "#28a745",
+        timer: 2000,
+      });
       return true;
     } catch (err) {
       console.error(err.response?.data);
       Swal.fire({
         icon: "error",
-        title: "Account Info Failed",
-        text: err.response?.data?.message || "Failed to save account information. Please try again.",
+        title: "Update Failed",
+        text: err.response?.data?.message || "Failed to update account information.",
         confirmButtonColor: "#d33",
       });
       return false;
@@ -260,24 +339,10 @@ export default function AddEmployee() {
     }
   };
 
-  // ===========================================================
-  // STEP 4 — LEAVE CREDITS
-  // ===========================================================
-  const submitLeaveCredits = async () => {
-    if (!employeeId) {
-      Swal.fire({
-        icon: "warning",
-        title: "Oops!",
-        text: "Please complete the Employment Info tab first.",
-        confirmButtonColor: "#f39c12",
-      });
-      return false;
-    }
-
+  const updateLeaveCredits = async () => {
     setLoading(true);
     try {
-      await api.post("/leave-credits", {
-        employee_id: employeeId,
+      await api.put(`/leave-credits/${employeeId}`, {
         vacation_year: formData.vacation_year,
         vacation_credits: formData.vacation_credits,
         sick_year: formData.sick_year,
@@ -286,13 +351,20 @@ export default function AddEmployee() {
         emergency_credits: formData.emergency_credits,
       });
 
+      Swal.fire({
+        icon: "success",
+        title: "Updated!",
+        text: "Leave credits updated successfully.",
+        confirmButtonColor: "#28a745",
+        timer: 2000,
+      });
       return true;
     } catch (err) {
       console.error(err.response?.data);
       Swal.fire({
         icon: "error",
-        title: "Leave Credits Failed",
-        text: err.response?.data?.message || "Failed to save leave credits. Please try again.",
+        title: "Update Failed",
+        text: err.response?.data?.message || "Failed to update leave credits.",
         confirmButtonColor: "#d33",
       });
       return false;
@@ -301,35 +373,20 @@ export default function AddEmployee() {
     }
   };
 
-  // ===========================================================
-  // STEP 5 — DEMINIMIS
-  // ===========================================================
-  const submitDeminimis = async () => {
-    if (!employeeId) {
-      Swal.fire({
-        icon: "warning",
-        title: "Oops!",
-        text: "Please complete the Employment Info tab first.",
-        confirmButtonColor: "#f39c12",
-      });
-      return false;
-    }
-
+  const updateDeminimis = async () => {
     setLoading(true);
     try {
-      await api.post("/deminimis", {
-        employee_id: employeeId,
+      await api.put(`/deminimis/${employeeId}`, {
         clothing_allowance: formData.clothing_allowance,
         meal_allowance: formData.meal_allowance,
         rice_subsidy: formData.rice_subsidy,
         transportation_allowance: formData.transportation_allowance,
       });
 
-      // Success! Show celebration message
       await Swal.fire({
         icon: "success",
-        title: "Success!",
-        text: "Employee has been successfully added to the system.",
+        title: "All Changes Saved!",
+        text: "Employee information has been successfully updated.",
         confirmButtonText: "OK",
         confirmButtonColor: "#28a745",
       });
@@ -339,8 +396,8 @@ export default function AddEmployee() {
       console.error(err.response?.data);
       Swal.fire({
         icon: "error",
-        title: "Deminimis Failed",
-        text: err.response?.data?.message || "Failed to save deminimis benefits. Please try again.",
+        title: "Update Failed",
+        text: err.response?.data?.message || "Failed to update deminimis benefits.",
         confirmButtonColor: "#d33",
       });
     } finally {
@@ -353,22 +410,22 @@ export default function AddEmployee() {
   // ===========================================================
   const handleNext = async () => {
     if (activeTab === "employment") {
-      const ok = await submitEmployment();
+      const ok = await updateEmployment();
       if (ok) setActiveTab("personal");
       return;
     }
     if (activeTab === "personal") {
-      const ok = await submitPersonal();
+      const ok = await updatePersonal();
       if (ok) setActiveTab("account");
       return;
     }
     if (activeTab === "account") {
-      const ok = await submitAccount();
+      const ok = await updateAccount();
       if (ok) setActiveTab("leave");
       return;
     }
     if (activeTab === "leave") {
-      const ok = await submitLeaveCredits();
+      const ok = await updateLeaveCredits();
       if (ok) setActiveTab("deminimis");
       return;
     }
@@ -377,10 +434,23 @@ export default function AddEmployee() {
   // ===========================================================
   // UI RENDER
   // ===========================================================
+  if (loadingData) {
+    return (
+      <Layout>
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p className="mt-3">Loading employee data...</p>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="fw-semibold">Add Employee</h2>
+        <h2 className="fw-semibold">Edit Employee</h2>
 
         <button
           className="btn btn-outline-danger px-4"
@@ -444,7 +514,7 @@ export default function AddEmployee() {
             <DeminimisTab
               formData={formData}
               handleInputChange={handleInputChange}
-              handleSubmit={submitDeminimis}
+              handleSubmit={updateDeminimis}
               loading={loading}
             />
           )}

@@ -13,9 +13,9 @@ export default function DashboardLayout({ children }) {
             const mobile = window.innerWidth < 768;
             setIsMobile(mobile);
             if (mobile) {
-                setSidebarOpen(true); // collapsed mode
+                setSidebarOpen(true); 
             } else {
-                setSidebarOpen(false); // full mode
+                setSidebarOpen(false); 
             }
         };
 

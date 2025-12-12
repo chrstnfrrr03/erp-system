@@ -1,72 +1,117 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Layout from "../../components/layouts/DashboardLayout";
+
 import {
   MdPeople,
   MdAttachMoney,
   MdInventory,
   MdWarning,
   MdCode,
-  MdManageAccounts
+  MdManageAccounts,
 } from "react-icons/md";
-import "./Dashboard.css";
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+
+  const [employees, setEmployees] = useState(0);
+  const [payroll, setPayroll] = useState(0);
+  const [inventory, setInventory] = useState(0);
+  const [lowStock, setLowStock] = useState(0);
+  const [systemUsers, setSystemUsers] = useState(0);
+  const [recentActivity, setRecentActivity] = useState("Loading...");
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/dashboard");
+      const data = await res.json();
+
+      setEmployees(data.employees);
+      setPayroll(data.payroll);
+      setInventory(data.inventory);
+      setLowStock(data.lowStock);
+      setSystemUsers(data.systemUsers);
+      setRecentActivity(data.recentActivity);
+    } catch (error) {
+      console.error("Dashboard fetch error:", error);
+    }
+  };
+
   return (
     <Layout>
-      <h1 className="mb-4 dashboard-title">Dashboard</h1>
+      <h1 className="mb-4" style={{ fontWeight: "bold", fontSize: "clamp(20px, 5vw, 28px)" }}>
+        Dashboard
+      </h1>
 
-      <div className="row g-4 mb-4">
+      {/* SUMMARY CARDS */}
+      <div className="row g-3 mb-4">
         <DashboardCard
-          icon={<MdPeople size={38} color="#fff" />}
           title="Employees"
-          count={10}
+          value={employees}
           color="#3b82f6"
+          icon={<MdPeople size={30} color="#fff" />}
+          onView={() => navigate("/hrms/employee-overview")}
         />
 
         <DashboardCard
-          icon={<MdAttachMoney size={38} color="#fff" />}
           title="Payroll"
-          count={10}
+          value={payroll}
           color="#8b5cf6"
+          icon={<MdAttachMoney size={30} color="#fff" />}
         />
 
         <DashboardCard
-          icon={<MdInventory size={38} color="#fff" />}
           title="Inventory"
-          count={10}
+          value={inventory}
           color="#10b981"
+          icon={<MdInventory size={30} color="#fff" />}
         />
 
         <DashboardCard
-          icon={<MdWarning size={38} color="#fff" />}
           title="Low Stock Items"
-          count={10}
+          value={lowStock}
           color="#f59e0b"
+          icon={<MdWarning size={30} color="#fff" />}
         />
 
         <DashboardCard
-          icon={<MdCode size={38} color="#fff" />}
           title="Activity Logs"
-          count={10}
+          value="View"
           color="#6366f1"
+          icon={<MdCode size={30} color="#fff" />}
+          onView={() => navigate("/logs")}
         />
 
         <DashboardCard
-          icon={<MdManageAccounts size={38} color="#fff" />}
           title="System Users"
-          count={10}
+          value={systemUsers}
           color="#ef4444"
+          icon={<MdManageAccounts size={30} color="#fff" />}
         />
       </div>
 
-      {/* Recent Activities */}
+      {/* RECENT ACTIVITY */}
       <div className="row">
         <div className="col-12">
-          <div className="card shadow-sm activities-card">
-            <div className="card-header activities-header">
-              <h5 className="card-title mb-0 activities-title">Recent Activities</h5>
+          <div
+            className="card shadow-sm"
+            style={{
+              borderRadius: "15px",
+              overflow: "hidden",
+            }}
+          >
+            <div className="card-header bg-white p-3">
+              <h5 className="mb-0" style={{ fontWeight: 600 }}>
+                Recent Activities
+              </h5>
             </div>
-            <div className="card-body">
-              <p className="mb-0">Christian updated Inventory Stock Item #3</p>
+
+            <div className="card-body p-3">
+              <p className="mb-0">{recentActivity}</p>
             </div>
           </div>
         </div>
@@ -75,9 +120,10 @@ export default function Dashboard() {
   );
 }
 
-function DashboardCard({ icon, title, count, color }) {
+/* 🔥 Dashboard Card WITH View Button Preserved */
+function DashboardCard({ title, value, color, icon, onView }) {
   return (
-    <div className="col-lg-4 col-md-6">
+    <div className="col-12 col-sm-6 col-lg-4">
       <div
         className="card shadow-sm"
         style={{
@@ -85,25 +131,49 @@ function DashboardCard({ icon, title, count, color }) {
           color: "white",
           borderRadius: "15px",
           padding: "20px",
-          minHeight: "160px",
+          minHeight: onView ? "170px" : "140px",
           display: "flex",
           flexDirection: "column",
-          justifyContent: "space-between"
+          justifyContent: "space-between",
+          gap: "12px",
         }}
       >
-        {/* ICON */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "10px" }}>
-          {icon}
-          <h5 style={{ fontWeight: "600", fontSize: "16px" }}>{title}</h5>
+        {/* ICON + TITLE */}
+        <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+          <div
+            style={{
+              background: "rgba(255,255,255,0.25)",
+              width: "55px",
+              height: "55px",
+              borderRadius: "12px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {icon}
+          </div>
+
+          <h6 style={{ fontWeight: "bold", margin: 0 }}>{title}</h6>
         </div>
 
-        {/* COUNT */}
-        <h2 style={{ fontWeight: "bold", fontSize: "32px", marginBottom: "10px" }}>
-          {count}
-        </h2>
+        {/* VALUE */}
+        <h2 style={{ fontWeight: "bold", margin: 0 }}>{value}</h2>
 
-        {}
-        <button className="dashboard-view-btn">View</button>
+        {/* VIEW BUTTON (IF AVAILABLE) */}
+        {onView && (
+          <button
+            className="btn btn-light"
+            style={{
+              fontWeight: 600,
+              borderRadius: "8px",
+              marginTop: "5px",
+            }}
+            onClick={onView}
+          >
+            View
+          </button>
+        )}
       </div>
     </div>
   );

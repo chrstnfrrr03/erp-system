@@ -3,92 +3,97 @@ export default function PersonalInfoTab({ formData, handleInputChange, handleNex
     const checked = e.target.checked;
 
     handleInputChange({
-      target: {
-        name: "same_as_present",
-        type: "checkbox",
-        checked: checked
-      }
+      target: { name: "same_as_present", type: "checkbox", checked }
     });
 
     if (checked) {
       handleInputChange({
-        target: {
-          name: "home_address",
-          value: formData.present_address
-        }
+        target: { name: "home_address", value: formData.present_address || "" }
       });
     }
+  };
+
+  const baseInputStyle = {
+    borderRadius: "8px",
+    padding: "10px",
+    fontSize: "14px",
+    width: "100%"
+  };
+
+  const labelStyle = {
+    fontSize: "14px",
+    fontWeight: 600
   };
 
   return (
     <div className="tab-content" style={{ maxWidth: "100%", overflowX: "hidden" }}>
 
-      {/* Row 1: Birthdate, Age, Birth Place */}
+      {/* Row 1 */}
       <div className="row g-3 mb-3">
         <div className="col-12 col-sm-6 col-md-4">
-          <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Birthdate:</label>
+          <label className="form-label fw-semibold" style={labelStyle}>Birthdate:</label>
           <input
             type="date"
             name="birthdate"
             className="form-control"
-            value={formData.birthdate}
+            value={formData.birthdate || ""}
             onChange={handleInputChange}
-            style={{ borderRadius: "8px", padding: "10px", fontSize: "14px" }}
+            style={baseInputStyle}
           />
         </div>
 
         <div className="col-12 col-sm-6 col-md-4">
-          <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Age:</label>
+          <label className="form-label fw-semibold" style={labelStyle}>Age:</label>
           <input
             type="number"
             name="age"
             className="form-control"
-            value={formData.age}
+            value={formData.age || ""}
             onChange={handleInputChange}
             placeholder="Age"
-            style={{ borderRadius: "8px", padding: "10px", fontSize: "14px" }}
+            style={baseInputStyle}
           />
         </div>
 
-        <div className="col-12 col-md-4">
-          <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Birth Place:</label>
+        <div className="col-12 col-sm-6 col-md-4">
+          <label className="form-label fw-semibold" style={labelStyle}>Birth Place:</label>
           <input
             type="text"
-            name="birth_place"
+            name="birthplace"
             className="form-control"
-            value={formData.birth_place}
+            value={formData.birthplace || ""}
             onChange={handleInputChange}
             placeholder="Birth Place"
-            style={{ borderRadius: "8px", padding: "10px", fontSize: "14px" }}
+            style={baseInputStyle}
           />
         </div>
       </div>
 
-      {/* Row 2: Nationality, Civil Status, Religion */}
+      {/* Row 2 */}
       <div className="row g-3 mb-3">
         <div className="col-12 col-sm-6 col-md-4">
-          <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Nationality:</label>
+          <label className="form-label fw-semibold" style={labelStyle}>Nationality:</label>
           <input
             type="text"
             name="nationality"
             className="form-control"
-            value={formData.nationality}
+            value={formData.nationality || ""}
             onChange={handleInputChange}
             placeholder="Nationality"
-            style={{ borderRadius: "8px", padding: "10px", fontSize: "14px" }}
+            style={baseInputStyle}
           />
         </div>
 
         <div className="col-12 col-sm-6 col-md-4">
-          <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Civil Status:</label>
+          <label className="form-label fw-semibold" style={labelStyle}>Civil Status:</label>
           <select
             name="civil_status"
             className="form-select"
-            value={formData.civil_status}
+            value={formData.civil_status || ""}
             onChange={handleInputChange}
-            style={{ borderRadius: "8px", padding: "10px", fontSize: "14px" }}
+            style={baseInputStyle}
           >
-            <option value="">Select Civil Status</option>
+            <option value="">Select</option>
             <option value="Single">Single</option>
             <option value="Married">Married</option>
             <option value="Widowed">Widowed</option>
@@ -97,15 +102,15 @@ export default function PersonalInfoTab({ formData, handleInputChange, handleNex
         </div>
 
         <div className="col-12 col-sm-6 col-md-4">
-          <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Religion:</label>
+          <label className="form-label fw-semibold" style={labelStyle}>Religion:</label>
           <input
             type="text"
             name="religion"
             className="form-control"
-            value={formData.religion}
+            value={formData.religion || ""}
             onChange={handleInputChange}
             placeholder="Religion"
-            style={{ borderRadius: "8px", padding: "10px", fontSize: "14px" }}
+            style={baseInputStyle}
           />
         </div>
       </div>
@@ -113,8 +118,8 @@ export default function PersonalInfoTab({ formData, handleInputChange, handleNex
       {/* Row 3: Gender */}
       <div className="row g-3 mb-3">
         <div className="col-12">
-          <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Gender:</label>
-          <div style={{ display: "flex", gap: "20px", paddingTop: "6px" }}>
+          <label className="form-label fw-semibold" style={labelStyle}>Gender:</label>
+          <div style={{ display: "flex", gap: "25px", paddingTop: "8px" }}>
             <div className="form-check">
               <input
                 type="radio"
@@ -125,7 +130,9 @@ export default function PersonalInfoTab({ formData, handleInputChange, handleNex
                 className="form-check-input"
                 id="genderMale"
               />
-              <label className="form-check-label" htmlFor="genderMale" style={{ fontSize: "14px" }}>Male</label>
+              <label className="form-check-label" htmlFor="genderMale" style={{ fontSize: "14px" }}>
+                Male
+              </label>
             </div>
 
             <div className="form-check">
@@ -138,113 +145,112 @@ export default function PersonalInfoTab({ formData, handleInputChange, handleNex
                 className="form-check-input"
                 id="genderFemale"
               />
-              <label className="form-check-label" htmlFor="genderFemale" style={{ fontSize: "14px" }}>Female</label>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Row 4: Present Address */}
-      <div className="row g-3 mb-3">
-        <div className="col-12">
-          <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Present Address:</label>
-          <input
-            type="text"
-            name="present_address"
-            className="form-control"
-            value={formData.present_address}
-            onChange={handleInputChange}
-            placeholder="Present Address"
-            style={{ borderRadius: "8px", padding: "10px", fontSize: "14px" }}
-          />
-        </div>
-      </div>
-
-      {/* Row 5: Home Address + Checkbox */}
-      <div className="row g-3 mb-3">
-        <div className="col-12">
-          <div className="d-flex flex-column flex-md-row justify-content-between mb-1">
-            <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Home Address:</label>
-            <div className="form-check">
-              <input
-                type="checkbox"
-                name="same_as_present"
-                checked={formData.same_as_present}
-                onChange={handleSameAsPresent}
-                className="form-check-input"
-                id="sameAsPresent"
-              />
-              <label className="form-check-label" htmlFor="sameAsPresent" style={{ fontSize: "14px", color: "#007bff" }}>
-                -- Same as Present Address --
+              <label className="form-check-label" htmlFor="genderFemale" style={{ fontSize: "14px" }}>
+                Female
               </label>
             </div>
           </div>
-
-          <input
-            type="text"
-            name="home_address"
-            className="form-control"
-            value={formData.home_address}
-            onChange={handleInputChange}
-            disabled={formData.same_as_present}
-            placeholder="Home Address"
-            style={{ borderRadius: "8px", padding: "10px", fontSize: "14px" }}
-          />
         </div>
       </div>
 
-      {/* Row 6: Email + Mobile Number */}
+      {/* Present Address */}
+      <div className="mb-3">
+        <label className="form-label fw-semibold" style={labelStyle}>Present Address:</label>
+        <input
+          type="text"
+          name="present_address"
+          className="form-control"
+          value={formData.present_address || ""}
+          onChange={handleInputChange}
+          placeholder="Present Address"
+          style={baseInputStyle}
+        />
+      </div>
+
+      {/* Home Address */}
+      <div className="mb-3">
+        <div className="d-flex justify-content-between mb-1">
+          <label className="form-label fw-semibold" style={labelStyle}>Home Address:</label>
+
+          <div className="form-check">
+            <input
+              type="checkbox"
+              name="same_as_present"
+              checked={formData.same_as_present || false}
+              onChange={handleSameAsPresent}
+              className="form-check-input"
+              id="sameAsPresent"
+            />
+            <label className="form-check-label" htmlFor="sameAsPresent" style={{ fontSize: "14px", color: "#007bff" }}>
+              Same as Present
+            </label>
+          </div>
+        </div>
+
+        <input
+          type="text"
+          name="home_address"
+          className="form-control"
+          value={formData.home_address || ""}
+          onChange={handleInputChange}
+          disabled={formData.same_as_present}
+          placeholder="Home Address"
+          style={baseInputStyle}
+        />
+      </div>
+
+      {/* Email + Mobile */}
       <div className="row g-3 mb-3">
         <div className="col-12 col-md-6">
-          <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Email Address:</label>
+          <label className="form-label fw-semibold" style={labelStyle}>Email Address:</label>
           <input
             type="email"
-            name="email"
+            name="email_address"
             className="form-control"
-            value={formData.email}
+            value={formData.email_address || ""}
             onChange={handleInputChange}
-            placeholder="Enter Email or N/A if None"
-            style={{ borderRadius: "8px", padding: "10px", fontSize: "14px" }}
+            placeholder="Enter Email or N/A"
+            style={baseInputStyle}
           />
         </div>
 
         <div className="col-12 col-md-6">
-          <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Mobile Number:</label>
+          <label className="form-label fw-semibold" style={labelStyle}>Mobile Number:</label>
           <input
             type="text"
             name="mobile_number"
             className="form-control"
-            value={formData.mobile_number}
+            value={formData.mobile_number || ""}
             onChange={handleInputChange}
             placeholder="Mobile Number"
-            style={{ borderRadius: "8px", padding: "10px", fontSize: "14px" }}
+            style={baseInputStyle}
           />
         </div>
       </div>
 
-      {/* Row 7: Dependents + Lodged */}
-      <div className="row g-3 mb-3">
+      {/* Dependents + Lodged */}
+      <div className="row g-3 mb-4">
         <div className="col-12 col-md-6">
-          <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>No. of Dependents:</label>
+          <label className="form-label fw-semibold" style={labelStyle}>No. of Dependents:</label>
           <input
             type="number"
-            name="no_of_dependents"
+            name="dependents"
             className="form-control"
-            value={formData.no_of_dependents}
+            value={formData.dependents || ""}
             onChange={handleInputChange}
             placeholder="No. of Dependents"
-            style={{ borderRadius: "8px", padding: "10px", fontSize: "14px" }}
+            style={baseInputStyle}
           />
         </div>
 
         <div className="col-12 col-md-6">
-          <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Declaration of Lodged:</label>
+          <label className="form-label fw-semibold" style={labelStyle}>Declaration of Lodged:</label>
           <select
-            name="declaration_of_lodged"
+            name="lodged"
             className="form-select"
-            value={formData.declaration_of_lodged}
+            value={formData.lodged || ""}
             onChange={handleInputChange}
-            style={{ borderRadius: "8px", padding: "10px", fontSize: "14px" }}
+            style={baseInputStyle}
           >
             <option value="">Select</option>
             <option value="Yes">Yes</option>
@@ -253,43 +259,43 @@ export default function PersonalInfoTab({ formData, handleInputChange, handleNex
         </div>
       </div>
 
-      {/* Emergency Section */}
+      {/* Emergency Contact */}
       <div className="mb-4">
-        <h5 className="mb-3" style={{ fontWeight: "600", fontSize: "15px", borderBottom: "2px solid #dee2e6", paddingBottom: "10px" }}>
-          In case of Emergency
+        <h5 style={{ fontWeight: 600, fontSize: "15px", borderBottom: "2px solid #dee2e6", paddingBottom: "10px" }}>
+          In Case of Emergency
         </h5>
 
         <div className="row g-3">
           <div className="col-12 col-md-6">
-            <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Contact Person:</label>
+            <label className="form-label fw-semibold" style={labelStyle}>Contact Person:</label>
             <input
               type="text"
-              name="emergency_contact_person"
+              name="emergency_contact"
               className="form-control"
-              value={formData.emergency_contact_person}
+              value={formData.emergency_contact || ""}
               onChange={handleInputChange}
               placeholder="Contact Person"
-              style={{ borderRadius: "8px", padding: "10px", fontSize: "14px" }}
+              style={baseInputStyle}
             />
           </div>
 
           <div className="col-12 col-md-6">
-            <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Contact Number:</label>
+            <label className="form-label fw-semibold" style={labelStyle}>Contact Number:</label>
             <input
               type="text"
-              name="emergency_contact_number"
+              name="emergency_number"
               className="form-control"
-              value={formData.emergency_contact_number}
+              value={formData.emergency_number || ""}
               onChange={handleInputChange}
               placeholder="Contact Number"
-              style={{ borderRadius: "8px", padding: "10px", fontSize: "14px" }}
+              style={baseInputStyle}
             />
           </div>
         </div>
       </div>
 
       {/* Next Button */}
-      <div className="d-flex justify-content-end">
+      <div className="d-flex justify-content-end mt-4">
         <button
           type="button"
           className="btn btn-primary"
@@ -297,7 +303,7 @@ export default function PersonalInfoTab({ formData, handleInputChange, handleNex
           style={{
             padding: "10px 40px",
             borderRadius: "8px",
-            fontSize: "14px",
+            fontSize: "15px",
             fontWeight: "500"
           }}
         >
