@@ -2,6 +2,7 @@
 
 return [
 
+<<<<<<< HEAD
     /*
     |--------------------------------------------------------------------------
     | Cross-Origin Resource Sharing (CORS) Configuration
@@ -21,4 +22,11 @@ return [
     'allowed_headers' => ['*'],
     'supports_credentials' => true,
 
+=======
+'paths' => ['api/*'],
+'allowed_origins' => ['http://localhost:5173'],
+'allowed_methods' => ['*'],
+'allowed_headers' => ['*'],
+'supports_credentials' => true,
+>>>>>>> f40f2da41c5a9d7849badc21ab5053ecbe4b75fa
 ];

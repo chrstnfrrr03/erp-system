@@ -1,0 +1,46 @@
+<?php
+
+namespace App\Models\HRMS;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+use App\Models\HRMS\Employee;
+
+class PersonalInformation extends Model
+{
+    use HasFactory;
+
+    protected $table = 'personal_information'; // ensures clarity & avoids naming confusion
+
+    protected $fillable = [
+        'employee_id',
+        'birthdate',
+        'age',
+        'birthplace',
+        'nationality',
+        'civil_status',
+        'religion',
+        'gender',
+        'present_address',
+        'home_address',
+        'email_address',
+        'mobile_number',
+        'dependents',
+        'lodged',
+        'emergency_contact',
+        'emergency_number',
+    ];
+
+    protected $casts = [
+        'birthdate'   => 'date',
+        'age'         => 'integer',
+        'dependents'  => 'integer',
+        'lodged'      => 'string',
+    ];
+
+    public function employee()
+    {
+        return $this->belongsTo(Employee::class);
+    }
+}
