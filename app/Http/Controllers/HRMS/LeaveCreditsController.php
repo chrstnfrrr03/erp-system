@@ -21,7 +21,7 @@ class LeaveCreditsController extends Controller
     }
 
     /**
-     * Show single record.
+     * Show single record by ID (apiResource default).
      */
     public function show($id)
     {
@@ -31,8 +31,23 @@ class LeaveCreditsController extends Controller
     }
 
     /**
-     * Store (1 record per employee).
-     * Employee MUST already exist from Employment tab.
+     * Show leave credits by biometric_id
+     * PHASE 5
+     */
+    public function showByEmployee($biometric_id)
+    {
+        $employee = Employee::where('biometric_id', $biometric_id)->firstOrFail();
+
+        return response()->json(
+            LeaveCredits::where('employee_id', $employee->id)
+                ->with('employee')
+                ->firstOrFail()
+        );
+    }
+
+    /**
+     * Store (1 record per employee only)
+     * Used during Add Employee
      */
     public function store(Request $request)
     {
@@ -40,47 +55,41 @@ class LeaveCreditsController extends Controller
             'employee_id'        => 'required|integer|exists:employees,id',
 
             'vacation_year'      => 'nullable|integer',
-            'vacation_credits'   => 'nullable|numeric',
+            'vacation_credits'   => 'nullable|numeric|min:0',
 
             'sick_year'          => 'nullable|integer',
-            'sick_credits'       => 'nullable|numeric',
+            'sick_credits'       => 'nullable|numeric|min:0',
 
             'emergency_year'     => 'nullable|integer',
-            'emergency_credits'  => 'nullable|numeric',
+            'emergency_credits'  => 'nullable|numeric|min:0',
         ]);
 
         return DB::transaction(function () use ($validated) {
 
-            // Get the employee (already validated it exists)
             $employee = Employee::findOrFail($validated['employee_id']);
 
-            // Create or update leave credits for this employee
-            // Convert empty strings to null, but keep 0 as valid
             $record = LeaveCredits::updateOrCreate(
                 ['employee_id' => $employee->id],
                 [
-                    'vacation_year'      => $validated['vacation_year'] !== '' && $validated['vacation_year'] !== null ? $validated['vacation_year'] : null,
-                    'vacation_credits'   => $validated['vacation_credits'] !== '' && $validated['vacation_credits'] !== null ? $validated['vacation_credits'] : null,
+                    'vacation_year'      => $validated['vacation_year'] ?? null,
+                    'vacation_credits'   => $validated['vacation_credits'] ?? null,
 
-                    'sick_year'          => $validated['sick_year'] !== '' && $validated['sick_year'] !== null ? $validated['sick_year'] : null,
-                    'sick_credits'       => $validated['sick_credits'] !== '' && $validated['sick_credits'] !== null ? $validated['sick_credits'] : null,
+                    'sick_year'          => $validated['sick_year'] ?? null,
+                    'sick_credits'       => $validated['sick_credits'] ?? null,
 
-                    'emergency_year'     => $validated['emergency_year'] !== '' && $validated['emergency_year'] !== null ? $validated['emergency_year'] : null,
-                    'emergency_credits'  => $validated['emergency_credits'] !== '' && $validated['emergency_credits'] !== null ? $validated['emergency_credits'] : null,
+                    'emergency_year'     => $validated['emergency_year'] ?? null,
+                    'emergency_credits'  => $validated['emergency_credits'] ?? null,
                 ]
             );
 
-            // Standard response
-            $response = $record->toArray();
-            $response['employee_id']  = $employee->id;
-            $response['biometric_id'] = $employee->biometric_id;
-
-            return response()->json($response, 201);
+            return response()->json([
+                'data' => $record->load('employee'),
+            ], 201);
         });
     }
 
     /**
-     * Update record.
+     * Update record by ID (apiResource default)
      */
     public function update(Request $request, $id)
     {
@@ -88,29 +97,47 @@ class LeaveCreditsController extends Controller
 
         $validated = $request->validate([
             'vacation_year'      => 'nullable|integer',
-            'vacation_credits'   => 'nullable|numeric',
+            'vacation_credits'   => 'nullable|numeric|min:0',
 
             'sick_year'          => 'nullable|integer',
-            'sick_credits'       => 'nullable|numeric',
+            'sick_credits'       => 'nullable|numeric|min:0',
 
             'emergency_year'     => 'nullable|integer',
-            'emergency_credits'  => 'nullable|numeric',
+            'emergency_credits'  => 'nullable|numeric|min:0',
         ]);
 
         return DB::transaction(function () use ($record, $validated) {
             $record->update($validated);
+
             return response()->json(
                 $record->fresh()->load('employee')
             );
         });
     }
 
-    /**
-     * Delete record.
-     */
-    public function destroy($id)
-    {
-        LeaveCredits::findOrFail($id)->delete();
-        return response()->json(['message' => 'Record deleted successfully']);
-    }
+    public function updateByEmployee(Request $request, $biometric_id)
+{
+    $employee = Employee::where('biometric_id', $biometric_id)->firstOrFail();
+
+    $leaveCredits = LeaveCredits::where('employee_id', $employee->id)->firstOrFail();
+
+    $validated = $request->validate([
+        'vacation_year'      => 'nullable|integer',
+        'vacation_credits'   => 'nullable|numeric|min:0',
+
+        'sick_year'          => 'nullable|integer',
+        'sick_credits'       => 'nullable|numeric|min:0',
+
+        'emergency_year'     => 'nullable|integer',
+        'emergency_credits'  => 'nullable|numeric|min:0',
+    ]);
+
+    $leaveCredits->update($validated);
+
+    return response()->json([
+        'message' => 'Leave credits updated successfully',
+        'data' => $leaveCredits->fresh()->load('employee'),
+    ]);
+}
+
 }

@@ -17,13 +17,13 @@ class ShiftSeeder extends Seeder
             ],
             [
                 'shift_name' => 'Morning Shift',
-                'start_time' => '06:00:00',
-                'end_time' => '14:00:00',
+                'start_time' => '07:00:00',
+                'end_time' => '16:00:00',
             ],
             [
                 'shift_name' => 'Night Shift',
                 'start_time' => '22:00:00',
-                'end_time' => '06:00:00',
+                'end_time' => '07:00:00',
             ],
         ];
 

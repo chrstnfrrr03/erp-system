@@ -4,7 +4,6 @@ namespace App\Models\HRMS;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
 use App\Models\HRMS\Employee;
 
 class Shift extends Model
@@ -20,13 +19,13 @@ class Shift extends Model
     ];
 
     protected $casts = [
-        'start_time' => 'datetime:H:i',
-        'end_time' => 'datetime:H:i',
+        'start_time' => 'string',
+        'end_time' => 'string',
     ];
 
-    // Relationship: One shift → many employees
+    // One shift → many employees
     public function employees()
     {
-        return $this->hasMany(Employee::class);
+        return $this->hasMany(Employee::class, 'shift_id', 'id');
     }
 }

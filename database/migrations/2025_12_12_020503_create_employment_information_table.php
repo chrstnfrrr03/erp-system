@@ -11,20 +11,26 @@ return new class extends Migration
         Schema::create('employment_information', function (Blueprint $table) {
             $table->id();
 
-            // Relationship to employees
-            $table->foreignId('employee_id')->constrained('employees')->onDelete('cascade');
+            // FK to employees
+            $table->foreignId('employee_id')
+                ->constrained('employees')
+                ->onDelete('cascade');
 
-            // Employment-related fields ONLY
-            $table->string('department');
-            $table->string('position');
+            // New department relationship (FK)
+            $table->foreignId('department_id')
+                ->nullable()
+                ->constrained('departments')
+                ->nullOnDelete();
+
+            // Other fields
+            $table->string('position')->nullable();
             $table->string('department_head')->nullable();
             $table->string('supervisor')->nullable();
             $table->string('job_location')->nullable();
 
-            $table->string('employee_type');           // full-time, part-time, contract
-            $table->string('employment_status');       // active, inactive
+            $table->string('employee_type');        // full-time, contract, etc.
+            $table->string('employment_status');    // active, inactive
 
-            
             $table->string('employment_classification')->nullable();
 
             $table->string('company_email')->nullable();

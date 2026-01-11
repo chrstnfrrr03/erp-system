@@ -25,6 +25,9 @@ return new class extends Migration
             // Profile Picture
             $table->string('profile_picture')->nullable();
 
+            // QR Code
+            $table->text('qr_code')->nullable();
+
             // Shift (nullable because employees might not be assigned yet)
             $table->foreignId('shift_id')
                   ->nullable()

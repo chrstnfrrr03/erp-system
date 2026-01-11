@@ -11,44 +11,40 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class EmployeeExportController extends Controller
 {
     /**
-     * Build base query joining employees -> employment_information
+     * Build base query joining employees -> employment_information -> departments
      */
     protected function buildQuery($search = null, $department = null, $status = null)
     {
         return DB::table('employees')
             ->leftJoin('employment_information', 'employees.id', '=', 'employment_information.employee_id')
+            ->leftJoin('departments', 'employment_information.department_id', '=', 'departments.id')
             ->select(
                 'employees.biometric_id',
+
                 DB::raw("CONCAT(
                     employees.first_name, ' ',
                     COALESCE(CONCAT(employees.middle_name, ' '), ''),
                     employees.last_name
                 ) AS fullname"),
 
-                'employment_information.department',
+                'departments.name as department',
                 'employment_information.position',
                 DB::raw("COALESCE(employment_information.date_started, '') AS hireDate"),
-
-                
                 DB::raw("COALESCE(employment_information.employment_classification, '') AS employment_classification")
             )
-
             ->when($search, function ($q) use ($search) {
-                $q->where(function($query) use ($search) {
+                $q->where(function ($query) use ($search) {
                     $query->where('employees.first_name', 'LIKE', "%{$search}%")
-                          ->orWhere('employees.last_name', 'LIKE', "%{$search}%")
-                          ->orWhere('employees.biometric_id', 'LIKE', "%{$search}%");
+                        ->orWhere('employees.last_name', 'LIKE', "%{$search}%")
+                        ->orWhere('employees.biometric_id', 'LIKE', "%{$search}%");
                 });
             })
-
             ->when($department && $department !== 'All', function ($q) use ($department) {
-                $q->where('employment_information.department', $department);
+                $q->where('employment_information.department_id', $department);
             })
-
             ->when($status && $status !== 'All', function ($q) use ($status) {
                 $q->where('employment_information.employment_classification', $status);
             })
-
             ->orderBy('employees.first_name', 'asc');
     }
 
@@ -61,8 +57,7 @@ class EmployeeExportController extends Controller
         $department = $request->query('department');
         $status = $request->query('status');
 
-        $query = $this->buildQuery($search, $department, $status);
-        $employees = $query->get();
+        $employees = $this->buildQuery($search, $department, $status)->get();
 
         $response = new StreamedResponse(function () use ($employees) {
             $out = fopen('php://output', 'w');
@@ -107,8 +102,7 @@ class EmployeeExportController extends Controller
         $department = $request->query('department');
         $status = $request->query('status');
 
-        $query = $this->buildQuery($search, $department, $status);
-        $employees = $query->get();
+        $employees = $this->buildQuery($search, $department, $status)->get();
 
         $pdf = Pdf::loadView('exports.employees', [
             'employees' => $employees
@@ -124,6 +118,7 @@ class EmployeeExportController extends Controller
     {
         $employee = DB::table('employees')
             ->leftJoin('employment_information', 'employees.id', '=', 'employment_information.employee_id')
+            ->leftJoin('departments', 'employment_information.department_id', '=', 'departments.id')
             ->leftJoin('personal_information', 'employees.id', '=', 'personal_information.employee_id')
             ->leftJoin('account_information', 'employees.id', '=', 'account_information.employee_id')
             ->leftJoin('leave_credits', 'employees.id', '=', 'leave_credits.employee_id')
@@ -132,6 +127,7 @@ class EmployeeExportController extends Controller
             ->select(
                 'employees.biometric_id',
                 'employees.profile_picture',
+
                 DB::raw("CONCAT(
                     employees.first_name, ' ',
                     COALESCE(CONCAT(employees.middle_name, ' '), ''),
@@ -156,7 +152,7 @@ class EmployeeExportController extends Controller
                 'personal_information.emergency_number',
 
                 // Employment Info
-                'employment_information.department',
+                'departments.name as department',
                 'employment_information.position',
                 'employment_information.department_head',
                 'employment_information.supervisor',

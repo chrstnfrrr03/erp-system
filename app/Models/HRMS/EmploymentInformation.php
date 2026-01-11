@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 use App\Models\HRMS\Employee;
+use App\Models\HRMS\Department;
 
 class EmploymentInformation extends Model
 {
@@ -15,7 +16,7 @@ class EmploymentInformation extends Model
 
     protected $fillable = [
         'employee_id',
-        'department',
+        'department_id',       
         'position',
         'department_head',
         'supervisor',
@@ -39,5 +40,11 @@ class EmploymentInformation extends Model
     public function employee()
     {
         return $this->belongsTo(Employee::class, 'employee_id', 'id');
+    }
+
+    
+    public function department()
+    {
+        return $this->belongsTo(Department::class, 'department_id', 'id');
     }
 }

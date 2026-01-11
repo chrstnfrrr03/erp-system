@@ -6,47 +6,42 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('personal_information', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('employee_id')->constrained('employees')->onDelete('cascade');
+        if (!Schema::hasTable('personal_information')) {
+            Schema::create('personal_information', function (Blueprint $table) {
 
-            // Basic personal details
-            $table->date('birthdate')->nullable();
-            $table->integer('age')->nullable();
-            $table->string('birthplace')->nullable();
-            $table->string('nationality')->nullable();
-            $table->string('civil_status')->nullable();
-            $table->string('religion')->nullable();
-            $table->string('gender')->nullable();
+                $table->id();
 
-            // Address
-            $table->string('present_address')->nullable();
-            $table->string('home_address')->nullable();
+                $table->foreignId('employee_id')
+                    ->constrained('employees')
+                    ->onDelete('cascade');
 
-            // Contact information
-            $table->string('email_address')->nullable();
-            $table->string('mobile_number')->nullable();
+                $table->date('birthdate')->nullable();
+                $table->integer('age')->nullable();
+                $table->string('birthplace')->nullable();
+                $table->string('nationality')->nullable();
+                $table->string('civil_status')->nullable();
+                $table->string('religion')->nullable();
+                $table->string('gender')->nullable();
 
-            // Additional info
-            $table->integer('dependents')->nullable();
-            $table->string('lodged')->nullable(); // boolean in model but stored as string
+                $table->string('present_address')->nullable();
+                $table->string('home_address')->nullable();
 
-            // Emergency contact
-            $table->string('emergency_contact')->nullable();
-            $table->string('emergency_number')->nullable();
+                $table->string('email_address')->nullable();
+                $table->string('mobile_number')->nullable();
 
-            $table->timestamps();
-        });
+                $table->integer('dependents')->nullable();
+                $table->string('lodged')->nullable();
+
+                $table->string('emergency_contact')->nullable();
+                $table->string('emergency_number')->nullable();
+
+                $table->timestamps();
+            });
+        }
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('personal_information');

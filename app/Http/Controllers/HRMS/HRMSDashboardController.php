@@ -5,6 +5,7 @@ namespace App\Http\Controllers\HRMS;
 use App\Http\Controllers\Controller;
 use App\Models\HRMS\Employee;
 use App\Models\HRMS\EmploymentInformation;
+use App\Models\HRMS\Department;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -40,7 +41,7 @@ class HRMSDashboardController extends Controller
      */
     public function getRecentEmployees()
     {
-        $employees = Employee::with('employmentInformation')
+        $employees = Employee::with('employmentInformation.department')
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get()
@@ -48,7 +49,7 @@ class HRMSDashboardController extends Controller
                 return [
                     'id' => $employee->biometric_id,
                     'name' => trim($employee->first_name . ' ' . ($employee->middle_name ? $employee->middle_name . ' ' : '') . $employee->last_name),
-                    'department' => $employee->employmentInformation->department ?? 'N/A',
+                    'department' => $employee->employmentInformation->department->name ?? 'N/A',
                     'position' => $employee->employmentInformation->position ?? 'N/A',
                     'status' => $employee->employmentInformation->employment_status ?? 'N/A',
                 ];
@@ -58,13 +59,15 @@ class HRMSDashboardController extends Controller
     }
 
     /**
-     * Get department distribution
+     * Get department distribution - FIXED
      */
     public function getDepartmentDistribution()
     {
-        $distribution = EmploymentInformation::select('department', DB::raw('count(*) as employees'))
-            ->whereNotNull('department')
-            ->groupBy('department')
+        $distribution = DB::table('employment_information')
+            ->leftJoin('departments', 'employment_information.department_id', '=', 'departments.id')
+            ->select('departments.name as department', DB::raw('count(*) as employees'))
+            ->whereNotNull('employment_information.department_id')
+            ->groupBy('departments.id', 'departments.name')
             ->orderBy('employees', 'desc')
             ->get();
 
@@ -72,29 +75,27 @@ class HRMSDashboardController extends Controller
     }
 
     /**
-     * Get all employees for main table
+     * Get all employees for main table - FIXED
      */
     public function getEmployees()
-{
-    $employees = DB::table('employees')
-        ->leftJoin('employment_information', 'employees.id', '=', 'employment_information.employee_id')
-        ->leftJoin('personal_information', 'employees.id', '=', 'personal_information.employee_id')
-        ->select(
-            'employees.id',
-            'employees.biometric_id',
-            DB::raw("CONCAT_WS(' ', employees.first_name, employees.middle_name, employees.last_name) AS fullname"),
-            'employment_information.department',
-            'employment_information.position',
+    {
+        $employees = DB::table('employees')
+            ->leftJoin('employment_information', 'employees.id', '=', 'employment_information.employee_id')
+            ->leftJoin('departments', 'employment_information.department_id', '=', 'departments.id')
+            ->leftJoin('personal_information', 'employees.id', '=', 'personal_information.employee_id')
+            ->select(
+                'employees.id',
+                'employees.biometric_id',
+                'employees.employee_number',  
+                DB::raw("CONCAT_WS(' ', employees.first_name, employees.middle_name, employees.last_name) AS fullname"),
+                'departments.name as department',  
+                'employment_information.position',
+                'employment_information.employment_classification as status',
+                DB::raw('employment_information.date_started as hireDate')
+            )
+            ->orderBy('employees.id', 'DESC')
+            ->get();
 
-            
-            'employment_information.employment_classification as status',
-
-            DB::raw('employment_information.date_started as hireDate')
-        )
-        ->orderBy('employees.id', 'DESC')
-        ->get();
-
-    return response()->json($employees);
-}
-
+        return response()->json($employees);
+    }
 }
