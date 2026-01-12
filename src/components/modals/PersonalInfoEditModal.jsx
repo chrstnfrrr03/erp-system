@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Modal } from "react-bootstrap";
+import Swal from "sweetalert2";
 
 export default function PersonalInfoEditModal({ show, onHide, employee, onSave }) {
   const [formData, setFormData] = useState({
@@ -67,11 +68,25 @@ export default function PersonalInfoEditModal({ show, onHide, employee, onSave }
     }
   };
 
-  const handleSubmit = () => {
-    // Remove the checkbox field before saving
-    const { same_as_present, ...dataToSave } = formData;
-    onSave(dataToSave);
-  };
+  const handleSubmit = async () => {
+  const result = await Swal.fire({
+    title: "Confirm Update",
+    text: "Are you sure you want to save these personal information changes?",
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonColor: "#198754",
+    cancelButtonColor: "#6c757d",
+    confirmButtonText: "Yes, Save",
+    cancelButtonText: "Cancel",
+  });
+
+  if (!result.isConfirmed) return;
+
+  // Remove the checkbox field before saving
+  const { same_as_present, ...dataToSave } = formData;
+  onSave(dataToSave);
+};
+
 
   return (
     <Modal show={show} onHide={onHide} size="xl" centered backdrop="static">

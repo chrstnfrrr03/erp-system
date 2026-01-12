@@ -10,31 +10,38 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
   };
 
   const [shifts, setShifts] = useState([]);
+  const [departments, setDepartments] = useState([]);
 
+  // Fetch shifts + departments only
   useEffect(() => {
     axios
       .get(`${import.meta.env.VITE_API_URL}/api/hrms/shifts`)
       .then((res) => {
-        console.log("Shift API Response:", res.data);
-
-        const shiftList =
-          Array.isArray(res.data)
-            ? res.data
-            : Array.isArray(res.data.data)
-            ? res.data.data
-            : [];
-
+        console.log("Shifts Response:", res.data); // DEBUG
+        const shiftList = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data.data)
+          ? res.data.data
+          : [];
         setShifts(shiftList);
       })
-      .catch((err) => {
-        console.error("Shift fetch error:", err);
-      });
+      .catch((err) => console.error("Shift fetch error:", err));
+
+    axios
+      .get(`${import.meta.env.VITE_API_URL}/api/hrms/departments`)
+      .then((res) => {
+        console.log("Departments Response:", res.data); // DEBUG
+        setDepartments(res.data.data || res.data || []);
+      })
+      .catch((err) => console.error("Department fetch error:", err));
   }, []);
 
   return (
     <div className="tab-content" style={{ maxWidth: "100%", overflowX: "hidden" }}>
+      
       {/* Row 1: Name fields */}
       <div className="row g-3 mb-3">
+        
         <div className="col-12 col-sm-6 col-md-4">
           <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>First Name:</label>
           <input
@@ -75,26 +82,30 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
         </div>
       </div>
 
-      {/* Row 2: Department, Position, etc. */}
+      {/* Row 2 */}
       <div className="row g-3 mb-3">
+
+        {/* Department */}
         <div className="col-12 col-sm-6 col-lg-3">
           <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Department:</label>
           <select
-            name="department"
+            name="department_id"
             className="form-select"
-            value={formData.department}
+            value={formData.department_id || ""}
             onChange={handleInputChange}
             style={baseInputStyle}
           >
             <option value="">Select Department</option>
-            <option value="IT">IT</option>
-            <option value="HR">HR</option>
-            <option value="Sales">Sales</option>
-            <option value="Finance">Finance</option>
-            <option value="Operations">Operations</option>
+            {departments.length === 0 && <option disabled>Loading departments...</option>}
+            {departments.map((dept) => (
+              <option key={dept.id} value={dept.id}>
+                {dept.name}
+              </option>
+            ))}
           </select>
         </div>
 
+        {/* Position */}
         <div className="col-12 col-sm-6 col-lg-3">
           <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Position:</label>
           <input
@@ -108,26 +119,28 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
           />
         </div>
 
+        {/* MANUAL Department Head - FIXED FIELD NAME */}
         <div className="col-12 col-sm-6 col-lg-3">
           <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Department Head:</label>
           <input
             type="text"
             name="department_head"
             className="form-control"
-            value={formData.department_head}
+            value={formData.department_head || ""}
             onChange={handleInputChange}
             placeholder="Department Head"
             style={baseInputStyle}
           />
         </div>
 
+        {/* MANUAL Supervisor - FIXED FIELD NAME */}
         <div className="col-12 col-sm-6 col-lg-3">
           <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Supervisor:</label>
           <input
             type="text"
             name="supervisor"
             className="form-control"
-            value={formData.supervisor}
+            value={formData.supervisor || ""}
             onChange={handleInputChange}
             placeholder="Supervisor"
             style={baseInputStyle}
@@ -135,8 +148,9 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
         </div>
       </div>
 
-      {/* Row 3: Job location, Company email */}
+      {/* Row 3 */}
       <div className="row g-3 mb-3">
+        
         <div className="col-12 col-md-6">
           <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Job Location:</label>
           <input
@@ -164,9 +178,9 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
         </div>
       </div>
 
-      {/* Row 4: Type, Status, Rate */}
+      {/* Row 4 */}
       <div className="row g-3 mb-3">
-        {/* UPDATED EMPLOYEE TYPE */}
+
         <div className="col-12 col-sm-6 col-lg-3">
           <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Employee Type:</label>
           <select
@@ -199,9 +213,7 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
         </div>
 
         <div className="col-12 col-sm-6 col-lg-3">
-          <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>
-            Employment Classification:
-          </label>
+          <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Employment Classification:</label>
           <select
             name="employment_classification"
             className="form-select"
@@ -250,7 +262,7 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
         </div>
       </div>
 
-      {/* Row 5: Shift from Seeder */}
+      {/* Row 5: Shifts */}
       <div className="row g-3 mb-3">
         <div className="col-12 col-md-6">
           <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Shift:</label>
@@ -262,22 +274,17 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
             style={baseInputStyle}
           >
             <option value="">Select Shift</option>
-
             {shifts.length === 0 && <option disabled>Loading shifts...</option>}
-
             {shifts.map((shift) => (
               <option key={shift.id} value={shift.id}>
-                {shift.shift_name}
-                {shift.start_time && shift.end_time
-                  ? ` (${shift.start_time} - ${shift.end_time})`
-                  : ""}
+                {shift.shift_name} ({shift.start_time} - {shift.end_time})
               </option>
             ))}
           </select>
         </div>
       </div>
 
-      {/* Row 6: Dates */}
+      {/* Row 6 */}
       <div className="row g-3 mb-4">
         <div className="col-12 col-md-6">
           <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Date Started:</label>
@@ -304,7 +311,7 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
         </div>
       </div>
 
-      {/* Next button */}
+      {/* Next */}
       <div className="d-flex justify-content-end mt-4">
         <button
           type="button"

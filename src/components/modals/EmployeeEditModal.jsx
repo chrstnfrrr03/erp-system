@@ -1,25 +1,33 @@
 import { useState, useEffect } from "react";
 import { Modal } from "react-bootstrap";
 import { FaUserCircle } from "react-icons/fa";
+import api from "../../api";
+import Swal from "sweetalert2";
 
 export default function EmployeeEditModal({ show, onHide, employee, onSave }) {
+  const [shifts, setShifts] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [isNasfundMember, setIsNasfundMember] = useState(false);
+
   const [formData, setFormData] = useState({
     biometric_id: "",
     first_name: "",
     middle_name: "",
     last_name: "",
-    department: "",
+    department_id: "",
+    shift_id: "",
     job_location: "",
     department_head: "",
     supervisor: "",
     position: "",
     company_email: "",
-    employment_classification: "Regular",  // CHANGED from employment_status
+    employment_classification: "Regular",
     employee_type: "",
     rate_type: "",
     rate: "",
     date_started: "",
     date_ended: "",
+    nasfund_member: "No", 
     nasfund_number: "",
     tin_number: "",
     work_permit_number: "",
@@ -40,35 +48,95 @@ export default function EmployeeEditModal({ show, onHide, employee, onSave }) {
     return dateString.split("T")[0];
   };
 
+  // FETCH DEPARTMENTS
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const res = await api.get("/departments");
+        setDepartments(res.data.data || res.data || []);
+      } catch (err) {
+        console.error("Failed to fetch departments:", err);
+      }
+    };
+    fetchDepartments();
+  }, []);
+
+  // FETCH SHIFTS
+  useEffect(() => {
+    const fetchShifts = async () => {
+      try {
+        const res = await api.get("/shifts");
+        setShifts(res.data);
+      } catch (err) {
+        console.error("Failed to fetch shifts:", err);
+      }
+    };
+    fetchShifts();
+  }, []);
+
+  useEffect(() => {
+    if (employee && shifts.length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        shift_id: employee.shift?.shift_id
+          ? String(employee.shift.shift_id)
+          : "",
+      }));
+    }
+  }, [employee, shifts]);
+
   useEffect(() => {
     if (employee) {
+      // ✅ AUTO-DETECT: If NASFUND number exists, set member to "Yes"
+      const hasNasfundNumber = employee.nasfund_number && employee.nasfund_number.trim() !== "";
+      const nasfundMemberStatus = hasNasfundNumber ? "Yes" : (employee.nasfund_member || "No");
+      const isMember = nasfundMemberStatus === "Yes";
+      
+      setIsNasfundMember(isMember);
+
       setFormData({
         biometric_id: employee.biometric_id || "",
         first_name: employee.first_name || "",
         middle_name: employee.middle_name || "",
         last_name: employee.last_name || "",
-        department: employee.department || "",
+
+        department_id: employee.employment_information?.department_id
+          ? String(employee.employment_information.department_id)
+          : "",
+
+        shift_id: employee.shift?.shift_id
+          ? String(employee.shift.shift_id)
+          : "",
+
         job_location: employee.job_location || "",
         department_head: employee.department_head || "",
         supervisor: employee.supervisor || "",
         position: employee.position || "",
         company_email: employee.company_email || "",
-        employment_classification: employee.employment_classification || "Regular",  // CHANGED
+
+        employment_classification: employee.employment_classification || "Regular",
         employee_type: employee.employee_type || "",
         rate_type: employee.rate_type || "",
         rate: employee.rate || "",
+
         date_started: formatDate(employee.date_started),
         date_ended: formatDate(employee.date_ended),
+
+        nasfund_member: nasfundMemberStatus, // ✅ AUTO-SET BASED ON NUMBER
         nasfund_number: employee.nasfund_number || "",
         tin_number: employee.tin_number || "",
+
         work_permit_number: employee.work_permit_number || "",
         work_permit_expiry: formatDate(employee.work_permit_expiry),
+
         visa_number: employee.visa_number || "",
         visa_expiry: formatDate(employee.visa_expiry),
+
         bsb_code: employee.bsb_code || "",
         bank_name: employee.bank_name || "",
         account_number: employee.account_number || "",
         account_name: employee.account_name || "",
+
         profile_picture: null,
       });
 
@@ -89,11 +157,21 @@ export default function EmployeeEditModal({ show, onHide, employee, onSave }) {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      alert("Please select an image file");
+      Swal.fire({
+        icon: "error",
+        title: "Invalid File Type",
+        text: "Please select an image file",
+        confirmButtonColor: "#d33",
+      });
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      alert("Image must be smaller than 2MB");
+      Swal.fire({
+        icon: "error",
+        title: "File Too Large",
+        text: "Image must be smaller than 2MB",
+        confirmButtonColor: "#d33",
+      });
       return;
     }
 
@@ -106,14 +184,63 @@ export default function EmployeeEditModal({ show, onHide, employee, onSave }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
 
+    // Handle NASFUND member toggle
+    if (name === "nasfund_member") {
+      setIsNasfundMember(value === "Yes");
+      // Clear NASFUND number if changing to "No"
+      if (value === "No") {
+        setFormData((prev) => ({
+          ...prev,
+          [name]: value,
+          nasfund_number: "",
+        }));
+        return;
+      }
+    }
+
+    // ✅ AUTO-UPDATE: If NASFUND number is entered, auto-set member to "Yes"
+    if (name === "nasfund_number") {
+      const hasNumber = value && value.trim() !== "";
+      if (hasNumber && formData.nasfund_member === "No") {
+        setIsNasfundMember(true);
+        setFormData((prev) => ({
+          ...prev,
+          nasfund_member: "Yes",
+          nasfund_number: value,
+        }));
+        return;
+      }
+    }
+
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
 
-  const handleSubmit = () => {
-    onSave(formData);
+  const handleSubmit = async () => {
+    const result = await Swal.fire({
+      title: "Confirm Update",
+      text: "Are you sure you want to save these changes?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#198754",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Yes, Save",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!result.isConfirmed) return;
+
+    // Create a copy of formData and ensure dates are properly formatted
+    const dataToSend = {
+      ...formData,
+      date_started: formData.date_started || null,
+      date_ended: formData.date_ended || null,
+    };
+
+    console.log("Submitting data:", dataToSend);
+    onSave(dataToSend);
   };
 
   return (
@@ -187,29 +314,60 @@ export default function EmployeeEditModal({ show, onHide, employee, onSave }) {
               <div className="col-6">
                 <SelectField
                   label="Department:"
-                  name="department"
-                  value={formData.department}
+                  name="department_id"
+                  value={formData.department_id}
                   onChange={handleChange}
-                  options={["IT", "HR", "Sales", "Finance", "Operations"]}
+                  options={departments.map(dept => ({ id: dept.id, name: dept.name }))}
+                  isObjectOptions={true}
                 />
               </div>
+
               <div className="col-6">
-                <InputField label="Job Location:" name="job_location" value={formData.job_location} onChange={handleChange} />
+                <SelectField
+                  label="Shift:"
+                  name="shift_id"
+                  value={formData.shift_id}
+                  onChange={handleChange}
+                  options={shifts.map(shift => ({
+                    id: shift.id,
+                    name: `${shift.shift_name} (${shift.start_time} - ${shift.end_time})`
+                  }))}
+                  isObjectOptions={true}
+                />
               </div>
             </div>
 
-            <InputField
-              label="Department Head:"
-              name="department_head"
-              value={formData.department_head}
-              onChange={handleChange}
-            />
-            <InputField
-              label="Immediate Superior:"
-              name="supervisor"
-              value={formData.supervisor}
-              onChange={handleChange}
-            />
+            <div className="row g-2">
+              <div className="col-6">
+                <InputField
+                  label="Job Location:"
+                  name="job_location"
+                  value={formData.job_location}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+
+            <div className="row g-2">
+              <div className="col-6">
+                <InputField
+                  label="Department Head:"
+                  name="department_head"
+                  value={formData.department_head}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="col-6">
+                <InputField
+                  label="Supervisor:"
+                  name="supervisor"
+                  value={formData.supervisor}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+
             <InputField label="Position:" name="position" value={formData.position} onChange={handleChange} />
             <InputField label="Company Email:" name="company_email" value={formData.company_email} onChange={handleChange} />
           </div>
@@ -223,11 +381,11 @@ export default function EmployeeEditModal({ show, onHide, employee, onSave }) {
             <div className="row g-2">
               <div className="col-md-6">
                 <SelectField
-                  label="Employee Classification:"  // CHANGED label
-                  name="employment_classification"  // CHANGED from employment_status
-                  value={formData.employment_classification}  // CHANGED
+                  label="Employee Classification:"
+                  name="employment_classification"
+                  value={formData.employment_classification}
                   onChange={handleChange}
-                  options={["Regular", "Probationary", "Contract", "Casual"]}
+                  options={["Probationary", "Regular", "Resigned", "Terminated", "End of Contract", "Retired"]}
                 />
               </div>
               <div className="col-md-6">
@@ -276,14 +434,24 @@ export default function EmployeeEditModal({ show, onHide, employee, onSave }) {
 
             <div className="row g-2">
               <div className="col-md-6">
+                <SelectField
+                  label="NASFUND Member:"
+                  name="nasfund_member"
+                  value={formData.nasfund_member}
+                  onChange={handleChange}
+                  options={["Yes", "No"]}
+                />
+              </div>
+              <div className="col-md-6">
                 <InputField
                   label="Nasfund Number:"
                   name="nasfund_number"
                   value={formData.nasfund_number}
                   onChange={handleChange}
+                  disabled={!isNasfundMember}
                 />
               </div>
-              <div className="col-md-6">
+              <div className="col-md-12">
                 <InputField label="TIN Number:" name="tin_number" value={formData.tin_number} onChange={handleChange} />
               </div>
 
@@ -380,13 +548,17 @@ function InputField({ label, name, value, onChange, type = "text", disabled = fa
         value={value}
         disabled={disabled}
         onChange={onChange}
-        style={{ fontSize: "13px" }}
+        style={{ 
+          fontSize: "13px",
+          backgroundColor: disabled ? "#e9ecef" : "white",
+          cursor: disabled ? "not-allowed" : "text"
+        }}
       />
     </div>
   );
 }
 
-function SelectField({ label, name, value, onChange, options }) {
+function SelectField({ label, name, value, onChange, options, isObjectOptions = false }) {
   return (
     <div className="mb-2">
       <label className="form-label mb-1" style={{ fontSize: "12px", fontWeight: "500", color: "#555" }}>
@@ -400,11 +572,17 @@ function SelectField({ label, name, value, onChange, options }) {
         style={{ fontSize: "13px" }}
       >
         <option value="">Select...</option>
-        {options.map((opt) => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
-        ))}
+        {isObjectOptions
+          ? options.map((opt) => (
+              <option key={opt.id} value={String(opt.id)}>
+                {opt.name}
+              </option>
+            ))
+          : options.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
       </select>
     </div>
   );
