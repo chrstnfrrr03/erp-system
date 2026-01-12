@@ -15,8 +15,15 @@ import {
 
 export default function AIMSInventoryList() {
   const navigate = useNavigate();
+
   const [inventory, setInventory] = useState([]);
+  const [filteredInventory, setFilteredInventory] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // FILTER STATES
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("All");
+  const [status, setStatus] = useState("All");
 
   // ==========================================================
   // FETCH ITEMS
@@ -26,6 +33,7 @@ export default function AIMSInventoryList() {
       try {
         const res = await aimsApi.get("/items");
         setInventory(res.data.data);
+        setFilteredInventory(res.data.data);
       } catch (err) {
         console.error("Failed to load inventory", err);
       } finally {
@@ -37,20 +45,53 @@ export default function AIMSInventoryList() {
   }, []);
 
   // ==========================================================
-  // KPI COUNTS (MATCH SCREENSHOT)
+  // APPLY FILTERS
   // ==========================================================
-  const totalItems = inventory.length;
+  const applyFilters = () => {
+    let data = [...inventory];
 
-  const lowStock = inventory.filter(
+    // SEARCH (name, sku, category)
+    if (search.trim() !== "") {
+      const keyword = search.toLowerCase();
+      data = data.filter(
+        (i) =>
+          i.name?.toLowerCase().includes(keyword) ||
+          i.sku?.toLowerCase().includes(keyword) ||
+          i.category?.toLowerCase().includes(keyword)
+      );
+    }
+
+    // CATEGORY
+    if (category !== "All") {
+      data = data.filter((i) => i.category === category);
+    }
+
+    // STATUS
+    if (status !== "All") {
+      data = data.filter((i) => {
+        if (status === "In Stock")
+          return i.quantity > i.preferred_quantity;
+        if (status === "Low Stock")
+          return i.quantity > 0 && i.quantity <= i.preferred_quantity;
+        if (status === "Out of Stock") return i.quantity === 0;
+        return true;
+      });
+    }
+
+    setFilteredInventory(data);
+  };
+
+  // ==========================================================
+  // KPI COUNTS (FROM FILTERED DATA)
+  // ==========================================================
+  const totalItems = filteredInventory.length;
+
+  const lowStock = filteredInventory.filter(
     (i) => i.quantity > 0 && i.quantity <= i.preferred_quantity
   ).length;
 
-  const inStock = inventory.filter(
+  const inStock = filteredInventory.filter(
     (i) => i.quantity > i.preferred_quantity
-  ).length;
-
-  const outOfStock = inventory.filter(
-    (i) => i.quantity === 0
   ).length;
 
   return (
@@ -63,29 +104,14 @@ export default function AIMSInventoryList() {
           Centralized overview of all inventory records
         </p>
 
-        {/* KPI CARDS */}
+        {/* KPI CARDS (LEFT BORDER ONLY) */}
         <div className="row g-3 mb-4">
-          <KPI
-            title="Total Items"
-            value={totalItems}
-            icon={<MdInventory size={24} />}
-            color="primary"
-          />
-          <KPI
-            title="Low Stock"
-            value={lowStock}
-            icon={<MdWarning size={24} />}
-            color="warning"
-          />
-          <KPI
-            title="In Stock"
-            value={inStock}
-            icon={<MdCheckCircle size={24} />}
-            color="success"
-          />
+          <KPI title="Total Items" value={totalItems} icon={<MdInventory />} color="primary" />
+          <KPI title="Low Stock" value={lowStock} icon={<MdWarning />} color="warning" />
+          <KPI title="In Stock" value={inStock} icon={<MdCheckCircle />} color="success" />
         </div>
 
-        {/* FILTER BAR (SCREENSHOT STYLE) */}
+        {/* FILTER BAR */}
         <div className="card mb-3 shadow-sm">
           <div className="card-body d-flex flex-wrap align-items-center gap-2">
 
@@ -97,6 +123,8 @@ export default function AIMSInventoryList() {
               <input
                 className="form-control bg-light border-0"
                 placeholder="Search by item name, code, or category"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
               />
             </div>
 
@@ -104,23 +132,35 @@ export default function AIMSInventoryList() {
             <select
               className="form-select bg-light border-0"
               style={{ maxWidth: 180 }}
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
             >
-              <option>All Categories</option>
+              <option value="All">All Categories</option>
+              {[...new Set(inventory.map((i) => i.category))].map(
+                (cat) =>
+                  cat && (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  )
+              )}
             </select>
 
             {/* STATUS */}
             <select
               className="form-select bg-light border-0"
               style={{ maxWidth: 160 }}
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
             >
-              <option>All Status</option>
+              <option value="All">All Status</option>
               <option>In Stock</option>
               <option>Low Stock</option>
               <option>Out of Stock</option>
             </select>
 
             {/* APPLY */}
-            <button className="btn btn-primary px-4">
+            <button className="btn btn-primary px-4" onClick={applyFilters}>
               Apply
             </button>
           </div>
@@ -151,9 +191,7 @@ export default function AIMSInventoryList() {
                   <th>Unit</th>
                   <th>Status</th>
                   <th>Last Updated</th>
-                  <th className="text-center" style={{ width: 120 }}>
-                    Actions
-                  </th>
+                  <th className="text-center">Actions</th>
                 </tr>
               </thead>
 
@@ -164,14 +202,14 @@ export default function AIMSInventoryList() {
                       Loading inventory...
                     </td>
                   </tr>
-                ) : inventory.length === 0 ? (
+                ) : filteredInventory.length === 0 ? (
                   <tr>
                     <td colSpan="8" className="text-center text-muted py-4">
-                      No inventory records found
+                      No records found
                     </td>
                   </tr>
                 ) : (
-                  inventory.map((item) => (
+                  filteredInventory.map((item) => (
                     <InventoryRow
                       key={item.id}
                       item={item}
@@ -191,14 +229,17 @@ export default function AIMSInventoryList() {
 }
 
 /* ==========================================================
-   KPI CARD
+   KPI CARD (LEFT BORDER ONLY)
 ========================================================== */
 function KPI({ title, value, icon, color }) {
   return (
     <div className="col-md-4">
-      <div className={`card shadow-sm border-start border-4 border-${color}`}>
+      <div
+        className="card shadow-sm"
+        style={{ borderLeft: `5px solid var(--bs-${color})` }}
+      >
         <div className="card-body d-flex gap-3 align-items-center">
-          <div className={`text-${color}`}>{icon}</div>
+          <div className={`text-${color} fs-4`}>{icon}</div>
           <div>
             <div className="fw-semibold">{title}</div>
             <div className="fs-4 fw-bold">{value}</div>
@@ -210,7 +251,7 @@ function KPI({ title, value, icon, color }) {
 }
 
 /* ==========================================================
-   INVENTORY ROW (USES SKU AS ITEM CODE)
+   INVENTORY ROW
 ========================================================== */
 function InventoryRow({ item, onEdit }) {
   let status = "In Stock";
@@ -238,11 +279,8 @@ function InventoryRow({ item, onEdit }) {
       </td>
       <td>{item.updated_at}</td>
       <td className="text-center">
-        <div className="d-flex justify-content-center gap-1 align-items-start">
-          <button
-            className="btn btn-sm btn-outline-primary"
-            onClick={onEdit}
-          >
+        <div className="d-flex justify-content-center gap-1">
+          <button className="btn btn-sm btn-outline-primary" onClick={onEdit}>
             <MdEdit />
           </button>
           <button className="btn btn-sm btn-outline-danger">
