@@ -7,7 +7,6 @@ import Swal from "sweetalert2";
 export default function EmployeeEditModal({ show, onHide, employee, onSave }) {
   const [shifts, setShifts] = useState([]);
   const [departments, setDepartments] = useState([]);
-  const [isNasfundMember, setIsNasfundMember] = useState(false);
 
   const [formData, setFormData] = useState({
     biometric_id: "",
@@ -27,7 +26,7 @@ export default function EmployeeEditModal({ show, onHide, employee, onSave }) {
     rate: "",
     date_started: "",
     date_ended: "",
-    nasfund_member: "No", 
+    nasfund: 0,
     nasfund_number: "",
     tin_number: "",
     work_permit_number: "",
@@ -88,11 +87,9 @@ export default function EmployeeEditModal({ show, onHide, employee, onSave }) {
   useEffect(() => {
     if (employee) {
       // ✅ AUTO-DETECT: If NASFUND number exists, set member to "Yes"
-      const hasNasfundNumber = employee.nasfund_number && employee.nasfund_number.trim() !== "";
-      const nasfundMemberStatus = hasNasfundNumber ? "Yes" : (employee.nasfund_member || "No");
-      const isMember = nasfundMemberStatus === "Yes";
+      // Gets nasfund from account_information
+const nasfundValue = employee.account_information?.nasfund || 0;
       
-      setIsNasfundMember(isMember);
 
       setFormData({
         biometric_id: employee.biometric_id || "",
@@ -122,9 +119,9 @@ export default function EmployeeEditModal({ show, onHide, employee, onSave }) {
         date_started: formatDate(employee.date_started),
         date_ended: formatDate(employee.date_ended),
 
-        nasfund_member: nasfundMemberStatus, // ✅ AUTO-SET BASED ON NUMBER
-        nasfund_number: employee.nasfund_number || "",
-        tin_number: employee.tin_number || "",
+        nasfund: nasfundValue, 
+        nasfund_number: employee.account_information?.nasfund_number || "",
+        tin_number: employee.account_information?.tin_number || "",
 
         work_permit_number: employee.work_permit_number || "",
         work_permit_expiry: formatDate(employee.work_permit_expiry),
@@ -184,33 +181,17 @@ export default function EmployeeEditModal({ show, onHide, employee, onSave }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    // Handle NASFUND member toggle
-    if (name === "nasfund_member") {
-      setIsNasfundMember(value === "Yes");
-      // Clear NASFUND number if changing to "No"
-      if (value === "No") {
-        setFormData((prev) => ({
-          ...prev,
-          [name]: value,
-          nasfund_number: "",
-        }));
-        return;
-      }
-    }
+    // Handle NASFUND radio button
+if (name === "nasfund") {
+  const nasfundValue = parseInt(value);
+  setFormData((prev) => ({
+    ...prev,
+    nasfund: nasfundValue,
+    nasfund_number: nasfundValue === 0 ? "" : prev.nasfund_number,
+  }));
+  return;
+}
 
-    // ✅ AUTO-UPDATE: If NASFUND number is entered, auto-set member to "Yes"
-    if (name === "nasfund_number") {
-      const hasNumber = value && value.trim() !== "";
-      if (hasNumber && formData.nasfund_member === "No") {
-        setIsNasfundMember(true);
-        setFormData((prev) => ({
-          ...prev,
-          nasfund_member: "Yes",
-          nasfund_number: value,
-        }));
-        return;
-      }
-    }
 
     setFormData((prev) => ({
       ...prev,
@@ -429,65 +410,97 @@ export default function EmployeeEditModal({ show, onHide, employee, onSave }) {
             </div>
 
             <h6 className="fw-bold mb-3 mt-3" style={{ fontSize: "15px" }}>
-              Account Information
-            </h6>
+  Account Information
+</h6>
 
-            <div className="row g-2">
-              <div className="col-md-6">
-                <SelectField
-                  label="NASFUND Member:"
-                  name="nasfund_member"
-                  value={formData.nasfund_member}
-                  onChange={handleChange}
-                  options={["Yes", "No"]}
-                />
-              </div>
-              <div className="col-md-6">
-                <InputField
-                  label="Nasfund Number:"
-                  name="nasfund_number"
-                  value={formData.nasfund_number}
-                  onChange={handleChange}
-                  disabled={!isNasfundMember}
-                />
-              </div>
-              <div className="col-md-12">
-                <InputField label="TIN Number:" name="tin_number" value={formData.tin_number} onChange={handleChange} />
-              </div>
+{/* ✅ ADD THIS ENTIRE SECTION */}
+<div className="row g-2">
+  {/* NASFUND Radio Buttons */}
+  <div className="col-md-6">
+    <label className="form-label mb-1" style={{ fontSize: "12px", fontWeight: "500", color: "#555" }}>
+      NASFUND Member:
+    </label>
+    <div className="d-flex gap-3 align-items-center">
+      <div className="form-check">
+        <input
+          type="radio"
+          name="nasfund"
+          value="1"
+          checked={formData.nasfund === 1 || formData.nasfund === true}
+          onChange={handleChange}
+          className="form-check-input"
+          id="nasfund-yes-edit"
+        />
+        <label className="form-check-label" htmlFor="nasfund-yes-edit" style={{ fontSize: "13px" }}>
+          Yes
+        </label>
+      </div>
+      <div className="form-check">
+        <input
+          type="radio"
+          name="nasfund"
+          value="0"
+          checked={formData.nasfund === 0 || formData.nasfund === false}
+          onChange={handleChange}
+          className="form-check-input"
+          id="nasfund-no-edit"
+        />
+        <label className="form-check-label" htmlFor="nasfund-no-edit" style={{ fontSize: "13px" }}>
+          No
+        </label>
+      </div>
+    </div>
+  </div>
 
-              <div className="col-md-6">
-                <InputField
-                  label="Work Permit Number:"
-                  name="work_permit_number"
-                  value={formData.work_permit_number}
-                  onChange={handleChange}
-                />
-              </div>
-              <div className="col-md-6">
-                <DateField
-                  label="Work Permit Expiry:"
-                  name="work_permit_expiry"
-                  value={formData.work_permit_expiry}
-                  onChange={handleChange}
-                />
-              </div>
+  {/* NASFUND Number Field */}
+  <div className="col-md-6">
+    <InputField
+      label="NASFUND Number:"
+      name="nasfund_number"
+      value={formData.nasfund_number}
+      onChange={handleChange}
+      disabled={formData.nasfund !== 1 && formData.nasfund !== true}
+    />
+  </div>
 
-              <div className="col-md-6">
-                <InputField label="Visa Number:" name="visa_number" value={formData.visa_number} onChange={handleChange} />
-              </div>
-              <div className="col-md-6">
-                <DateField
-                  label="Visa Expiry:"
-                  name="visa_expiry"
-                  value={formData.visa_expiry}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
+  <div className="col-md-12">
+    <InputField label="TIN Number:" name="tin_number" value={formData.tin_number} onChange={handleChange} />
+  </div>
 
-            <h6 className="fw-bold mb-3 mt-3" style={{ fontSize: "15px" }}>
-              Bank Information
-            </h6>
+  <div className="col-md-6">
+    <InputField
+      label="Work Permit Number:"
+      name="work_permit_number"
+      value={formData.work_permit_number}
+      onChange={handleChange}
+    />
+  </div>
+  <div className="col-md-6">
+    <DateField
+      label="Work Permit Expiry:"
+      name="work_permit_expiry"
+      value={formData.work_permit_expiry}
+      onChange={handleChange}
+    />
+  </div>
+
+  <div className="col-md-6">
+    <InputField label="Visa Number:" name="visa_number" value={formData.visa_number} onChange={handleChange} />
+  </div>
+  <div className="col-md-6">
+    <DateField
+      label="Visa Expiry:"
+      name="visa_expiry"
+      value={formData.visa_expiry}
+      onChange={handleChange}
+    />
+  </div>
+</div>
+
+<h6 className="fw-bold mb-3 mt-3" style={{ fontSize: "15px" }}>
+  Bank Information
+</h6>
+
 
             <div className="row g-2">
               <div className="col-md-6">

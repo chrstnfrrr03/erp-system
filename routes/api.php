@@ -67,7 +67,7 @@ Route::prefix('hrms')->group(function () {
     Route::put('/employee/{biometric_id}/personal', [PersonalInformationController::class, 'updateByEmployee']);
 
     // LEAVE CREDITS
-    Route::get('/employee/{biometric_id}/leave-credits', [LeaveCreditsController::class, 'getByEmployee']);
+    Route::get('/employee/{biometric_id}/leave-credits', [LeaveCreditsController::class, 'showByEmployee']);
     Route::put('/employee/{biometric_id}/leave-credits', [LeaveCreditsController::class, 'updateByEmployee']);
 
     // ATTENDANCE
