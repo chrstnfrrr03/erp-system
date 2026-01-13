@@ -126,17 +126,18 @@ const fetchLeaveCredits = async () => {
     const res = await api.get(
       `/employee/${biometric_id}/leave-credits`
     );
-    setLeaveCredits(res.data || []);
+   setLeaveCredits(res.data || null);
   } catch (err) {
     console.error("Failed to fetch leave credits", err);
   }
 };
 
 useEffect(() => {
-  if (employee) {
+  if (biometric_id) {
     fetchLeaveCredits();
   }
-}, [employee]);
+}, [biometric_id]);
+
 
 const handleEditLeave = (type) => {
   setEditLeaveType(type);
@@ -159,8 +160,11 @@ const handleDeleteLeave = async (type) => {
   try {
     await api.put(`/employee/${biometric_id}/leave-credits`, {
   [`${type}_year`]: null,
-  [`${type}_credits`]: 0,
+  [`${type}_total`]: null,
+  [`${type}_credits`]: null,
 });
+
+
 
 
     Swal.fire("Deleted!", "Leave credit removed successfully.", "success");
@@ -335,7 +339,7 @@ const handleDeleteLeave = async (type) => {
                   <div className="row g-3 mb-4">
                     <InfoField label="Employment Status:" value={employee.employment_classification || "N/A"} />
                     <InfoField label="Salary Type:" value={employee.rate_type} />
-                    <InfoField label="Rate:" value={`PGK ${employee.rate}`} />
+                    <InfoField label="Rate:" value={` ${employee.rate}`} />
                     <InfoField label="Date Started:" value={formatDate(employee.date_started)} />
                     <InfoField label="Date Ended:" value={formatDate(employee.date_ended)} />
                   </div>
@@ -421,97 +425,109 @@ const handleDeleteLeave = async (type) => {
                             </tr>
                           </thead>
                           <tbody>
-  {leaveCredits ? (
-    <>
-      {leaveCredits.vacation_credits !== null && (
-        <tr>
-          <td>Vacation Leave</td>
-          <td>{leaveCredits.vacation_year}</td>
-          <td>{leaveCredits.vacation_credits}</td>
-          <td>0</td>
-          <td>{leaveCredits.vacation_credits}</td>
-          <td>
-            <button
-  className="btn btn-sm btn-warning me-2 px-3"
-  style={{ color: "white" }}
-  onClick={() => handleEditLeave("vacation")}
->
-  Edit
-</button>
-
-<button
-  className="btn btn-sm btn-danger px-3"
-  onClick={() => handleDeleteLeave("vacation")}
->
-  Delete
-</button>
-
-          </td>
-        </tr>
-      )}
-
-      {leaveCredits.sick_credits !== null && (
-        <tr>
-          <td>Sick Leave</td>
-          <td>{leaveCredits.sick_year}</td>
-          <td>{leaveCredits.sick_credits}</td>
-          <td>0</td>
-          <td>{leaveCredits.sick_credits}</td>
-          <td>
-            <button
-  className="btn btn-sm btn-warning me-2 px-3"
-  style={{ color: "white" }}
-  onClick={() => handleEditLeave("sick")}
->
-  Edit
-</button>
-
-<button
-  className="btn btn-sm btn-danger px-3"
-  onClick={() => handleDeleteLeave("sick")}
->
-  Delete
-</button>
-
-          </td>
-        </tr>
-      )}
-
-      {leaveCredits.emergency_credits !== null && (
-        <tr>
-          <td>Emergency Leave</td>
-          <td>{leaveCredits.emergency_year}</td>
-          <td>{leaveCredits.emergency_credits}</td>
-          <td>0</td>
-          <td>{leaveCredits.emergency_credits}</td>
-          <td>
-            <button
-  className="btn btn-sm btn-warning me-2 px-3"
-  style={{ color: "white" }}
-  onClick={() => handleEditLeave("emergency")}
->
-  Edit
-</button>
-
-<button
-  className="btn btn-sm btn-danger px-3"
-  onClick={() => handleDeleteLeave("emergency")}
->
-  Delete
-</button>
-
-          </td>
-        </tr>
-      )}
-    </>
-  ) : (
+  {!leaveCredits && (
     <tr>
       <td colSpan="6" className="text-center text-muted">
         No leave credits found
       </td>
     </tr>
   )}
+
+  {leaveCredits && (
+    <>
+      {leaveCredits.vacation_total !== null && (
+        <tr>
+          <td>Vacation Leave</td>
+          <td>{leaveCredits.vacation_year}</td>
+          <td>{leaveCredits.vacation_total}</td>
+          <td>
+            {(
+              leaveCredits.vacation_total -
+              leaveCredits.vacation_credits
+            ).toFixed(2)}
+          </td>
+          <td>{leaveCredits.vacation_credits}</td>
+          <td>
+            <button
+              className="btn btn-sm btn-warning me-2 px-3"
+              style={{ color: "white" }}
+              onClick={() => handleEditLeave("vacation")}
+            >
+              Edit
+            </button>
+            <button
+              className="btn btn-sm btn-danger px-3"
+              onClick={() => handleDeleteLeave("vacation")}
+            >
+              Delete
+            </button>
+          </td>
+        </tr>
+      )}
+
+      {leaveCredits.sick_total !== null && (
+        <tr>
+          <td>Sick Leave</td>
+          <td>{leaveCredits.sick_year}</td>
+          <td>{leaveCredits.sick_total}</td>
+          <td>
+            {(
+              leaveCredits.sick_total -
+              leaveCredits.sick_credits
+            ).toFixed(2)}
+          </td>
+          <td>{leaveCredits.sick_credits}</td>
+          <td>
+            <button
+              className="btn btn-sm btn-warning me-2 px-3"
+              style={{ color: "white" }}
+              onClick={() => handleEditLeave("sick")}
+            >
+              Edit
+            </button>
+            <button
+              className="btn btn-sm btn-danger px-3"
+              onClick={() => handleDeleteLeave("sick")}
+            >
+              Delete
+            </button>
+          </td>
+        </tr>
+      )}
+
+      {leaveCredits.emergency_total !== null && (
+        <tr>
+          <td>Emergency Leave</td>
+          <td>{leaveCredits.emergency_year}</td>
+          <td>{leaveCredits.emergency_total}</td>
+          <td>
+            {(
+              leaveCredits.emergency_total -
+              leaveCredits.emergency_credits
+            ).toFixed(2)}
+          </td>
+          <td>{leaveCredits.emergency_credits}</td>
+          <td>
+            <button
+              className="btn btn-sm btn-warning me-2 px-3"
+              style={{ color: "white" }}
+              onClick={() => handleEditLeave("emergency")}
+            >
+              Edit
+            </button>
+            <button
+              className="btn btn-sm btn-danger px-3"
+              onClick={() => handleDeleteLeave("emergency")}
+            >
+              Delete
+            </button>
+          </td>
+        </tr>
+      )}
+    </>
+  )}
 </tbody>
+
 
                         </table>
                       </div>
@@ -586,7 +602,15 @@ const handleDeleteLeave = async (type) => {
 
         {/* Other Tabs */}
         {activeTab === "attendance" && <AttendanceTab employee={employee} />}
-        {activeTab === "applications" && <ApplicationFormsTab employee={employee} />}
+       {activeTab === "applications" && (
+  <ApplicationFormsTab
+    employee={employee}
+    onApplicationUpdated={fetchLeaveCredits}
+  />
+)}
+
+
+
         {activeTab === "payslips" && <EmployeePayslips employee={employee} />}
 
       </div>

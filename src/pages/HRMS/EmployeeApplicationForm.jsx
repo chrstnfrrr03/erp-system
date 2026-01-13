@@ -3,14 +3,17 @@ import { FaUserCircle } from "react-icons/fa";
 import api from "../../api";
 import Swal from "sweetalert2";
 
-export default function ApplicationFormsTab({ employee }) {
+export default function ApplicationFormsTab({ employee, onApplicationUpdated }) {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNewApplicationModal, setShowNewApplicationModal] = useState(false);
 
-  useEffect(() => {
+ useEffect(() => {
+  if (employee?.biometric_id) {
     fetchApplications();
-  }, [employee.biometric_id]);
+  }
+}, [employee?.biometric_id]);
+
 
   const formatDate = (date) => {
   if (!date) return "N/A";
@@ -32,10 +35,17 @@ export default function ApplicationFormsTab({ employee }) {
   };
 
   const handleNewApplication = async (formData) => {
-    try {
-      await api.post(`/applications/${employee.biometric_id}`, formData);
-      await fetchApplications();
-      setShowNewApplicationModal(false);
+  try {
+    await api.post(`/applications/${employee.biometric_id}`, formData);
+
+    await fetchApplications();
+
+    if (onApplicationUpdated) {
+      await onApplicationUpdated();
+    }
+
+    setShowNewApplicationModal(false);
+
       Swal.fire({
         icon: "success",
         title: "Success!",
@@ -52,6 +62,8 @@ export default function ApplicationFormsTab({ employee }) {
       });
     }
   };
+
+  
 
   const getStatusBadge = (status) => {
     const statusMap = {
@@ -260,13 +272,62 @@ function NewApplicationModal({ onClose, onSave }) {
     purpose: "",
   });
 
+  useEffect(() => {
+  if (formData.application_type === "Leave") {
+    setFormData((prev) => ({
+      ...prev,
+      overtime_date: "",
+      ot_in: "",
+      ot_out: "",
+    }));
+  }
+
+  if (formData.application_type === "Overtime") {
+    setFormData((prev) => ({
+      ...prev,
+      leave_type: "",
+      date_from: "",
+      date_to: "",
+    }));
+  }
+}, [formData.application_type]);
+
+
   const isOvertime = formData.application_type === "Overtime";
   const isLeave = formData.application_type === "Leave";
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    onSave(formData);
-  };
+  e.preventDefault();
+
+  let payload = { ...formData };
+
+  
+  if (formData.application_type === "Overtime") {
+    payload.date_from = formData.overtime_date;
+    payload.date_to = formData.overtime_date;
+    payload.time_from = formData.ot_in;
+    payload.time_to = formData.ot_out;
+    payload.leave_type = null;
+  }
+
+ 
+  if (formData.application_type === "Leave") {
+    payload.time_from = null;
+    payload.time_to = null;
+  }
+
+
+  delete payload.overtime_date;
+  delete payload.ot_in;
+  delete payload.ot_out;
+  delete payload.overtime_type;
+
+
+
+
+  onSave(payload);
+};
+
 
   return (
     <div

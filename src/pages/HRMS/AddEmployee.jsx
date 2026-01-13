@@ -90,12 +90,14 @@ export default function AddEmployee() {
     account_name: "",
 
     // Leave Credits
-    vacation_year: "",
-    vacation_credits: "",
-    sick_year: "",
-    sick_credits: "",
-    emergency_year: "",
-    emergency_credits: "",
+vacation_year: "",
+vacation_total: "",
+sick_year: "",
+sick_total: "",
+emergency_year: "",
+emergency_total: "",
+
+
 
     // Deminimis
     clothing_allowance: "",
@@ -285,14 +287,18 @@ const submitAccount = async () => {
     setLoading(true);
     try {
       await api.post("/leave-credits", {
-        employee_id: employeeId,
-        vacation_year: formData.vacation_year,
-        vacation_credits: formData.vacation_credits,
-        sick_year: formData.sick_year,
-        sick_credits: formData.sick_credits,
-        emergency_year: formData.emergency_year,
-        emergency_credits: formData.emergency_credits,
-      });
+  employee_id: employeeId,
+
+  vacation_year: formData.vacation_year,
+  vacation_total: formData.vacation_total,
+
+  sick_year: formData.sick_year,
+  sick_total: formData.sick_total,
+
+  emergency_year: formData.emergency_year,
+  emergency_total: formData.emergency_total,
+});
+
 
       return true;
     } catch (err) {

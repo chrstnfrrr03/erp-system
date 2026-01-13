@@ -2,10 +2,18 @@
 
 use Illuminate\Support\Facades\Route;
 
-// DASHBOARD
+/*
+|--------------------------------------------------------------------------
+| DASHBOARD
+|--------------------------------------------------------------------------
+*/
 use App\Http\Controllers\DashboardController;
 
-// HRMS
+/*
+|--------------------------------------------------------------------------
+| HRMS
+|--------------------------------------------------------------------------
+*/
 use App\Http\Controllers\HRMS\EmployeeExportController;
 use App\Http\Controllers\HRMS\AttendanceController;
 use App\Http\Controllers\HRMS\ApplicationController;
@@ -20,11 +28,28 @@ use App\Http\Controllers\HRMS\{
     DepartmentController,
 };
 
-// PAYROLL
+/*
+|--------------------------------------------------------------------------
+| PAYROLL
+|--------------------------------------------------------------------------
+*/
 use App\Http\Controllers\Payroll\PayrollController;
 use App\Http\Controllers\Payroll\PayrollEmployeeController;
 use App\Http\Controllers\Payroll\PayslipController;
 use App\Http\Controllers\Payroll\PayrollDashboardController;
+
+/*
+|--------------------------------------------------------------------------
+| AIMS (AUTO INVENTORY MANAGEMENT SYSTEM)
+|--------------------------------------------------------------------------
+*/
+use App\Http\Controllers\AIMS\AIMSDashboardController;
+use App\Http\Controllers\AIMS\ItemController;
+use App\Http\Controllers\AIMS\CategoryController;
+use App\Http\Controllers\AIMS\SupplierController;
+use App\Http\Controllers\AIMS\StockMovementController;
+use App\Http\Controllers\AIMS\RequestOrderController;
+use App\Http\Controllers\AIMS\PurchaseRequestController;
 
 /*
 |--------------------------------------------------------------------------
@@ -40,6 +65,7 @@ Route::get('/dashboard', [DashboardController::class, 'index']);
 */
 Route::prefix('hrms')->group(function () {
 
+    // CORE RESOURCES
     Route::apiResource('employment', EmploymentInformationController::class);
     Route::apiResource('personal', PersonalInformationController::class);
     Route::apiResource('account', AccountInformationController::class);
@@ -62,13 +88,28 @@ Route::prefix('hrms')->group(function () {
     Route::get('/export/employees/pdf', [EmployeeExportController::class, 'exportPDF']);
     Route::get('/employee/{biometric_id}/export-cv', [EmployeeExportController::class, 'exportEmployeeCV']);
 
-    // PROFILE UPDATES
-    Route::post('/employee/{biometric_id}/update-profile', [EmploymentInformationController::class, 'updateProfile']);
-    Route::put('/employee/{biometric_id}/personal', [PersonalInformationController::class, 'updateByEmployee']);
+    // PROFILE UPDATE
+    Route::post(
+        '/employee/{biometric_id}/update-profile',
+        [EmploymentInformationController::class, 'updateProfile']
+    );
+
+    // PERSONAL INFO
+    Route::put(
+        '/employee/{biometric_id}/personal',
+        [PersonalInformationController::class, 'updateByEmployee']
+    );
 
     // LEAVE CREDITS
-    Route::get('/employee/{biometric_id}/leave-credits', [LeaveCreditsController::class, 'showByEmployee']);
-    Route::put('/employee/{biometric_id}/leave-credits', [LeaveCreditsController::class, 'updateByEmployee']);
+    Route::get(
+        '/employee/{biometric_id}/leave-credits',
+        [LeaveCreditsController::class, 'showByEmployee']
+    );
+
+    Route::put(
+        '/employee/{biometric_id}/leave-credits',
+        [LeaveCreditsController::class, 'updateByEmployee']
+    );
 
     // ATTENDANCE
     Route::prefix('attendance')->group(function () {
@@ -96,8 +137,10 @@ Route::prefix('payroll')->group(function () {
     Route::get('/dashboard-stats', [PayrollDashboardController::class, 'stats']);
     Route::post('/run', [PayrollController::class, 'runPayroll']);
     Route::get('/employees', [PayrollEmployeeController::class, 'index']);
+
     Route::get('/payslips/{biometric_id}', [PayslipController::class, 'index']);
     Route::get('/payslip/{id}', [PayslipController::class, 'show']);
+
     Route::get('/', [PayrollController::class, 'index']);
     Route::get('/{id}', [PayrollController::class, 'show']);
 });
@@ -109,9 +152,16 @@ Route::prefix('payroll')->group(function () {
 */
 Route::prefix('aims')->group(function () {
 
-    Route::get('/dashboard-stats', [\App\Http\Controllers\AIMS\AIMSDashboardController::class, 'stats']);
-    Route::apiResource('items', \App\Http\Controllers\AIMS\ItemController::class);
-    Route::apiResource('categories', \App\Http\Controllers\AIMS\CategoryController::class);
-    Route::apiResource('suppliers', \App\Http\Controllers\AIMS\SupplierController::class);
-    Route::get('/stock-movements', [\App\Http\Controllers\AIMS\StockMovementController::class, 'index']);
+    // DASHBOARD
+    Route::get('/dashboard-stats', [AIMSDashboardController::class, 'stats']);
+
+    // MASTER DATA
+    Route::apiResource('items', ItemController::class);
+    Route::apiResource('categories', CategoryController::class);
+    Route::apiResource('suppliers', SupplierController::class);
+
+    // OPERATIONS
+    Route::apiResource('stock-movements', StockMovementController::class);
+    Route::apiResource('request-orders', RequestOrderController::class);
+    Route::apiResource('purchase-requests', PurchaseRequestController::class);
 });
