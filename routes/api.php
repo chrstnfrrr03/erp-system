@@ -65,7 +65,6 @@ Route::get('/dashboard', [DashboardController::class, 'index']);
 */
 Route::prefix('hrms')->group(function () {
 
-    // CORE RESOURCES
     Route::apiResource('employment', EmploymentInformationController::class);
     Route::apiResource('personal', PersonalInformationController::class);
     Route::apiResource('account', AccountInformationController::class);
@@ -74,7 +73,7 @@ Route::prefix('hrms')->group(function () {
     Route::apiResource('shifts', ShiftController::class);
     Route::apiResource('departments', DepartmentController::class);
 
-    // DASHBOARD STATS
+    // DASHBOARD
     Route::get('/stats', [HRMSDashboardController::class, 'getStats']);
     Route::get('/recent-employees', [HRMSDashboardController::class, 'getRecentEmployees']);
     Route::get('/department-distribution', [HRMSDashboardController::class, 'getDepartmentDistribution']);
@@ -88,28 +87,13 @@ Route::prefix('hrms')->group(function () {
     Route::get('/export/employees/pdf', [EmployeeExportController::class, 'exportPDF']);
     Route::get('/employee/{biometric_id}/export-cv', [EmployeeExportController::class, 'exportEmployeeCV']);
 
-    // PROFILE UPDATE
-    Route::post(
-        '/employee/{biometric_id}/update-profile',
-        [EmploymentInformationController::class, 'updateProfile']
-    );
-
-    // PERSONAL INFO
-    Route::put(
-        '/employee/{biometric_id}/personal',
-        [PersonalInformationController::class, 'updateByEmployee']
-    );
+    // PROFILE UPDATES
+    Route::post('/employee/{biometric_id}/update-profile', [EmploymentInformationController::class, 'updateProfile']);
+    Route::put('/employee/{biometric_id}/personal', [PersonalInformationController::class, 'updateByEmployee']);
 
     // LEAVE CREDITS
-    Route::get(
-        '/employee/{biometric_id}/leave-credits',
-        [LeaveCreditsController::class, 'showByEmployee']
-    );
-
-    Route::put(
-        '/employee/{biometric_id}/leave-credits',
-        [LeaveCreditsController::class, 'updateByEmployee']
-    );
+    Route::get('/employee/{biometric_id}/leave-credits', [LeaveCreditsController::class, 'showByEmployee']);
+    Route::put('/employee/{biometric_id}/leave-credits', [LeaveCreditsController::class, 'updateByEmployee']);
 
     // ATTENDANCE
     Route::prefix('attendance')->group(function () {
@@ -136,6 +120,7 @@ Route::prefix('payroll')->group(function () {
 
     Route::get('/dashboard-stats', [PayrollDashboardController::class, 'stats']);
     Route::post('/run', [PayrollController::class, 'runPayroll']);
+
     Route::get('/employees', [PayrollEmployeeController::class, 'index']);
 
     Route::get('/payslips/{biometric_id}', [PayslipController::class, 'index']);

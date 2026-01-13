@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Layout from "../../components/layouts/DashboardLayout";
 import { useNavigate } from "react-router-dom";
+import payrollApi from "../../payrollApi"; 
 
 import {
   BarChart,
@@ -19,16 +20,13 @@ import { MdAttachMoney, MdPendingActions, MdCheckCircle } from "react-icons/md";
 
 export default function Payroll() {
   const navigate = useNavigate();
+  const [showRunPayrollModal, setShowRunPayrollModal] = useState(false);
 
-  /** ---------------------------
-   *  EMPTY STATES (no fake data)
-   * --------------------------- */
-  const [totalRuns] = useState(0);
-  const [pendingRuns] = useState(0);
-  const [completedAmount] = useState(0);
-
-  const [statusData] = useState([]); // No fake data
-  const [trendData] = useState([]);  // No fake data
+const [totalRuns, setTotalRuns] = useState(0);
+const [pendingRuns, setPendingRuns] = useState(0);
+const [completedAmount, setCompletedAmount] = useState(0);
+const [statusData, setStatusData] = useState([]);
+const [trendData, setTrendData] = useState([]);
 
   const buttonStyle = {
     height: "52px",
@@ -36,6 +34,25 @@ export default function Payroll() {
     fontWeight: "500",
     borderRadius: "8px",
   };
+
+useEffect(() => {
+  fetchDashboardStats();
+}, []);
+
+const fetchDashboardStats = async () => {
+  try {
+    const res = await payrollApi.get("/dashboard-stats");
+
+    setTotalRuns(res.data.totalRuns);
+    setPendingRuns(res.data.pendingRuns);
+    setCompletedAmount(res.data.completedAmount);
+    setStatusData(res.data.statusData);
+    setTrendData(res.data.trendData);
+  } catch (err) {
+    console.error("Failed to fetch payroll dashboard stats", err);
+  }
+};
+
 
   return (
     <Layout>
@@ -143,8 +160,12 @@ export default function Payroll() {
 
               {/* QUICK ACTIONS */}
               <div className="card-body p-3 d-flex flex-column gap-3">
-                <button className="btn btn-primary w-100" style={buttonStyle}>
-                  Add Payroll
+                <button 
+                  className="btn btn-primary w-100" 
+                  style={buttonStyle}
+                  onClick={() => navigate("/payroll/run")}
+                >
+                  Run Payroll
                 </button>
 
                 <button
@@ -159,6 +180,14 @@ export default function Payroll() {
 
         </div>
       </div>
+
+      {/* Run Payroll Modal */}
+      {/* {showRunPayrollModal && (
+        <RunPayrollModal
+          show={showRunPayrollModal}
+          onHide={() => setShowRunPayrollModal(false)}
+        />
+      )} */}
     </Layout>
   );
 }

@@ -25,28 +25,79 @@ export default function AccountInformationTab({ formData, handleInputChange, han
       {/* Account Information Header */}
       <h5 style={sectionTitle}>Account Information</h5>
 
-      {/* Row 1: Nasfund Number / TIN Number */}
+      {/* NASFUND Member Radio + Number */}
       <div className="row g-3 mb-3">
         <div className="col-12 col-md-6">
-          <label className="form-label" style={labelStyle}>Nasfund Number:</label>
+          <label className="form-label" style={labelStyle}>NASFUND Member:</label>
+
+          <div className="d-flex align-items-center gap-4">
+            {/* Yes */}
+            <div className="form-check">
+              <input
+                type="radio"
+                name="nasfund"
+                value="1"
+                checked={formData.nasfund === true || formData.nasfund === 1 || formData.nasfund === "1"}
+                onChange={(e) => {
+                  handleInputChange({
+                    target: { name: "nasfund", value: 1 }
+                  });
+                }}
+                className="form-check-input"
+                id="nasfund-yes"
+              />
+              <label className="form-check-label" htmlFor="nasfund-yes">Yes</label>
+            </div>
+
+            {/* No */}
+            <div className="form-check">
+              <input
+                type="radio"
+                name="nasfund"
+                value="0"
+                checked={formData.nasfund === false || formData.nasfund === 0 || formData.nasfund === "0" || formData.nasfund === null || formData.nasfund === undefined}
+                onChange={(e) => {
+                  handleInputChange({
+                    target: { name: "nasfund", value: 0 }
+                  });
+                  // Clear nasfund_number when "No" is selected
+                  handleInputChange({
+                    target: { name: "nasfund_number", value: "" }
+                  });
+                }}
+                className="form-check-input"
+                id="nasfund-no"
+              />
+              <label className="form-check-label" htmlFor="nasfund-no">No</label>
+            </div>
+          </div>
+        </div>
+
+        {/* Nasfund Number */}
+        <div className="col-12 col-md-6">
+          <label className="form-label" style={labelStyle}>NASFUND Number:</label>
           <input
             type="text"
             name="nasfund_number"
             className="form-control"
-            value={formData.nasfund_number}
+            value={formData.nasfund_number || ''}
             onChange={handleInputChange}
-            placeholder="Nasfund Number"
+            placeholder="Enter NASFUND number"
             style={inputStyle}
+            disabled={formData.nasfund !== 1 && formData.nasfund !== true && formData.nasfund !== "1"}
           />
         </div>
+      </div>
 
+      {/* Row 1: TIN Number */}
+      <div className="row g-3 mb-3">
         <div className="col-12 col-md-6">
           <label className="form-label" style={labelStyle}>TIN Number:</label>
           <input
             type="text"
             name="tin_number"
             className="form-control"
-            value={formData.tin_number}
+            value={formData.tin_number || ''}
             onChange={handleInputChange}
             placeholder="TIN Number"
             style={inputStyle}
@@ -54,7 +105,7 @@ export default function AccountInformationTab({ formData, handleInputChange, han
         </div>
       </div>
 
-      {/* Row 2: Work Permit Number / Work Permit Expiry */}
+      {/* Row 2: Work Permit */}
       <div className="row g-3 mb-3">
         <div className="col-12 col-md-6">
           <label className="form-label" style={labelStyle}>Work Permit Number:</label>
@@ -62,7 +113,7 @@ export default function AccountInformationTab({ formData, handleInputChange, han
             type="text"
             name="work_permit_number"
             className="form-control"
-            value={formData.work_permit_number}
+            value={formData.work_permit_number || ''}
             onChange={handleInputChange}
             placeholder="Work Permit Number"
             style={inputStyle}
@@ -75,14 +126,14 @@ export default function AccountInformationTab({ formData, handleInputChange, han
             type="date"
             name="work_permit_expiry"
             className="form-control"
-            value={formData.work_permit_expiry}
+            value={formData.work_permit_expiry || ''}
             onChange={handleInputChange}
             style={inputStyle}
           />
         </div>
       </div>
 
-      {/* Row 3: Visa Number / Visa Expiry */}
+      {/* Row 3: Visa */}
       <div className="row g-3 mb-4">
         <div className="col-12 col-md-6">
           <label className="form-label" style={labelStyle}>Visa Number:</label>
@@ -90,7 +141,7 @@ export default function AccountInformationTab({ formData, handleInputChange, han
             type="text"
             name="visa_number"
             className="form-control"
-            value={formData.visa_number}
+            value={formData.visa_number || ''}
             onChange={handleInputChange}
             placeholder="Visa Number"
             style={inputStyle}
@@ -103,7 +154,7 @@ export default function AccountInformationTab({ formData, handleInputChange, han
             type="date"
             name="visa_expiry"
             className="form-control"
-            value={formData.visa_expiry}
+            value={formData.visa_expiry || ''}
             onChange={handleInputChange}
             style={inputStyle}
           />
@@ -113,7 +164,7 @@ export default function AccountInformationTab({ formData, handleInputChange, han
       {/* Bank Information Header */}
       <h5 style={sectionTitle}>Bank Information</h5>
 
-      {/* Row 4: BSB Code / Bank Name */}
+      {/* Row 4: BSB / Bank Name */}
       <div className="row g-3 mb-3">
         <div className="col-12 col-md-6">
           <label className="form-label" style={labelStyle}>BSB Code:</label>
@@ -121,7 +172,7 @@ export default function AccountInformationTab({ formData, handleInputChange, han
             type="text"
             name="bsb_code"
             className="form-control"
-            value={formData.bsb_code}
+            value={formData.bsb_code || ''}
             onChange={handleInputChange}
             placeholder="BSB Code"
             style={inputStyle}
@@ -134,7 +185,7 @@ export default function AccountInformationTab({ formData, handleInputChange, han
             type="text"
             name="bank_name"
             className="form-control"
-            value={formData.bank_name}
+            value={formData.bank_name || ''}
             onChange={handleInputChange}
             placeholder="Bank Name"
             style={inputStyle}
@@ -150,7 +201,7 @@ export default function AccountInformationTab({ formData, handleInputChange, han
             type="text"
             name="account_number"
             className="form-control"
-            value={formData.account_number}
+            value={formData.account_number || ''}
             onChange={handleInputChange}
             placeholder="Account Number"
             style={inputStyle}
@@ -163,7 +214,7 @@ export default function AccountInformationTab({ formData, handleInputChange, han
             type="text"
             name="account_name"
             className="form-control"
-            value={formData.account_name}
+            value={formData.account_name || ''}
             onChange={handleInputChange}
             placeholder="Account Name"
             style={inputStyle}

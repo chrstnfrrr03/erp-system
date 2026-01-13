@@ -43,10 +43,10 @@ export default function AddEmployee() {
     first_name: "",
     middle_name: "",
     last_name: "",
-    department: "",
+    department_id: "",           // CHANGED from department
     position: "",
-    department_head: "",
-    supervisor: "",
+    department_head: "",         // ADDED
+    supervisor: "",              // ADDED
     job_location: "",
     employee_type: "",
     employment_status: "",
@@ -77,6 +77,7 @@ export default function AddEmployee() {
     emergency_number: "",
 
     // Account
+    nasfund: 0,
     nasfund_number: "",
     tin_number: "",
     work_permit_number: "",
@@ -125,12 +126,13 @@ export default function AddEmployee() {
         middle_name: formData.middle_name,
         last_name: formData.last_name,
 
-        // Employment fields
-        department: formData.department,
+        // FIXED TO MATCH BACKEND
+        department_id: formData.department_id,
         position: formData.position,
-        department_head: formData.department_head,
-        supervisor: formData.supervisor,
+        department_head: formData.department_head,    // CHANGED from department_head_id
+        supervisor: formData.supervisor,              // CHANGED from supervisor_id
         job_location: formData.job_location,
+
         employee_type: formData.employee_type,
         employment_status: formData.employment_status,
         employment_classification: formData.employment_classification,
@@ -150,7 +152,9 @@ export default function AddEmployee() {
       Swal.fire({
         icon: "error",
         title: "Employment Info Failed",
-        text: err.response?.data?.message || "Failed to save employment information. Please try again.",
+        text:
+          err.response?.data?.message ||
+          "Failed to save employment information. Please try again.",
         confirmButtonColor: "#d33",
       });
       return false;
@@ -218,47 +222,51 @@ export default function AddEmployee() {
   // ===========================================================
   // STEP 3 — ACCOUNT
   // ===========================================================
-  const submitAccount = async () => {
-    if (!employeeId) {
-      Swal.fire({
-        icon: "warning",
-        title: "Oops!",
-        text: "Please complete the Employment Info tab first.",
-        confirmButtonColor: "#f39c12",
-      });
-      return false;
-    }
+  // ===========================================================
+// STEP 3 — ACCOUNT (FIXED - Now includes nasfund boolean)
+// ===========================================================
+const submitAccount = async () => {
+  if (!employeeId) {
+    Swal.fire({
+      icon: "warning",
+      title: "Oops!",
+      text: "Please complete the Employment Info tab first.",
+      confirmButtonColor: "#f39c12",
+    });
+    return false;
+  }
 
-    setLoading(true);
-    try {
-      await api.post("/account", {
-        employee_id: employeeId,
-        nasfund_number: formData.nasfund_number,
-        tin_number: formData.tin_number,
-        work_permit_number: formData.work_permit_number,
-        work_permit_expiry: formData.work_permit_expiry,
-        visa_number: formData.visa_number,
-        visa_expiry: formData.visa_expiry,
-        bsb_code: formData.bsb_code,
-        bank_name: formData.bank_name,
-        account_number: formData.account_number,
-        account_name: formData.account_name,
-      });
+  setLoading(true);
+  try {
+    await api.post("/account", {
+      employee_id: employeeId,
+      nasfund: formData.nasfund || 0,              // ✅ ADDED THIS
+      nasfund_number: formData.nasfund_number,
+      tin_number: formData.tin_number,
+      work_permit_number: formData.work_permit_number,
+      work_permit_expiry: formData.work_permit_expiry,
+      visa_number: formData.visa_number,
+      visa_expiry: formData.visa_expiry,
+      bsb_code: formData.bsb_code,
+      bank_name: formData.bank_name,
+      account_number: formData.account_number,
+      account_name: formData.account_name,
+    });
 
-      return true;
-    } catch (err) {
-      console.error(err.response?.data);
-      Swal.fire({
-        icon: "error",
-        title: "Account Info Failed",
-        text: err.response?.data?.message || "Failed to save account information. Please try again.",
-        confirmButtonColor: "#d33",
-      });
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
+    return true;
+  } catch (err) {
+    console.error(err.response?.data);
+    Swal.fire({
+      icon: "error",
+      title: "Account Info Failed",
+      text: err.response?.data?.message || "Failed to save account information. Please try again.",
+      confirmButtonColor: "#d33",
+    });
+    return false;
+  } finally {
+    setLoading(false);
+  }
+};
 
   // ===========================================================
   // STEP 4 — LEAVE CREDITS

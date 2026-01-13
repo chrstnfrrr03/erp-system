@@ -4,6 +4,12 @@ import api from "../../api";
 import Layout from "../../components/layouts/DashboardLayout";
 import EmployeeEditModal from "../../components/modals/EmployeeEditModal";
 import PersonalInfoEditModal from "../../components/modals/PersonalInfoEditModal";
+import Swal from "sweetalert2";
+import AttendanceTab from "./EmployeeAttendance";
+import ApplicationFormsTab from "./EmployeeApplicationForm";
+import EmployeePayslips from "./EmployeePayslips";
+import AddLeaveCreditModal from "../../components/modals/AddLeaveCreditModal";
+
 
 // Icons
 import { FaUserCircle } from "react-icons/fa";
@@ -24,6 +30,10 @@ export default function EmployeeDetails() {
   const [benefitsTab, setBenefitsTab] = useState("leave");
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPersonalModal, setShowPersonalModal] = useState(false);
+  const [leaveCredits, setLeaveCredits] = useState(null);
+  const [showAddCreditModal, setShowAddCreditModal] = useState(false);
+  const [editLeaveType, setEditLeaveType] = useState(null);
+
 
   useEffect(() => {
     fetchEmployeeDetails();
@@ -38,45 +48,126 @@ export default function EmployeeDetails() {
     }
   };
 
-  const handleSaveEmployee = async (formData) => {
-    try {
-      await api.post(
-        `/employee/${biometric_id}/update-profile`,
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
-      );
+  const formatDate = (date) => {
+  if (!date) return "N/A";
+  return date.split("T")[0];
+};
 
-      await fetchEmployeeDetails();
-      setShowEditModal(false);
-      alert("Employee information updated successfully!");
-    } catch (err) {
-      console.error("Failed to update employee:", err);
-      alert("Failed to update employee information");
-    }
-  };
+
+ const handleSaveEmployee = async (formData) => {
+  try {
+    await api.post(
+      `/employee/${biometric_id}/update-profile`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      }
+    );
+
+    await fetchEmployeeDetails();
+    setShowEditModal(false);
+    
+    Swal.fire({
+      icon: "success",
+      title: "Success!",
+      text: "Employee information updated successfully!",
+      confirmButtonColor: "#28a745",
+    });
+  } catch (err) {
+    console.error("Failed to update employee:", err);
+    Swal.fire({
+      icon: "error",
+      title: "Update Failed",
+      text: "Failed to update employee information. Please try again.",
+      confirmButtonColor: "#d33",
+    });
+  }
+};
 
   const handleSavePersonalInfo = async (formData) => {
   try {
     const personalInfoId = employee?.personal_info?.id;
 
     if (!personalInfoId) {
-      console.error("personalInfoId is missing:", employee);
-      alert("Cannot update personal info — ID missing.");
+      Swal.fire({
+        icon: "error",
+        title: "Missing Information",
+        text: "Cannot update personal info — ID is missing.",
+        confirmButtonColor: "#d33",
+      });
       return;
     }
 
-    
     await api.put(`/personal/${personalInfoId}`, formData);
 
     await fetchEmployeeDetails();
     setShowPersonalModal(false);
 
-    alert("Personal information updated successfully!");
+    Swal.fire({
+      icon: "success",
+      title: "Success!",
+      text: "Personal information updated successfully!",
+      confirmButtonColor: "#28a745",
+    });
   } catch (err) {
     console.error("Failed to update personal info:", err);
-    alert("Failed to update personal information");
+
+    Swal.fire({
+      icon: "error",
+      title: "Update Failed",
+      text: "Failed to update personal information. Please try again.",
+      confirmButtonColor: "#d33",
+    });
+  }
+};
+
+const fetchLeaveCredits = async () => {
+  try {
+    const res = await api.get(
+      `/employee/${biometric_id}/leave-credits`
+    );
+    setLeaveCredits(res.data || []);
+  } catch (err) {
+    console.error("Failed to fetch leave credits", err);
+  }
+};
+
+useEffect(() => {
+  if (employee) {
+    fetchLeaveCredits();
+  }
+}, [employee]);
+
+const handleEditLeave = (type) => {
+  setEditLeaveType(type);
+  setShowAddCreditModal(true);
+};
+
+const handleDeleteLeave = async (type) => {
+  const confirm = await Swal.fire({
+    title: "Delete Leave Credit?",
+    text: "This action cannot be undone.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#0d6efd", 
+    cancelButtonColor: "#dc3545",
+    confirmButtonText: "Yes, delete",
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  try {
+    await api.put(`/employee/${biometric_id}/leave-credits`, {
+  [`${type}_year`]: null,
+  [`${type}_credits`]: 0,
+});
+
+
+    Swal.fire("Deleted!", "Leave credit removed successfully.", "success");
+    fetchLeaveCredits();
+  } catch (err) {
+    console.error(err);
+    Swal.fire("Error", "Failed to delete leave credit.", "error");
   }
 };
 
@@ -245,8 +336,8 @@ export default function EmployeeDetails() {
                     <InfoField label="Employment Status:" value={employee.employment_classification || "N/A"} />
                     <InfoField label="Salary Type:" value={employee.rate_type} />
                     <InfoField label="Rate:" value={`PGK ${employee.rate}`} />
-                    <InfoField label="Date Started:" value={employee.date_started} />
-                    <InfoField label="Date Ended:" value={employee.date_ended} />
+                    <InfoField label="Date Started:" value={formatDate(employee.date_started)} />
+                    <InfoField label="Date Ended:" value={formatDate(employee.date_ended)} />
                   </div>
 
                   <hr />
@@ -260,9 +351,9 @@ export default function EmployeeDetails() {
                     <InfoField label="Nasfund Number:" value={employee.nasfund_number || "N/A"} />
                     <InfoField label="TIN Number:" value={employee.tin_number || "N/A"} />
                     <InfoField label="Work Permit Number:" value={employee.work_permit_number || "N/A"} />
-                    <InfoField label="Work Permit Expiry Date:" value={employee.work_permit_expiry || "0000-00-00"} />
+                    <InfoField label="Work Permit Expiry Date:" value={formatDate(employee.work_permit_expiry)} />
                     <InfoField label="Visa Number:" value={employee.visa_number || "N/A"} />
-                    <InfoField label="Visa Expiry Date:" value={employee.visa_expiry || "0000-00-00"} />
+                    <InfoField label="Visa Expiry Date:" value={formatDate(employee.visa_expiry)} />
                   </div>
 
                   <hr />
@@ -304,7 +395,17 @@ export default function EmployeeDetails() {
                   {benefitsTab === "leave" && (
                     <>
                       <div className="d-flex justify-content-end mb-3">
-                        <button className="btn btn-success btn-sm px-4">Add Credit</button>
+                        <button
+  className="btn btn-success btn-sm px-4"
+  onClick={() => {
+    setEditLeaveType(null);
+    setShowAddCreditModal(true);
+  }}
+>
+  Add Credit
+</button>
+
+
                       </div>
 
                       <div className="table-responsive">
@@ -320,18 +421,98 @@ export default function EmployeeDetails() {
                             </tr>
                           </thead>
                           <tbody>
-                            <tr>
-                              <td>Vacation Leave</td>
-                              <td>{employee.vacation_year || "2025"}</td>
-                              <td>{employee.vacation_credits || 5}</td>
-                              <td>0</td>
-                              <td>{employee.vacation_credits || 5}</td>
-                              <td>
-                                <button className="btn btn-sm btn-warning me-2 px-3" style={{ color: "white" }}>Edit</button>
-                                <button className="btn btn-sm btn-danger px-3">Delete</button>
-                              </td>
-                            </tr>
-                          </tbody>
+  {leaveCredits ? (
+    <>
+      {leaveCredits.vacation_credits !== null && (
+        <tr>
+          <td>Vacation Leave</td>
+          <td>{leaveCredits.vacation_year}</td>
+          <td>{leaveCredits.vacation_credits}</td>
+          <td>0</td>
+          <td>{leaveCredits.vacation_credits}</td>
+          <td>
+            <button
+  className="btn btn-sm btn-warning me-2 px-3"
+  style={{ color: "white" }}
+  onClick={() => handleEditLeave("vacation")}
+>
+  Edit
+</button>
+
+<button
+  className="btn btn-sm btn-danger px-3"
+  onClick={() => handleDeleteLeave("vacation")}
+>
+  Delete
+</button>
+
+          </td>
+        </tr>
+      )}
+
+      {leaveCredits.sick_credits !== null && (
+        <tr>
+          <td>Sick Leave</td>
+          <td>{leaveCredits.sick_year}</td>
+          <td>{leaveCredits.sick_credits}</td>
+          <td>0</td>
+          <td>{leaveCredits.sick_credits}</td>
+          <td>
+            <button
+  className="btn btn-sm btn-warning me-2 px-3"
+  style={{ color: "white" }}
+  onClick={() => handleEditLeave("sick")}
+>
+  Edit
+</button>
+
+<button
+  className="btn btn-sm btn-danger px-3"
+  onClick={() => handleDeleteLeave("sick")}
+>
+  Delete
+</button>
+
+          </td>
+        </tr>
+      )}
+
+      {leaveCredits.emergency_credits !== null && (
+        <tr>
+          <td>Emergency Leave</td>
+          <td>{leaveCredits.emergency_year}</td>
+          <td>{leaveCredits.emergency_credits}</td>
+          <td>0</td>
+          <td>{leaveCredits.emergency_credits}</td>
+          <td>
+            <button
+  className="btn btn-sm btn-warning me-2 px-3"
+  style={{ color: "white" }}
+  onClick={() => handleEditLeave("emergency")}
+>
+  Edit
+</button>
+
+<button
+  className="btn btn-sm btn-danger px-3"
+  onClick={() => handleDeleteLeave("emergency")}
+>
+  Delete
+</button>
+
+          </td>
+        </tr>
+      )}
+    </>
+  ) : (
+    <tr>
+      <td colSpan="6" className="text-center text-muted">
+        No leave credits found
+      </td>
+    </tr>
+  )}
+</tbody>
+
                         </table>
                       </div>
                     </>
@@ -369,7 +550,7 @@ export default function EmployeeDetails() {
               </div>
               
               <div className="row g-3 mb-4">
-                <InfoField label="Birthdate:" value={employee.birthdate || "N/A"} />
+                <InfoField label="Birthdate:" value={formatDate(employee.birthdate)} />
                 <InfoField label="Age:" value={employee.age || "N/A"} />
                 <InfoField label="Birth Place:" value={employee.birthplace || "N/A"} />
                 <InfoField label="Nationality:" value={employee.nationality || "N/A"} />
@@ -404,9 +585,9 @@ export default function EmployeeDetails() {
         )}
 
         {/* Other Tabs */}
-        {activeTab === "attendance" && <PlaceholderTab title="Attendance" />}
-        {activeTab === "applications" && <PlaceholderTab title="Application Forms" />}
-        {activeTab === "payslips" && <PlaceholderTab title="Payslips" />}
+        {activeTab === "attendance" && <AttendanceTab employee={employee} />}
+        {activeTab === "applications" && <ApplicationFormsTab employee={employee} />}
+        {activeTab === "payslips" && <EmployeePayslips employee={employee} />}
 
       </div>
 
@@ -424,9 +605,24 @@ export default function EmployeeDetails() {
         employee={employee}
         onSave={handleSavePersonalInfo}
       />
+
+      <AddLeaveCreditModal
+  show={showAddCreditModal}
+  onHide={() => {
+    setShowAddCreditModal(false);
+    setEditLeaveType(null);
+  }}
+  biometricId={biometric_id}
+  leaveCredits={leaveCredits}
+  editType={editLeaveType}
+  onSuccess={fetchLeaveCredits}
+/>
     </Layout>
   );
 }
+
+
+
 
 /* ------------------------ COMPONENTS ------------------------ */
 

@@ -3,7 +3,8 @@ import Layout from "../../components/layouts/DashboardLayout";
 import { useNavigate } from "react-router-dom";
 import api from "../../api";
 
-import { MdPersonAdd, MdPeople, MdBarChart } from "react-icons/md";
+
+import { MdPersonAdd, MdPeople, MdBarChart, MdSchedule} from "react-icons/md";
 
 import {
   BarChart,
@@ -182,9 +183,23 @@ export default function HRMS() {
                 <button
                   className="btn w-100"
                   style={{ ...buttonStyle, backgroundColor: "rgb(16, 185, 129)", color: "white" }}
+                  onClick={() => navigate("/hrms/employee-status")}
                 >
                   <MdBarChart size={20} className="me-2" /> View Status
                 </button>
+
+                <button
+  className="btn w-100"
+  style={{
+    ...buttonStyle,
+    backgroundColor: "red",
+    color: "white",
+  }}
+  onClick={() => navigate("/hrms/attendance")}
+>
+  <MdSchedule size={20} className="me-2" /> View All Attendance
+</button>
+
               </div>
             </div>
           </div>
