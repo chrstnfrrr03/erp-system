@@ -5,132 +5,184 @@ namespace App\Http\Controllers\HRMS;
 use App\Http\Controllers\Controller;
 use App\Models\HRMS\Application;
 use App\Models\HRMS\Employee;
+use App\Models\HRMS\LeaveCredits;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class ApplicationController extends Controller
 {
-    /**
-     * Get all applications for a specific employee
-     */
     public function index($biometric_id)
     {
         $employee = Employee::where('biometric_id', $biometric_id)->first();
 
         if (!$employee) {
-            return response()->json([
-                'message' => 'Employee not found'
-            ], 404);
+            return response()->json(['message' => 'Employee not found'], 404);
         }
 
-        $applications = Application::where('biometric_id', $biometric_id)
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return response()->json($applications, 200);
+        return response()->json(
+            Application::where('biometric_id', $biometric_id)
+                ->orderBy('created_at', 'desc')
+                ->get(),
+            200
+        );
     }
 
     /**
-     * Create a new application
+     * Create new application
+     * ✔ Deduct immediately IF status is Approved
      */
     public function store(Request $request, $biometric_id)
     {
         $employee = Employee::where('biometric_id', $biometric_id)->first();
 
         if (!$employee) {
-            return response()->json([
-                'message' => 'Employee not found'
-            ], 404);
+            return response()->json(['message' => 'Employee not found'], 404);
         }
 
         $validator = Validator::make($request->all(), [
-            'application_type' => 'required|string|max:255',
-            'leave_type' => 'nullable|string|max:255',
-            'status' => 'nullable|string|max:255',
-            'date_from' => 'required|date',
-            'date_to' => 'required|date|after_or_equal:date_from',
-            'time_from' => 'nullable|date_format:H:i',
-            'time_to' => 'nullable|date_format:H:i',
-            'purpose' => 'required|string',
+            'application_type' => 'required|string',
+            'leave_type'       => 'nullable|string',
+            'status'           => 'nullable|string',
+            'date_from'        => 'required|date',
+            'date_to'          => 'required|date|after_or_equal:date_from',
+            'purpose'          => 'required|string',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors'  => $validator->errors()
             ], 422);
         }
 
-        $application = Application::create([
-            'biometric_id' => $biometric_id,
-            'application_type' => $request->application_type,
-            'leave_type' => $request->leave_type,
-            'status' => $request->status ?? 'Pending Supervisor',
-            'date_from' => $request->date_from,
-            'date_to' => $request->date_to,
-            'time_from' => $request->time_from,
-            'time_to' => $request->time_to,
-            'purpose' => $request->purpose,
-        ]);
+        return DB::transaction(function () use ($request, $biometric_id, $employee) {
 
-        return response()->json([
-            'message' => 'Application created successfully',
-            'data' => $application
-        ], 201);
+            $application = Application::create([
+                'biometric_id'     => $biometric_id,
+                'application_type' => $request->application_type,
+                'leave_type'       => $request->leave_type,
+                'status'           => $request->status ?? 'Pending Supervisor',
+                'date_from'        => $request->date_from,
+                'date_to'          => $request->date_to,
+                'purpose'          => $request->purpose,
+            ]);
+
+            // 🔽 DEDUCT if already approved
+            if (
+                strtolower($application->application_type) === 'leave' &&
+                $application->status === 'Approved' &&
+                $application->leave_type !== 'Unpaid Leave'
+            ) {
+                $this->processDeduction($application, $employee);
+            }
+
+            return response()->json([
+                'message' => 'Application created successfully',
+                'data'    => $application
+            ], 201);
+        });
     }
 
-    /**
-     * Get a specific application
-     */
     public function show($id)
     {
-        $application = Application::findOrFail($id);
-        return response()->json($application, 200);
+        return response()->json(Application::findOrFail($id), 200);
     }
 
     /**
-     * Update an application
+     * Update application
+     * ✔ Deduct on approve
+     * ✔ Restore on reject/cancel
      */
     public function update(Request $request, $id)
     {
         $application = Application::findOrFail($id);
-
-        $validator = Validator::make($request->all(), [
-            'application_type' => 'sometimes|required|string|max:255',
-            'leave_type' => 'nullable|string|max:255',
-            'status' => 'nullable|string|max:255',
-            'date_from' => 'sometimes|required|date',
-            'date_to' => 'sometimes|required|date|after_or_equal:date_from',
-            'time_from' => 'nullable|date_format:H:i',
-            'time_to' => 'nullable|date_format:H:i',
-            'purpose' => 'sometimes|required|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
+        $oldStatus = $application->status;
 
         $application->update($request->all());
+        $newStatus = $application->status;
+
+        if (strtolower($application->application_type) !== 'leave') {
+            return response()->json(['message' => 'Updated'], 200);
+        }
+
+        if ($application->leave_type === 'Unpaid Leave') {
+            return response()->json(['message' => 'Updated'], 200);
+        }
+
+        $employee = Employee::where('biometric_id', $application->biometric_id)->firstOrFail();
+
+        // ✔ Pending → Approved
+        if ($oldStatus !== 'Approved' && $newStatus === 'Approved') {
+            $this->processDeduction($application, $employee);
+        }
+
+        // ✔ Approved → Rejected / Cancelled
+        if ($oldStatus === 'Approved' && in_array($newStatus, ['Rejected', 'Cancelled'])) {
+            $this->processRestore($application, $employee);
+        }
 
         return response()->json([
             'message' => 'Application updated successfully',
-            'data' => $application
+            'data' => $application->fresh()
         ], 200);
     }
 
     /**
-     * Delete an application
+     * Shared deduction logic
      */
+    private function processDeduction(Application $application, Employee $employee)
+    {
+        $credits = LeaveCredits::where('employee_id', $employee->id)->firstOrFail();
+
+        $days = Carbon::parse($application->date_from)
+            ->diffInDays(Carbon::parse($application->date_to)) + 1;
+
+        $column = match (strtolower($application->leave_type)) {
+            'vacation', 'vacation leave'   => 'vacation_credits',
+            'sick', 'sick leave'           => 'sick_credits',
+            'emergency', 'emergency leave' => 'emergency_credits',
+            default                        => null,
+        };
+
+        if (!$column) return;
+
+        if ($credits->$column < $days) {
+            throw new \Exception('Insufficient leave credits');
+        }
+
+        $credits->$column -= $days;
+        $credits->save();
+    }
+
+    /**
+     * Restore credits
+     */
+    private function processRestore(Application $application, Employee $employee)
+    {
+        $credits = LeaveCredits::where('employee_id', $employee->id)->firstOrFail();
+
+        $days = Carbon::parse($application->date_from)
+            ->diffInDays(Carbon::parse($application->date_to)) + 1;
+
+        $column = match (strtolower($application->leave_type)) {
+            'vacation', 'vacation leave'   => 'vacation_credits',
+            'sick', 'sick leave'           => 'sick_credits',
+            'emergency', 'emergency leave' => 'emergency_credits',
+            default                        => null,
+        };
+
+        if (!$column) return;
+
+        $credits->$column += $days;
+        $credits->save();
+    }
+
     public function destroy($id)
     {
-        $application = Application::findOrFail($id);
-        $application->delete();
+        Application::findOrFail($id)->delete();
 
-        return response()->json([
-            'message' => 'Application deleted successfully'
-        ], 200);
+        return response()->json(['message' => 'Application deleted successfully'], 200);
     }
 }

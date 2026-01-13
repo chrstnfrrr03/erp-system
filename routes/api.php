@@ -2,10 +2,18 @@
 
 use Illuminate\Support\Facades\Route;
 
-// DASHBOARD
+/*
+|--------------------------------------------------------------------------
+| DASHBOARD
+|--------------------------------------------------------------------------
+*/
 use App\Http\Controllers\DashboardController;
 
-// HRMS
+/*
+|--------------------------------------------------------------------------
+| HRMS
+|--------------------------------------------------------------------------
+*/
 use App\Http\Controllers\HRMS\EmployeeExportController;
 use App\Http\Controllers\HRMS\AttendanceController;
 use App\Http\Controllers\HRMS\ApplicationController;
@@ -20,11 +28,28 @@ use App\Http\Controllers\HRMS\{
     DepartmentController,
 };
 
-// PAYROLL
+/*
+|--------------------------------------------------------------------------
+| PAYROLL
+|--------------------------------------------------------------------------
+*/
 use App\Http\Controllers\Payroll\PayrollController;
 use App\Http\Controllers\Payroll\PayrollEmployeeController;
 use App\Http\Controllers\Payroll\PayslipController;
 use App\Http\Controllers\Payroll\PayrollDashboardController;
+
+/*
+|--------------------------------------------------------------------------
+| AIMS (AUTO INVENTORY MANAGEMENT SYSTEM)
+|--------------------------------------------------------------------------
+*/
+use App\Http\Controllers\AIMS\AIMSDashboardController;
+use App\Http\Controllers\AIMS\ItemController;
+use App\Http\Controllers\AIMS\CategoryController;
+use App\Http\Controllers\AIMS\SupplierController;
+use App\Http\Controllers\AIMS\StockMovementController;
+use App\Http\Controllers\AIMS\RequestOrderController;
+use App\Http\Controllers\AIMS\PurchaseRequestController;
 
 /*
 |--------------------------------------------------------------------------
@@ -49,7 +74,7 @@ Route::prefix('hrms')->group(function () {
     Route::apiResource('shifts', ShiftController::class);
     Route::apiResource('departments', DepartmentController::class);
 
-    // HRMS DASHBOARD STATS
+    // DASHBOARD STATS
     Route::get('/stats', [HRMSDashboardController::class, 'getStats']);
     Route::get('/recent-employees', [HRMSDashboardController::class, 'getRecentEmployees']);
     Route::get('/department-distribution', [HRMSDashboardController::class, 'getDepartmentDistribution']);
@@ -58,24 +83,24 @@ Route::prefix('hrms')->group(function () {
     Route::get('/employees', [HRMSDashboardController::class, 'getEmployees']);
     Route::get('/employee/{biometric_id}', [EmploymentInformationController::class, 'getEmployeeDetails']);
 
-    // EMPLOYEE EXPORTS
+    // EXPORTS
     Route::get('/export/employees/csv', [EmployeeExportController::class, 'exportCSV']);
     Route::get('/export/employees/pdf', [EmployeeExportController::class, 'exportPDF']);
     Route::get('/employee/{biometric_id}/export-cv', [EmployeeExportController::class, 'exportEmployeeCV']);
 
-    // FULL PROFILE UPDATE
+    // PROFILE UPDATE
     Route::post(
         '/employee/{biometric_id}/update-profile',
         [EmploymentInformationController::class, 'updateProfile']
     );
 
-    // PERSONAL INFO (BY EMPLOYEE)
+    // PERSONAL INFO
     Route::put(
         '/employee/{biometric_id}/personal',
         [PersonalInformationController::class, 'updateByEmployee']
     );
 
-    // LEAVE CREDITS (BY EMPLOYEE)
+    // LEAVE CREDITS
     Route::get(
         '/employee/{biometric_id}/leave-credits',
         [LeaveCreditsController::class, 'showByEmployee']
@@ -104,48 +129,39 @@ Route::prefix('hrms')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| PAYROLL MODULE (SEPARATE FROM HRMS)
+| PAYROLL MODULE
 |--------------------------------------------------------------------------
 */
 Route::prefix('payroll')->group(function () {
 
-    // DASHBOARD STATS (Payroll.jsx)
     Route::get('/dashboard-stats', [PayrollDashboardController::class, 'stats']);
-
-    // RUN PAYROLL
     Route::post('/run', [PayrollController::class, 'runPayroll']);
-
-    // EMPLOYEES FOR PAYROLL (RunPayroll.jsx)
     Route::get('/employees', [PayrollEmployeeController::class, 'index']);
 
-    // PAYSLIPS (EmployeePayslips.jsx)
     Route::get('/payslips/{biometric_id}', [PayslipController::class, 'index']);
     Route::get('/payslip/{id}', [PayslipController::class, 'show']);
 
-    // PAYROLL RECORDS (KEEP LAST)
     Route::get('/', [PayrollController::class, 'index']);
     Route::get('/{id}', [PayrollController::class, 'show']);
 });
 
 /*
 |--------------------------------------------------------------------------
-| AIMS MODULE (AUTO INVENTORY MANAGEMENT SYSTEM)
+| AIMS MODULE
 |--------------------------------------------------------------------------
 */
 Route::prefix('aims')->group(function () {
 
-    // DASHBOARD STATS
-    Route::get('/dashboard-stats', [\App\Http\Controllers\AIMS\AIMSDashboardController::class, 'stats']);
+    // DASHBOARD
+    Route::get('/dashboard-stats', [AIMSDashboardController::class, 'stats']);
 
-    // ITEMS
-    Route::apiResource('items', \App\Http\Controllers\AIMS\ItemController::class);
+    // MASTER DATA
+    Route::apiResource('items', ItemController::class);
+    Route::apiResource('categories', CategoryController::class);
+    Route::apiResource('suppliers', SupplierController::class);
 
-    // CATEGORIES
-    Route::apiResource('categories', \App\Http\Controllers\AIMS\CategoryController::class);
-
-    // SUPPLIERS
-    Route::apiResource('suppliers', \App\Http\Controllers\AIMS\SupplierController::class);
-
-    // STOCK MOVEMENTS
-    Route::get('/stock-movements', [\App\Http\Controllers\AIMS\StockMovementController::class, 'index']);
+    // OPERATIONS
+    Route::apiResource('stock-movements', StockMovementController::class);
+    Route::apiResource('request-orders', RequestOrderController::class);
+    Route::apiResource('purchase-requests', PurchaseRequestController::class);
 });

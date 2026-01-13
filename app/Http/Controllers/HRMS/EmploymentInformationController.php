@@ -136,7 +136,7 @@ class EmploymentInformationController extends Controller
 
                 $employee = Employee::create([
                     'biometric_id'    => $biometric_id,
-                    'employee_number' => $employee_number, // NOW DIFFERENT FROM BIOMETRIC_ID
+                    'employee_number' => $employee_number,
                     'first_name'      => $validated['first_name'],
                     'middle_name'     => $validated['middle_name'] ?? null,
                     'last_name'       => $validated['last_name'],

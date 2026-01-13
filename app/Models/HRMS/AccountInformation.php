@@ -15,6 +15,7 @@ class AccountInformation extends Model
 
     protected $fillable = [
         'employee_id',
+        'nasfund',
         'nasfund_number',
         'tin_number',
         'work_permit_number',
@@ -28,6 +29,7 @@ class AccountInformation extends Model
     ];
 
     protected $casts = [
+        'nasfund' => 'boolean',
         'work_permit_expiry' => 'date',
         'visa_expiry' => 'date',
     ];
