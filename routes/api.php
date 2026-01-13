@@ -74,7 +74,7 @@ Route::prefix('hrms')->group(function () {
     Route::apiResource('shifts', ShiftController::class);
     Route::apiResource('departments', DepartmentController::class);
 
-    // DASHBOARD STATS
+    // DASHBOARD
     Route::get('/stats', [HRMSDashboardController::class, 'getStats']);
     Route::get('/recent-employees', [HRMSDashboardController::class, 'getRecentEmployees']);
     Route::get('/department-distribution', [HRMSDashboardController::class, 'getDepartmentDistribution']);
@@ -136,6 +136,7 @@ Route::prefix('payroll')->group(function () {
 
     Route::get('/dashboard-stats', [PayrollDashboardController::class, 'stats']);
     Route::post('/run', [PayrollController::class, 'runPayroll']);
+
     Route::get('/employees', [PayrollEmployeeController::class, 'index']);
 
     Route::get('/payslips/{biometric_id}', [PayslipController::class, 'index']);

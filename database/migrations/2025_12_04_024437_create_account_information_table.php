@@ -17,7 +17,7 @@ return new class extends Migration
             // Relationship to employees
             $table->foreignId('employee_id')->constrained('employees')->onDelete('cascade');
 
-            // NEW: NASFUND "Yes / No" boolean flag
+            // NASFUND "Yes / No" boolean flag
             $table->boolean('nasfund')->default(false);
 
             // Existing fields

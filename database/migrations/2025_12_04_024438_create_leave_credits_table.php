@@ -8,27 +8,37 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('leave_credits')) {
-            Schema::create('leave_credits', function (Blueprint $table) {
+        Schema::create('leave_credits', function (Blueprint $table) {
 
-                $table->id();
+            $table->id();
 
-                $table->foreignId('employee_id')
-                    ->constrained('employees')
-                    ->onDelete('cascade');
+            $table->foreignId('employee_id')
+                ->constrained('employees')
+                ->onDelete('cascade');
 
-                $table->year('vacation_year')->nullable();
-                $table->decimal('vacation_credits', 8, 2)->nullable();
+            // -------------------------
+            // Vacation Leave
+            // -------------------------
+            $table->year('vacation_year')->nullable();
+            $table->decimal('vacation_total', 8, 2)->nullable();   
+            $table->decimal('vacation_credits', 8, 2)->nullable();
 
-                $table->year('sick_year')->nullable();
-                $table->decimal('sick_credits', 8, 2)->nullable();
+            // -------------------------
+            // Sick Leave
+            // -------------------------
+            $table->year('sick_year')->nullable();
+            $table->decimal('sick_total', 8, 2)->nullable();        
+            $table->decimal('sick_credits', 8, 2)->nullable();     
 
-                $table->year('emergency_year')->nullable();
-                $table->decimal('emergency_credits', 8, 2)->nullable();
+            // -------------------------
+            // Emergency Leave
+            // -------------------------
+            $table->year('emergency_year')->nullable();
+            $table->decimal('emergency_total', 8, 2)->nullable();   
+            $table->decimal('emergency_credits', 8, 2)->nullable(); 
 
-                $table->timestamps();
-            });
-        }
+            $table->timestamps();
+        });
     }
 
     public function down(): void

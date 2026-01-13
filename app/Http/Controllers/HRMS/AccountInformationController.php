@@ -39,6 +39,7 @@ class AccountInformationController extends Controller
         $validated = $request->validate([
             'employee_id'         => 'required|integer|exists:employees,id',
 
+            'nasfund'             => 'nullable|boolean',         
             'nasfund_number'      => 'nullable|string|max:100',
             'tin_number'          => 'nullable|string|max:100',
 
@@ -67,6 +68,7 @@ class AccountInformationController extends Controller
             $record = AccountInformation::updateOrCreate(
                 ['employee_id' => $employee->id],
                 [
+                    'nasfund'             => $validated['nasfund'] ?? 0,  // ✅ ADDED THIS
                     'nasfund_number'      => $validated['nasfund_number'] ?? null,
                     'tin_number'          => $validated['tin_number'] ?? null,
 
@@ -102,6 +104,7 @@ class AccountInformationController extends Controller
         $record = AccountInformation::findOrFail($id);
 
         $validated = $request->validate([
+            'nasfund'             => 'nullable|boolean',         // ✅ ADDED THIS
             'nasfund_number'      => 'nullable|string|max:100',
             'tin_number'          => 'nullable|string|max:100',
 
