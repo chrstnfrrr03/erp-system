@@ -7,12 +7,11 @@ use App\Models\HRMS\Deminimis;
 use App\Models\HRMS\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
 
 class DeminimisController extends Controller
 {
-    /**
-     * List all records.
-     */
     public function index()
     {
         return response()->json(
@@ -20,9 +19,6 @@ class DeminimisController extends Controller
         );
     }
 
-    /**
-     * Show single record.
-     */
     public function show($id)
     {
         return response()->json(
@@ -31,73 +27,92 @@ class DeminimisController extends Controller
     }
 
     /**
-     * Store (1 record per employee).
-     * Employee MUST already exist from Employment tab.
+     * Store multiple deminimis allowances for an employee
+     * NOW: Only adds new allowances WITHOUT deleting existing ones
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'employee_id'             => 'required|integer|exists:employees,id',
-            'clothing_allowance'      => 'nullable|numeric',
-            'meal_allowance'          => 'nullable|numeric',
-            'rice_subsidy'            => 'nullable|numeric',
-            'transportation_allowance' => 'nullable|numeric',
+            'employee_id' => 'required|exists:employees,id',
+            'allowances' => 'required|array',
+            'allowances.*.type' => 'required|string',
+            'allowances.*.amount' => 'required|numeric|min:0',
         ]);
 
         return DB::transaction(function () use ($validated) {
-
-            // Get the employee (already validated it exists)
             $employee = Employee::findOrFail($validated['employee_id']);
 
-            // Create or update deminimis for this employee
-            // Convert empty strings to null, but keep 0 as valid
-            $record = Deminimis::updateOrCreate(
-                ['employee_id' => $employee->id],
-                [
-                    'clothing_allowance'      => $validated['clothing_allowance'] !== '' && $validated['clothing_allowance'] !== null ? $validated['clothing_allowance'] : null,
-                    'meal_allowance'          => $validated['meal_allowance'] !== '' && $validated['meal_allowance'] !== null ? $validated['meal_allowance'] : null,
-                    'rice_subsidy'            => $validated['rice_subsidy'] !== '' && $validated['rice_subsidy'] !== null ? $validated['rice_subsidy'] : null,
-                    'transportation_allowance' => $validated['transportation_allowance'] !== '' && $validated['transportation_allowance'] !== null ? $validated['transportation_allowance'] : null,
-                ]
-            );
+            // ✅ REMOVED: Delete existing deminimis
+            // Now we just ADD new allowances
 
-            // Standard response
-            $response = $record->toArray();
-            $response['employee_id']  = $employee->id;
-            $response['biometric_id'] = $employee->biometric_id;
+            // Create new deminimis records
+            $created = [];
+            foreach ($validated['allowances'] as $allowance) {
+                $deminimis = Deminimis::create([
+                    'employee_id' => $employee->id,
+                    'type' => $allowance['type'],
+                    'amount' => $allowance['amount'],
+                ]);
+                $created[] = $deminimis;
+            }
 
-            return response()->json($response, 201);
+            return response()->json([
+                'message' => 'Deminimis saved successfully',
+                'data' => $created
+            ], 201);
         });
     }
 
     /**
-     * Update record.
+     * Update a specific deminimis record
      */
     public function update(Request $request, $id)
     {
-        $record = Deminimis::findOrFail($id);
+        $deminimis = Deminimis::findOrFail($id);
 
         $validated = $request->validate([
-            'clothing_allowance'      => 'nullable|numeric',
-            'meal_allowance'          => 'nullable|numeric',
-            'rice_subsidy'            => 'nullable|numeric',
-            'transportation_allowance' => 'nullable|numeric',
+            'type' => 'sometimes|required|string',
+            'amount' => 'sometimes|required|numeric|min:0',
         ]);
 
-        return DB::transaction(function () use ($record, $validated) {
-            $record->update($validated);
-            return response()->json(
-                $record->fresh()->load('employee')
-            );
-        });
+        $deminimis->update($validated);
+
+        return response()->json([
+            'message' => 'Deminimis updated successfully',
+            'data' => $deminimis
+        ]);
     }
 
     /**
-     * Delete record.
+     * Delete a specific deminimis record
      */
     public function destroy($id)
     {
         Deminimis::findOrFail($id)->delete();
-        return response()->json(['message' => 'Record deleted successfully']);
+
+        return response()->json([
+            'message' => 'Deminimis deleted successfully'
+        ]);
     }
+
+    /**
+     * Get all deminimis for a specific employee
+     */
+    public function getByEmployee($employeeId)
+{
+    Log::info('Fetching deminimis for employee', [
+        'employee_id' => $employeeId
+    ]);
+
+    $allowances = Deminimis::where('employee_id', $employeeId)
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+    Log::info('Found allowances', [
+        'count' => $allowances->count()
+    ]);
+
+    return response()->json($allowances);
+}
+
 }

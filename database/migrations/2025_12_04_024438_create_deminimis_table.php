@@ -8,23 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('deminimis')) {
-            Schema::create('deminimis', function (Blueprint $table) {
+        Schema::create('deminimis', function (Blueprint $table) {
+            $table->id();
 
-                $table->id();
+            $table->foreignId('employee_id')
+                ->constrained('employees')
+                ->onDelete('cascade');
 
-                $table->foreignId('employee_id')
-                    ->constrained('employees')
-                    ->onDelete('cascade');
+            // OPTION B STRUCTURE
+            $table->string('type');                // e.g. rice, meal, clothing
+            $table->decimal('amount', 10, 2)->nullable();
 
-                $table->decimal('clothing_allowance', 10, 2)->nullable();
-                $table->decimal('meal_allowance', 10, 2)->nullable();
-                $table->decimal('rice_subsidy', 10, 2)->nullable();
-                $table->decimal('transportation_allowance', 10, 2)->nullable();
-
-                $table->timestamps();
-            });
-        }
+            $table->timestamps();
+        });
     }
 
     public function down(): void

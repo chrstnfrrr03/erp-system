@@ -56,6 +56,7 @@ use App\Http\Controllers\AIMS\PurchaseRequestController;
 | GLOBAL DASHBOARD
 |--------------------------------------------------------------------------
 */
+
 Route::get('/dashboard', [DashboardController::class, 'index']);
 
 /*
@@ -73,6 +74,9 @@ Route::prefix('hrms')->group(function () {
     Route::apiResource('deminimis', DeminimisController::class);
     Route::apiResource('shifts', ShiftController::class);
     Route::apiResource('departments', DepartmentController::class);
+
+    // ✅ ADD THIS LINE - Deminimis by Employee
+    Route::get('/deminimis/employee/{employeeId}', [DeminimisController::class, 'getByEmployee']);
 
     // DASHBOARD
     Route::get('/stats', [HRMSDashboardController::class, 'getStats']);

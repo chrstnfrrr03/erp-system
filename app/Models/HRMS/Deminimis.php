@@ -4,7 +4,6 @@ namespace App\Models\HRMS;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
 use App\Models\HRMS\Employee;
 
 class Deminimis extends Model
@@ -15,17 +14,12 @@ class Deminimis extends Model
 
     protected $fillable = [
         'employee_id',
-        'clothing_allowance',
-        'meal_allowance',
-        'rice_subsidy',
-        'transportation_allowance',
+        'type',
+        'amount',
     ];
 
     protected $casts = [
-        'clothing_allowance' => 'decimal:2',
-        'meal_allowance' => 'decimal:2',
-        'rice_subsidy' => 'decimal:2',
-        'transportation_allowance' => 'decimal:2',
+        'amount' => 'decimal:2',
     ];
 
     public function employee()

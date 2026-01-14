@@ -43,12 +43,19 @@ class ApplicationController extends Controller
 
         $validator = Validator::make($request->all(), [
             'application_type' => 'required|string',
-            'leave_type'       => 'nullable|string',
-            'status'           => 'nullable|string',
-            'date_from'        => 'required|date',
-            'date_to'          => 'required|date|after_or_equal:date_from',
-            'purpose'          => 'required|string',
+
+            'leave_type' => 'nullable|required_if:application_type,Leave|string',
+
+            'date_from' => 'required|date',
+            'date_to'   => 'required|date|after_or_equal:date_from',
+
+            'time_from' => 'nullable|required_if:application_type,Overtime|date_format:H:i',
+            'time_to'   => 'nullable|required_if:application_type,Overtime|date_format:H:i|after:time_from',
+
+            'status'  => 'nullable|string',
+            'purpose' => 'required|string',
         ]);
+
 
         if ($validator->fails()) {
             return response()->json([
@@ -62,12 +69,22 @@ class ApplicationController extends Controller
             $application = Application::create([
                 'biometric_id'     => $biometric_id,
                 'application_type' => $request->application_type,
-                'leave_type'       => $request->leave_type,
-                'status'           => $request->status ?? 'Pending Supervisor',
+                'leave_type'       => $request->application_type === 'Leave'
+                    ? $request->leave_type
+                    : null,
+                'time_from'        => $request->application_type === 'Overtime'
+                    ? $request->time_from
+                    : null,
+                'time_to'          => $request->application_type === 'Overtime'
+                    ? $request->time_to
+                    : null,
                 'date_from'        => $request->date_from,
                 'date_to'          => $request->date_to,
+                'status'           => $request->status ?? 'Pending Supervisor',
                 'purpose'          => $request->purpose,
             ]);
+
+
 
             // 🔽 DEDUCT if already approved
             if (
@@ -97,37 +114,39 @@ class ApplicationController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $application = Application::findOrFail($id);
-        $oldStatus = $application->status;
+        return DB::transaction(function () use ($request, $id) {
 
-        $application->update($request->all());
-        $newStatus = $application->status;
+            $application = Application::findOrFail($id);
+            $oldStatus = $application->status;
 
-        if (strtolower($application->application_type) !== 'leave') {
-            return response()->json(['message' => 'Updated'], 200);
-        }
+            $application->update($request->all());
+            $newStatus = $application->status;
 
-        if ($application->leave_type === 'Unpaid Leave') {
-            return response()->json(['message' => 'Updated'], 200);
-        }
+            if (strtolower($application->application_type) !== 'leave') {
+                return response()->json(['message' => 'Updated'], 200);
+            }
 
-        $employee = Employee::where('biometric_id', $application->biometric_id)->firstOrFail();
+            if ($application->leave_type === 'Unpaid Leave') {
+                return response()->json(['message' => 'Updated'], 200);
+            }
 
-        // ✔ Pending → Approved
-        if ($oldStatus !== 'Approved' && $newStatus === 'Approved') {
-            $this->processDeduction($application, $employee);
-        }
+            $employee = Employee::where('biometric_id', $application->biometric_id)->firstOrFail();
 
-        // ✔ Approved → Rejected / Cancelled
-        if ($oldStatus === 'Approved' && in_array($newStatus, ['Rejected', 'Cancelled'])) {
-            $this->processRestore($application, $employee);
-        }
+            if ($oldStatus !== 'Approved' && $newStatus === 'Approved') {
+                $this->processDeduction($application, $employee);
+            }
 
-        return response()->json([
-            'message' => 'Application updated successfully',
-            'data' => $application->fresh()
-        ], 200);
+            if ($oldStatus === 'Approved' && in_array($newStatus, ['Rejected', 'Cancelled'])) {
+                $this->processRestore($application, $employee);
+            }
+
+            return response()->json([
+                'message' => 'Application updated successfully',
+                'data' => $application->fresh()
+            ], 200);
+        });
     }
+
 
     /**
      * Shared deduction logic
@@ -149,8 +168,9 @@ class ApplicationController extends Controller
         if (!$column) return;
 
         if ($credits->$column < $days) {
-            throw new \Exception('Insufficient leave credits');
+            abort(422, 'Insufficient leave credits');
         }
+
 
         $credits->$column -= $days;
         $credits->save();

@@ -236,6 +236,7 @@ class EmploymentInformationController extends Controller
 
         // BUILD RESPONSE
         return response()->json([
+            'id' => $employee->id, 
             'biometric_id' => $employee->biometric_id,
             'employee_number' => $employee->employee_number,
 
