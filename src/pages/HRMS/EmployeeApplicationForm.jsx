@@ -320,7 +320,6 @@ function NewApplicationModal({ onClose, onSave }) {
   delete payload.overtime_date;
   delete payload.ot_in;
   delete payload.ot_out;
-  delete payload.overtime_type;
 
 
 

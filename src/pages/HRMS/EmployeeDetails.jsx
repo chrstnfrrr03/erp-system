@@ -4,12 +4,12 @@ import api from "../../api";
 import Layout from "../../components/layouts/DashboardLayout";
 import EmployeeEditModal from "../../components/modals/EmployeeEditModal";
 import PersonalInfoEditModal from "../../components/modals/PersonalInfoEditModal";
+import AddLeaveCreditModal from "../../components/modals/AddLeaveCreditModal";
+import DeminimisModal from "../../components/modals/DeminimisModal"; // ✅ ADD THIS IMPORT
 import Swal from "sweetalert2";
 import AttendanceTab from "./EmployeeAttendance";
 import ApplicationFormsTab from "./EmployeeApplicationForm";
 import EmployeePayslips from "./EmployeePayslips";
-import AddLeaveCreditModal from "../../components/modals/AddLeaveCreditModal";
-
 
 // Icons
 import { FaUserCircle } from "react-icons/fa";
@@ -33,149 +33,198 @@ export default function EmployeeDetails() {
   const [leaveCredits, setLeaveCredits] = useState(null);
   const [showAddCreditModal, setShowAddCreditModal] = useState(false);
   const [editLeaveType, setEditLeaveType] = useState(null);
-
+  
+  // ✅ DEMINIMIS STATE
+  const [deminimisAllowances, setDeminimisAllowances] = useState([]);
+  const [showDeminimisModal, setShowDeminimisModal] = useState(false);
 
   useEffect(() => {
     fetchEmployeeDetails();
   }, [biometric_id]);
 
   const fetchEmployeeDetails = async () => {
+  try {
+    const res = await api.get(`/employee/${biometric_id}`);
+    console.log('Employee Data:', res.data);
+    console.log('Employee ID:', res.data.id);
+    setEmployee(res.data);
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+
+  const formatDate = (date) => {
+    if (!date) return "N/A";
+    return date.split("T")[0];
+  };
+
+  const handleSaveEmployee = async (formData) => {
     try {
-      const res = await api.get(`/employee/${biometric_id}`);
-      setEmployee(res.data);
+      await api.post(
+        `/employee/${biometric_id}/update-profile`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+
+      await fetchEmployeeDetails();
+      setShowEditModal(false);
+      
+      Swal.fire({
+        icon: "success",
+        title: "Success!",
+        text: "Employee information updated successfully!",
+        confirmButtonColor: "#28a745",
+      });
     } catch (err) {
-      console.error(err);
+      console.error("Failed to update employee:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Update Failed",
+        text: "Failed to update employee information. Please try again.",
+        confirmButtonColor: "#d33",
+      });
     }
   };
 
-  const formatDate = (date) => {
-  if (!date) return "N/A";
-  return date.split("T")[0];
-};
-
-
- const handleSaveEmployee = async (formData) => {
-  try {
-    await api.post(
-      `/employee/${biometric_id}/update-profile`,
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      }
-    );
-
-    await fetchEmployeeDetails();
-    setShowEditModal(false);
-    
-    Swal.fire({
-      icon: "success",
-      title: "Success!",
-      text: "Employee information updated successfully!",
-      confirmButtonColor: "#28a745",
-    });
-  } catch (err) {
-    console.error("Failed to update employee:", err);
-    Swal.fire({
-      icon: "error",
-      title: "Update Failed",
-      text: "Failed to update employee information. Please try again.",
-      confirmButtonColor: "#d33",
-    });
-  }
-};
-
   const handleSavePersonalInfo = async (formData) => {
-  try {
-    const personalInfoId = employee?.personal_info?.id;
+    try {
+      const personalInfoId = employee?.personal_info?.id;
 
-    if (!personalInfoId) {
+      if (!personalInfoId) {
+        Swal.fire({
+          icon: "error",
+          title: "Missing Information",
+          text: "Cannot update personal info — ID is missing.",
+          confirmButtonColor: "#d33",
+        });
+        return;
+      }
+
+      await api.put(`/personal/${personalInfoId}`, formData);
+
+      await fetchEmployeeDetails();
+      setShowPersonalModal(false);
+
+      Swal.fire({
+        icon: "success",
+        title: "Success!",
+        text: "Personal information updated successfully!",
+        confirmButtonColor: "#28a745",
+      });
+    } catch (err) {
+      console.error("Failed to update personal info:", err);
+
       Swal.fire({
         icon: "error",
-        title: "Missing Information",
-        text: "Cannot update personal info — ID is missing.",
+        title: "Update Failed",
+        text: "Failed to update personal information. Please try again.",
         confirmButtonColor: "#d33",
       });
-      return;
     }
+  };
 
-    await api.put(`/personal/${personalInfoId}`, formData);
+  const fetchLeaveCredits = async () => {
+    try {
+      const res = await api.get(`/employee/${biometric_id}/leave-credits`);
+      setLeaveCredits(res.data || null);
+    } catch (err) {
+      console.error("Failed to fetch leave credits", err);
+    }
+  };
 
-    await fetchEmployeeDetails();
-    setShowPersonalModal(false);
-
-    Swal.fire({
-      icon: "success",
-      title: "Success!",
-      text: "Personal information updated successfully!",
-      confirmButtonColor: "#28a745",
-    });
-  } catch (err) {
-    console.error("Failed to update personal info:", err);
-
-    Swal.fire({
-      icon: "error",
-      title: "Update Failed",
-      text: "Failed to update personal information. Please try again.",
-      confirmButtonColor: "#d33",
-    });
+  // ✅ FETCH DEMINIMIS (INSIDE THE COMPONENT)
+  const fetchDeminimis = async () => {
+  if (!employee?.id) {
+    console.log('⚠️ Employee ID not available yet');
+    return;
   }
-};
-
-const fetchLeaveCredits = async () => {
+  
+  console.log('🔍 Fetching deminimis for employee ID:', employee.id); 
+  
   try {
-    const res = await api.get(
-      `/employee/${biometric_id}/leave-credits`
-    );
-   setLeaveCredits(res.data || null);
+    const res = await api.get(`/deminimis/employee/${employee.id}`);
+    console.log('Deminimis Response:', res.data); 
+    console.log('Number of allowances:', res.data?.length); 
+    setDeminimisAllowances(res.data || []);
   } catch (err) {
-    console.error("Failed to fetch leave credits", err);
+    console.error('Failed to fetch deminimis:', err);
+    console.error('Error details:', err.response?.data); 
+    setDeminimisAllowances([]);
   }
 };
 
-useEffect(() => {
-  if (biometric_id) {
-    fetchLeaveCredits();
-  }
-}, [biometric_id]);
+  // ✅ COMBINED USEEFFECT
+  useEffect(() => {
+    if (biometric_id) {
+      fetchLeaveCredits();
+    }
+  }, [biometric_id]);
 
+  useEffect(() => {
+    if (employee?.id) {
+      fetchDeminimis();
+    }
+  }, [employee?.id]);
 
-const handleEditLeave = (type) => {
-  setEditLeaveType(type);
-  setShowAddCreditModal(true);
-};
+  const handleEditLeave = (type) => {
+    setEditLeaveType(type);
+    setShowAddCreditModal(true);
+  };
 
-const handleDeleteLeave = async (type) => {
-  const confirm = await Swal.fire({
-    title: "Delete Leave Credit?",
-    text: "This action cannot be undone.",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonColor: "#0d6efd", 
-    cancelButtonColor: "#dc3545",
-    confirmButtonText: "Yes, delete",
-  });
+  const handleDeleteLeave = async (type) => {
+    const confirm = await Swal.fire({
+      title: "Delete Leave Credit?",
+      text: "This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#0d6efd", 
+      cancelButtonColor: "#dc3545",
+      confirmButtonText: "Yes, delete",
+    });
 
-  if (!confirm.isConfirmed) return;
+    if (!confirm.isConfirmed) return;
 
-  try {
-    await api.put(`/employee/${biometric_id}/leave-credits`, {
-  [`${type}_year`]: null,
-  [`${type}_total`]: null,
-  [`${type}_credits`]: null,
-});
+    try {
+      await api.put(`/employee/${biometric_id}/leave-credits`, {
+        [`${type}_year`]: null,
+        [`${type}_total`]: null,
+        [`${type}_credits`]: null,
+      });
 
+      Swal.fire("Deleted!", "Leave credit removed successfully.", "success");
+      fetchLeaveCredits();
+    } catch (err) {
+      console.error(err);
+      Swal.fire("Error", "Failed to delete leave credit.", "error");
+    }
+  };
 
+  // ✅ DELETE DEMINIMIS (INSIDE THE COMPONENT)
+  const handleDeleteDeminimis = async (id) => {
+    const confirm = await Swal.fire({
+      title: "Delete Allowance?",
+      text: "This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#0d6efd",
+      cancelButtonColor: "#dc3545",
+      confirmButtonText: "Yes, delete",
+    });
 
+    if (!confirm.isConfirmed) return;
 
-    Swal.fire("Deleted!", "Leave credit removed successfully.", "success");
-    fetchLeaveCredits();
-  } catch (err) {
-    console.error(err);
-    Swal.fire("Error", "Failed to delete leave credit.", "error");
-  }
-};
-
-
+    try {
+      await api.delete(`/deminimis/${id}`);
+      Swal.fire("Deleted!", "Allowance removed successfully.", "success");
+      fetchDeminimis();
+    } catch (err) {
+      console.error(err);
+      Swal.fire("Error", "Failed to delete allowance.", "error");
+    }
+  };
 
   const handleExportCV = () => {
     window.open(
@@ -203,7 +252,6 @@ const handleDeleteLeave = async (type) => {
         {/* Header */}
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h3 className="fw-bold mb-0">List of Employees</h3>
-
           <div className="d-flex align-items-center gap-2">
             <button className="btn-close" onClick={() => navigate("/hrms/employee-overview")}></button>
           </div>
@@ -226,11 +274,7 @@ const handleDeleteLeave = async (type) => {
             <div className="col-12 d-flex justify-content-end mb-2">
               <button
                 className="btn btn-primary px-4 py-2"
-                style={{
-                  fontSize: "15px",
-                  fontWeight: 600,
-                  borderRadius: "8px",
-                }}
+                style={{ fontSize: "15px", fontWeight: 600, borderRadius: "8px" }}
                 onClick={handleExportCV}
               >
                 Export CV
@@ -239,67 +283,24 @@ const handleDeleteLeave = async (type) => {
 
             {/* LEFT COLUMN */}
             <div className="col-lg-5">
-              <div
-                className="card mb-4"
-                style={{
-                  borderRadius: "12px",
-                  borderTop: "3px solid #ffe680",
-                  backgroundColor: "white",
-                }}
-              >
+              <div className="card mb-4" style={{ borderRadius: "12px", borderTop: "3px solid #ffe680", backgroundColor: "white" }}>
                 <div className="card-body text-center py-5">
-                  <div
-                    style={{
-                      width: "120px",
-                      height: "120px",
-                      borderRadius: "50%",
-                      overflow: "hidden",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      margin: "0 auto",
-                      backgroundColor: "#e0e0e0",
-                    }}
-                  >
+                  <div style={{ width: "120px", height: "120px", borderRadius: "50%", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto", backgroundColor: "#e0e0e0" }}>
                     {employee.profile_picture ? (
-                      <img
-                        src={employee.profile_picture}
-                        alt="Profile"
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                        }}
-                      />
+                      <img src={employee.profile_picture} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     ) : (
                       <FaUserCircle size={100} color="#555" />
                     )}
                   </div>
-
                   <h3 className="mt-4 mb-2">{employee.fullname}</h3>
-                  <p className="text-muted" style={{ fontSize: "14px" }}>
-                    {employee.biometric_id}
-                  </p>
+                  <p className="text-muted" style={{ fontSize: "14px" }}>{employee.biometric_id}</p>
                 </div>
               </div>
 
-              <div
-                className="card"
-                style={{
-                  borderRadius: "12px",
-                  backgroundColor: "white",
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    backgroundColor: "#0d6efd",
-                    padding: "12px 20px",
-                  }}
-                >
+              <div className="card" style={{ borderRadius: "12px", backgroundColor: "white", overflow: "hidden" }}>
+                <div style={{ backgroundColor: "#0d6efd", padding: "12px 20px" }}>
                   <h5 className="mb-0 fw-bold text-white">Details</h5>
                 </div>
-
                 <div className="card-body p-4">
                   <DetailItem icon={<MdBusiness size={18} color="#0d6efd" />} label="Department" value={employee.department} />
                   <DetailItem icon={<MdPerson size={18} color="#0d6efd" />} label="Department Head" value={employee.department_head} />
@@ -309,33 +310,17 @@ const handleDeleteLeave = async (type) => {
                   <DetailItem icon={<MdPhone size={18} color="#0d6efd" />} label="Contact Number" value={employee.mobile_number} />
                 </div>
               </div>
-
             </div>
 
             {/* RIGHT COLUMN */}
             <div className="col-lg-7">
-              <div
-                className="card mb-4"
-                style={{
-                  borderRadius: "12px",
-                  backgroundColor: "white",
-                  borderTop: "3px solid #ffe680",
-                }}
-              >
+              <div className="card mb-4" style={{ borderRadius: "12px", backgroundColor: "white", borderTop: "3px solid #ffe680" }}>
                 <div className="card-body p-4">
-
                   {/* Employment Information */}
                   <div className="d-flex justify-content-between align-items-center mb-3">
                     <h5 className="mb-0 fw-bold">Employment Information</h5>
-                    <button 
-                      className="btn btn-warning btn-sm px-3" 
-                      style={{ color: "white" }}
-                      onClick={() => setShowEditModal(true)}
-                    >
-                      Edit
-                    </button>
+                    <button className="btn btn-warning btn-sm px-3" style={{ color: "white" }} onClick={() => setShowEditModal(true)}>Edit</button>
                   </div>
-
                   <div className="row g-3 mb-4">
                     <InfoField label="Employment Status:" value={employee.employment_classification || "N/A"} />
                     <InfoField label="Salary Type:" value={employee.rate_type} />
@@ -346,11 +331,10 @@ const handleDeleteLeave = async (type) => {
 
                   <hr />
 
-                  {/* Account Information (NO EDIT BUTTON) */}
+                  {/* Account Information */}
                   <div className="d-flex justify-content-between align-items-center mb-3">
                     <h5 className="mb-0 fw-bold">Account Information</h5>
                   </div>
-
                   <div className="row g-3 mb-4">
                     <InfoField label="Nasfund Number:" value={employee.nasfund_number || "N/A"} />
                     <InfoField label="TIN Number:" value={employee.tin_number || "N/A"} />
@@ -362,30 +346,21 @@ const handleDeleteLeave = async (type) => {
 
                   <hr />
 
-                  {/* Bank Information (NO EDIT BUTTON) */}
+                  {/* Bank Information */}
                   <div className="d-flex justify-content-between align-items-center mb-3">
                     <h5 className="mb-0 fw-bold">Bank Information</h5>
                   </div>
-
                   <div className="row g-3">
                     <InfoField label="Account Number:" value={employee.account_number || "N/A"} />
                     <InfoField label="Bank Name:" value={employee.bank_name || "N/A"} />
                     <InfoField label="Account Name:" value={employee.account_name || "N/A"} />
                     <InfoField label="Branch:" value={employee.bsb_code || "N/A"} />
                   </div>
-
                 </div>
               </div>
 
               {/* Benefits */}
-              <div
-                className="card"
-                style={{
-                  borderRadius: "12px",
-                  backgroundColor: "white",
-                  borderTop: "3px solid #ffe680",
-                }}
-              >
+              <div className="card" style={{ borderRadius: "12px", backgroundColor: "white", borderTop: "3px solid #ffe680" }}>
                 <div className="card-body p-4">
                   <h5 className="mb-4 fw-bold">Benefits Information</h5>
 
@@ -399,17 +374,9 @@ const handleDeleteLeave = async (type) => {
                   {benefitsTab === "leave" && (
                     <>
                       <div className="d-flex justify-content-end mb-3">
-                        <button
-  className="btn btn-success btn-sm px-4"
-  onClick={() => {
-    setEditLeaveType(null);
-    setShowAddCreditModal(true);
-  }}
->
-  Add Credit
-</button>
-
-
+                        <button className="btn btn-success btn-sm px-4" onClick={() => { setEditLeaveType(null); setShowAddCreditModal(true); }}>
+                          Add Credit
+                        </button>
                       </div>
 
                       <div className="table-responsive">
@@ -425,125 +392,104 @@ const handleDeleteLeave = async (type) => {
                             </tr>
                           </thead>
                           <tbody>
-  {!leaveCredits && (
-    <tr>
-      <td colSpan="6" className="text-center text-muted">
-        No leave credits found
-      </td>
-    </tr>
-  )}
+                            {!leaveCredits && (
+                              <tr>
+                                <td colSpan="6" className="text-center text-muted">No leave credits found</td>
+                              </tr>
+                            )}
 
-  {leaveCredits && (
-    <>
-      {leaveCredits.vacation_total !== null && (
-        <tr>
-          <td>Vacation Leave</td>
-          <td>{leaveCredits.vacation_year}</td>
-          <td>{leaveCredits.vacation_total}</td>
-          <td>
-            {(
-              leaveCredits.vacation_total -
-              leaveCredits.vacation_credits
-            ).toFixed(2)}
-          </td>
-          <td>{leaveCredits.vacation_credits}</td>
-          <td>
-            <button
-              className="btn btn-sm btn-warning me-2 px-3"
-              style={{ color: "white" }}
-              onClick={() => handleEditLeave("vacation")}
-            >
-              Edit
-            </button>
-            <button
-              className="btn btn-sm btn-danger px-3"
-              onClick={() => handleDeleteLeave("vacation")}
-            >
-              Delete
-            </button>
-          </td>
-        </tr>
-      )}
+                            {leaveCredits && (
+                              <>
+                                {leaveCredits.vacation_total !== null && (
+                                  <tr>
+                                    <td>Vacation Leave</td>
+                                    <td>{leaveCredits.vacation_year}</td>
+                                    <td>{leaveCredits.vacation_total}</td>
+                                    <td>{(leaveCredits.vacation_total - leaveCredits.vacation_credits).toFixed(2)}</td>
+                                    <td>{leaveCredits.vacation_credits}</td>
+                                    <td>
+                                      <button className="btn btn-sm btn-warning me-2 px-3" style={{ color: "white" }} onClick={() => handleEditLeave("vacation")}>Edit</button>
+                                      <button className="btn btn-sm btn-danger px-3" onClick={() => handleDeleteLeave("vacation")}>Delete</button>
+                                    </td>
+                                  </tr>
+                                )}
 
-      {leaveCredits.sick_total !== null && (
-        <tr>
-          <td>Sick Leave</td>
-          <td>{leaveCredits.sick_year}</td>
-          <td>{leaveCredits.sick_total}</td>
-          <td>
-            {(
-              leaveCredits.sick_total -
-              leaveCredits.sick_credits
-            ).toFixed(2)}
-          </td>
-          <td>{leaveCredits.sick_credits}</td>
-          <td>
-            <button
-              className="btn btn-sm btn-warning me-2 px-3"
-              style={{ color: "white" }}
-              onClick={() => handleEditLeave("sick")}
-            >
-              Edit
-            </button>
-            <button
-              className="btn btn-sm btn-danger px-3"
-              onClick={() => handleDeleteLeave("sick")}
-            >
-              Delete
-            </button>
-          </td>
-        </tr>
-      )}
+                                {leaveCredits.sick_total !== null && (
+                                  <tr>
+                                    <td>Sick Leave</td>
+                                    <td>{leaveCredits.sick_year}</td>
+                                    <td>{leaveCredits.sick_total}</td>
+                                    <td>{(leaveCredits.sick_total - leaveCredits.sick_credits).toFixed(2)}</td>
+                                    <td>{leaveCredits.sick_credits}</td>
+                                    <td>
+                                      <button className="btn btn-sm btn-warning me-2 px-3" style={{ color: "white" }} onClick={() => handleEditLeave("sick")}>Edit</button>
+                                      <button className="btn btn-sm btn-danger px-3" onClick={() => handleDeleteLeave("sick")}>Delete</button>
+                                    </td>
+                                  </tr>
+                                )}
 
-      {leaveCredits.emergency_total !== null && (
-        <tr>
-          <td>Emergency Leave</td>
-          <td>{leaveCredits.emergency_year}</td>
-          <td>{leaveCredits.emergency_total}</td>
-          <td>
-            {(
-              leaveCredits.emergency_total -
-              leaveCredits.emergency_credits
-            ).toFixed(2)}
-          </td>
-          <td>{leaveCredits.emergency_credits}</td>
-          <td>
-            <button
-              className="btn btn-sm btn-warning me-2 px-3"
-              style={{ color: "white" }}
-              onClick={() => handleEditLeave("emergency")}
-            >
-              Edit
-            </button>
-            <button
-              className="btn btn-sm btn-danger px-3"
-              onClick={() => handleDeleteLeave("emergency")}
-            >
-              Delete
-            </button>
-          </td>
-        </tr>
-      )}
-    </>
-  )}
-</tbody>
-
-
+                                {leaveCredits.emergency_total !== null && (
+                                  <tr>
+                                    <td>Emergency Leave</td>
+                                    <td>{leaveCredits.emergency_year}</td>
+                                    <td>{leaveCredits.emergency_total}</td>
+                                    <td>{(leaveCredits.emergency_total - leaveCredits.emergency_credits).toFixed(2)}</td>
+                                    <td>{leaveCredits.emergency_credits}</td>
+                                    <td>
+                                      <button className="btn btn-sm btn-warning me-2 px-3" style={{ color: "white" }} onClick={() => handleEditLeave("emergency")}>Edit</button>
+                                      <button className="btn btn-sm btn-danger px-3" onClick={() => handleDeleteLeave("emergency")}>Delete</button>
+                                    </td>
+                                  </tr>
+                                )}
+                              </>
+                            )}
+                          </tbody>
                         </table>
                       </div>
                     </>
                   )}
 
-                  {/* Deminimis */}
+                  {/* ✅ DEMINIMIS TAB (UPDATED) */}
                   {benefitsTab === "deminimis" && (
-                    <div className="row g-3">
-                      <InfoField label="Clothing Allowance:" value={`${employee.clothing_allowance || "0.00"} USD`} />
-                      <InfoField label="Meal Allowance:" value={`${employee.meal_allowance || "0.00"} USD`} />
-                      <InfoField label="Rice Subsidy:" value={`${employee.rice_subsidy || "0.00"} USD`} />
-                      <InfoField label="Transportation Allowance:" value={`${employee.transportation_allowance || "0.00"} USD`} />
-                    </div>
-                  )}
+                    <>
+                      <div className="d-flex justify-content-end mb-3">
+                        <button className="btn btn-success btn-sm px-4" onClick={() => setShowDeminimisModal(true)}>
+                          Add Allowance
+                        </button>
+                      </div>
 
+                      <div className="table-responsive">
+                        <table className="table table-bordered bg-white">
+                          <thead className="bg-light">
+                            <tr>
+                              <th>Allowance Type</th>
+                              <th>Amount (USD)</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {deminimisAllowances.length === 0 ? (
+                              <tr>
+                                <td colSpan="3" className="text-center text-muted">No allowances found</td>
+                              </tr>
+                            ) : (
+                              deminimisAllowances.map((allowance) => (
+                                <tr key={allowance.id}>
+                                  <td>{allowance.type}</td>
+                                  <td>{parseFloat(allowance.amount).toFixed(2)}</td>
+                                  <td>
+                                    <button className="btn btn-sm btn-danger px-3" onClick={() => handleDeleteDeminimis(allowance.id)}>
+                                      Delete
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -556,13 +502,7 @@ const handleDeleteLeave = async (type) => {
             <div className="card-body p-4">
               <div className="d-flex justify-content-between align-items-center mb-4">
                 <h5 className="mb-0 fw-bold">Personal Information</h5>
-                <button 
-                  className="btn btn-warning btn-sm px-3" 
-                  style={{ color: "white" }}
-                  onClick={() => setShowPersonalModal(true)}
-                >
-                  Edit
-                </button>
+                <button className="btn btn-warning btn-sm px-3" style={{ color: "white" }} onClick={() => setShowPersonalModal(true)}>Edit</button>
               </div>
               
               <div className="row g-3 mb-4">
@@ -602,70 +542,27 @@ const handleDeleteLeave = async (type) => {
 
         {/* Other Tabs */}
         {activeTab === "attendance" && <AttendanceTab employee={employee} />}
-       {activeTab === "applications" && (
-  <ApplicationFormsTab
-    employee={employee}
-    onApplicationUpdated={fetchLeaveCredits}
-  />
-)}
-
-
-
+        {activeTab === "applications" && <ApplicationFormsTab employee={employee} onApplicationUpdated={fetchLeaveCredits} />}
         {activeTab === "payslips" && <EmployeePayslips employee={employee} />}
-
       </div>
 
       {/* Edit Modals */}
-      <EmployeeEditModal
-        show={showEditModal}
-        onHide={() => setShowEditModal(false)}
-        employee={employee}
-        onSave={handleSaveEmployee}
-      />
-
-      <PersonalInfoEditModal
-        show={showPersonalModal}
-        onHide={() => setShowPersonalModal(false)}
-        employee={employee}
-        onSave={handleSavePersonalInfo}
-      />
-
-      <AddLeaveCreditModal
-  show={showAddCreditModal}
-  onHide={() => {
-    setShowAddCreditModal(false);
-    setEditLeaveType(null);
-  }}
-  biometricId={biometric_id}
-  leaveCredits={leaveCredits}
-  editType={editLeaveType}
-  onSuccess={fetchLeaveCredits}
-/>
+      <EmployeeEditModal show={showEditModal} onHide={() => setShowEditModal(false)} employee={employee} onSave={handleSaveEmployee} />
+      <PersonalInfoEditModal show={showPersonalModal} onHide={() => setShowPersonalModal(false)} employee={employee} onSave={handleSavePersonalInfo} />
+      <AddLeaveCreditModal show={showAddCreditModal} onHide={() => { setShowAddCreditModal(false); setEditLeaveType(null); }} biometricId={biometric_id} leaveCredits={leaveCredits} editType={editLeaveType} onSuccess={fetchLeaveCredits} />
+      
+      {/* ✅ DEMINIMIS MODAL */}
+      <DeminimisModal show={showDeminimisModal} onHide={() => setShowDeminimisModal(false)} employeeId={employee?.id} onSuccess={fetchDeminimis} />
     </Layout>
   );
 }
-
-
-
 
 /* ------------------------ COMPONENTS ------------------------ */
 
 function TabButton({ label, active, onClick }) {
   return (
     <li className="nav-item">
-      <button
-        className="nav-link"
-        onClick={onClick}
-        style={{
-          backgroundColor: "#ffffff",
-          color: active ? "#0d6efd" : "#6c757d",
-          border: "none",
-          borderBottom: active ? "3px solid #0d6efd" : "3px solid transparent",
-          padding: "12px 24px",
-          fontWeight: active ? "600" : "500",
-          borderRadius: 0,
-        }}
-      >
+      <button className="nav-link" onClick={onClick} style={{ backgroundColor: "#ffffff", color: active ? "#0d6efd" : "#6c757d", border: "none", borderBottom: active ? "3px solid #0d6efd" : "3px solid transparent", padding: "12px 24px", fontWeight: active ? "600" : "500", borderRadius: 0 }}>
         {label}
       </button>
     </li>
@@ -674,17 +571,7 @@ function TabButton({ label, active, onClick }) {
 
 function BenefitsTabButton({ label, active, onClick }) {
   return (
-    <button
-      className="btn"
-      onClick={onClick}
-      style={{
-        color: active ? "#0d6efd" : "#6c757d",
-        borderBottom: active ? "3px solid #0d6efd" : "none",
-        borderRadius: 0,
-        padding: "10px 20px",
-        fontWeight: active ? "600" : "normal",
-      }}
-    >
+    <button className="btn" onClick={onClick} style={{ color: active ? "#0d6efd" : "#6c757d", borderBottom: active ? "3px solid #0d6efd" : "none", borderRadius: 0, padding: "10px 20px", fontWeight: active ? "600" : "normal" }}>
       {label}
     </button>
   );
@@ -707,23 +594,6 @@ function DetailItem({ icon, label, value }) {
         <span className="text-muted" style={{ fontSize: "13px" }}>{label}</span>
       </div>
       <div style={{ fontSize: "14px", paddingLeft: "28px" }}>{value || "N/A"}</div>
-    </div>
-  );
-}
-
-function PlaceholderTab({ title }) {
-  return (
-    <div
-      className="card"
-      style={{
-        borderRadius: "12px",
-        backgroundColor: "white",
-        borderTop: "3px solid #ffe680",
-      }}
-    >
-      <div className="card-body text-center py-5">
-        <h4>{title} Coming Soon...</h4>
-      </div>
     </div>
   );
 }

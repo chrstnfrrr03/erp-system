@@ -98,12 +98,6 @@ emergency_year: "",
 emergency_total: "",
 
 
-
-    // Deminimis
-    clothing_allowance: "",
-    meal_allowance: "",
-    rice_subsidy: "",
-    transportation_allowance: "",
   });
 
   // ===========================================================
@@ -318,49 +312,69 @@ const submitAccount = async () => {
   // ===========================================================
   // STEP 5 — DEMINIMIS
   // ===========================================================
-  const submitDeminimis = async () => {
-    if (!employeeId) {
-      Swal.fire({
-        icon: "warning",
-        title: "Oops!",
-        text: "Please complete the Employment Info tab first.",
-        confirmButtonColor: "#f39c12",
-      });
-      return false;
-    }
+  const submitDeminimis = async (allowances) => {
+  if (!employeeId) {
+    Swal.fire({
+      icon: "warning",
+      title: "Oops!",
+      text: "Please complete the Employment Info tab first.",
+      confirmButtonColor: "#f39c12",
+    });
+    return false;
+  }
 
-    setLoading(true);
-    try {
-      await api.post("/deminimis", {
-        employee_id: employeeId,
-        clothing_allowance: formData.clothing_allowance,
-        meal_allowance: formData.meal_allowance,
-        rice_subsidy: formData.rice_subsidy,
-        transportation_allowance: formData.transportation_allowance,
-      });
+  // Validate that we have at least one valid allowance
+  if (!allowances || allowances.length === 0) {
+    Swal.fire({
+      icon: "warning",
+      title: "No Allowances",
+      text: "Please add at least one allowance or skip this step.",
+      confirmButtonColor: "#f39c12",
+    });
+    return false;
+  }
 
-      // Success! Show celebration message
-      await Swal.fire({
-        icon: "success",
-        title: "Success!",
-        text: "Employee has been successfully added to the system.",
-        confirmButtonText: "OK",
-        confirmButtonColor: "#28a745",
-      });
-      
-      navigate("/hrms");
-    } catch (err) {
-      console.error(err.response?.data);
-      Swal.fire({
-        icon: "error",
-        title: "Deminimis Failed",
-        text: err.response?.data?.message || "Failed to save deminimis benefits. Please try again.",
-        confirmButtonColor: "#d33",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+  try {
+    await api.post("/deminimis", {
+      employee_id: employeeId,
+      allowances: allowances
+    });
+
+    // Success! Show celebration message
+    await Swal.fire({
+      icon: "success",
+      title: "Success!",
+      text: "Employee has been successfully added to the system.",
+      confirmButtonText: "OK",
+      confirmButtonColor: "#28a745",
+    });
+    
+    navigate("/hrms");
+  } catch (err) {
+    console.error(err.response?.data);
+    Swal.fire({
+      icon: "error",
+      title: "Deminimis Failed",
+      text: err.response?.data?.message || "Failed to save deminimis benefits. Please try again.",
+      confirmButtonColor: "#d33",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+
+// ===========================================================
+// UPDATE THE DEMINIMIS TAB RENDER
+// ===========================================================
+{activeTab === "deminimis" && (
+  <DeminimisTab
+    formData={formData}
+    setFormData={setFormData}
+    handleSubmit={submitDeminimis}
+    loading={loading}
+  />
+)}
 
   // ===========================================================
   // NEXT BUTTON HANDLER
@@ -454,14 +468,14 @@ const submitAccount = async () => {
             />
           )}
 
-          {activeTab === "deminimis" && (
-            <DeminimisTab
-              formData={formData}
-              handleInputChange={handleInputChange}
-              handleSubmit={submitDeminimis}
-              loading={loading}
-            />
-          )}
+         {activeTab === "deminimis" && (
+  <DeminimisTab
+    formData={formData}
+    setFormData={setFormData}
+    handleSubmit={submitDeminimis}
+    loading={loading}
+  />
+)}
         </div>
       </div>
     </Layout>
