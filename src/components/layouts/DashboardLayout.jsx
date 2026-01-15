@@ -1,4 +1,5 @@
 import Sidebar from "./Sidebar";
+import Breadcrumb from "../Breadcrumb"; // ✅ ADD THIS IMPORT
 import { useState, useEffect } from "react";
 import { FaUserCircle } from "react-icons/fa";
 
@@ -130,6 +131,9 @@ export default function DashboardLayout({ children }) {
                         maxWidth: "100%"
                     }}
                 >
+                    {/* ✅ BREADCRUMB - Add this here */}
+                    <Breadcrumb />
+                    
                     {children}
                 </main>
             </div>

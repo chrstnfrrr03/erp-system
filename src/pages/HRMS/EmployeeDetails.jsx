@@ -247,7 +247,6 @@ export default function EmployeeDetails() {
 
   return (
     <Layout>
-      <div style={{ backgroundColor: "#f5f5f5", minHeight: "100vh", padding: "20px" }}>
         
         {/* Header */}
         <div className="d-flex justify-content-between align-items-center mb-4">
@@ -544,7 +543,6 @@ export default function EmployeeDetails() {
         {activeTab === "attendance" && <AttendanceTab employee={employee} />}
         {activeTab === "applications" && <ApplicationFormsTab employee={employee} onApplicationUpdated={fetchLeaveCredits} />}
         {activeTab === "payslips" && <EmployeePayslips employee={employee} />}
-      </div>
 
       {/* Edit Modals */}
       <EmployeeEditModal show={showEditModal} onHide={() => setShowEditModal(false)} employee={employee} onSave={handleSaveEmployee} />
