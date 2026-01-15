@@ -206,9 +206,12 @@
                 <div class="info-value">{{ $employee->rate_type ?? 'N/A' }}</div>
             </div>
             <div class="info-row">
-                <div class="info-label">Rate:</div>
-                <div class="info-value">PGK {{ $employee->rate ?? '0.00' }}</div>
-            </div>
+    <div class="info-label">Rate:</div>
+    <div class="info-value">
+        USD {{ number_format($employee->rate ?? 0, 2) }}
+    </div>
+</div>
+
             <div class="info-row">
                 <div class="info-label">Date Started:</div>
                 <div class="info-value">{{ $employee->date_started ?? 'N/A' }}</div>
@@ -295,26 +298,26 @@
         </div>
 
         <div class="subsection-title">De Minimis Benefits</div>
-        <div class="info-grid">
-            <div class="info-row">
-                <div class="info-label">Clothing Allowance:</div>
-                <div class="info-value">{{ $employee->clothing_allowance ?? '0.00' }} USD</div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Meal Allowance:</div>
-                <div class="info-value">{{ $employee->meal_allowance ?? '0.00' }} USD</div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Rice Subsidy:</div>
-                <div class="info-value">{{ $employee->rice_subsidy ?? '0.00' }} USD</div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Transportation Allowance:</div>
-                <div class="info-value">{{ $employee->transportation_allowance ?? '0.00' }} USD</div>
-            </div>
-        </div>
-    </div>
 
+@if(isset($allowances) && $allowances->count())
+    <div class="info-grid">
+        @foreach($allowances as $item)
+            <div class="info-row">
+                <div class="info-label">
+                    {{ ucwords(str_replace('_', ' ', $item->type)) }}:
+                </div>
+                <div class="info-value">
+                    {{ number_format($item->amount, 2) }} USD
+                </div>
+            </div>
+        @endforeach
+    </div>
+@else
+    <p style="font-size: 11px; color: #777;">No de minimis benefits recorded.</p>
+@endif
+
+
+</div>
     <!-- FOOTER -->
     <div class="footer">
         Generated on {{ \Carbon\Carbon::now('Asia/Manila')->format('l, F d, Y - h:i A') }}

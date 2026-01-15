@@ -53,11 +53,11 @@ class EmployeeExportController extends Controller
      */
     public function exportCSV(Request $request)
     {
-        $search = $request->query('search');
-        $department = $request->query('department');
-        $status = $request->query('status');
-
-        $employees = $this->buildQuery($search, $department, $status)->get();
+        $employees = $this->buildQuery(
+            $request->query('search'),
+            $request->query('department'),
+            $request->query('status')
+        )->get();
 
         $response = new StreamedResponse(function () use ($employees) {
             $out = fopen('php://output', 'w');
@@ -98,11 +98,11 @@ class EmployeeExportController extends Controller
      */
     public function exportPDF(Request $request)
     {
-        $search = $request->query('search');
-        $department = $request->query('department');
-        $status = $request->query('status');
-
-        $employees = $this->buildQuery($search, $department, $status)->get();
+        $employees = $this->buildQuery(
+            $request->query('search'),
+            $request->query('department'),
+            $request->query('status')
+        )->get();
 
         $pdf = Pdf::loadView('exports.employees', [
             'employees' => $employees
@@ -116,15 +116,16 @@ class EmployeeExportController extends Controller
      */
     public function exportEmployeeCV($biometric_id)
     {
+        // MAIN EMPLOYEE DATA (NO DEMINIMIS JOIN)
         $employee = DB::table('employees')
             ->leftJoin('employment_information', 'employees.id', '=', 'employment_information.employee_id')
             ->leftJoin('departments', 'employment_information.department_id', '=', 'departments.id')
             ->leftJoin('personal_information', 'employees.id', '=', 'personal_information.employee_id')
             ->leftJoin('account_information', 'employees.id', '=', 'account_information.employee_id')
             ->leftJoin('leave_credits', 'employees.id', '=', 'leave_credits.employee_id')
-            ->leftJoin('deminimis', 'employees.id', '=', 'deminimis.employee_id')
             ->where('employees.biometric_id', $biometric_id)
             ->select(
+                'employees.id',
                 'employees.biometric_id',
                 'employees.profile_picture',
 
@@ -184,13 +185,7 @@ class EmployeeExportController extends Controller
                 'leave_credits.sick_year',
                 'leave_credits.sick_credits',
                 'leave_credits.emergency_year',
-                'leave_credits.emergency_credits',
-
-                // Deminimis
-                'deminimis.clothing_allowance',
-                'deminimis.meal_allowance',
-                'deminimis.rice_subsidy',
-                'deminimis.transportation_allowance'
+                'leave_credits.emergency_credits'
             )
             ->first();
 
@@ -198,8 +193,16 @@ class EmployeeExportController extends Controller
             return response()->json(['error' => 'Employee not found'], 404);
         }
 
-        $pdf = Pdf::loadView('exports.employee_cv', compact('employee'))
-            ->setPaper('a4', 'portrait');
+        // ✅ FETCH DEMINIMIS SEPARATELY (NEW STRUCTURE)
+        $allowances = DB::table('deminimis')
+            ->where('employee_id', $employee->id)
+            ->select('type', 'amount')
+            ->get();
+
+        $pdf = Pdf::loadView('exports.employee_cv', [
+            'employee'   => $employee,
+            'allowances' => $allowances
+        ])->setPaper('a4', 'portrait');
 
         return $pdf->download(
             str_replace(' ', '_', $employee->fullname) . '_CV_' . date('Ymd') . '.pdf'
