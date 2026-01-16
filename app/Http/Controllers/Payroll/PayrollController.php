@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\HRMS\Employee;
 use App\Models\Payroll\Payroll;
+use App\Http\Controllers\Payroll\PayslipController;
 use App\Models\HRMS\Attendance;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -16,8 +17,8 @@ class PayrollController extends Controller
     private const TAX_RATE = 0.10;
     private const NASFUND_RATE = 0.06;
     private const STANDARD_HOURS_PER_DAY = 8;
-    private const STANDARD_DAYS_PER_MONTH = 22; // Mon-Fri only
-    private const STANDARD_DAYS_WITH_SATURDAY = 26; // Mon-Sat
+    private const STANDARD_DAYS_PER_MONTH = 22;
+    private const STANDARD_DAYS_WITH_SATURDAY = 26;
 
     public function index(Request $request)
     {
@@ -48,9 +49,7 @@ class PayrollController extends Controller
             'employee.personalInformation'
         ])->findOrFail($id);
 
-        return response()->json([
-            'data' => $payroll
-        ]);
+        return response()->json(['data' => $payroll]);
     }
 
     public function runPayroll(Request $request)
@@ -71,6 +70,7 @@ class PayrollController extends Controller
         try {
             $created = 0;
             $errors = [];
+            $createdPayrolls = [];
 
             foreach ($validated['employee_ids'] as $biometric_id) {
                 $employee = Employee::where('biometric_id', $biometric_id)
@@ -82,14 +82,9 @@ class PayrollController extends Controller
                     continue;
                 }
 
-                $fullName = trim($employee->first_name . ' ' . 
-                                ($employee->middle_name ? $employee->middle_name . ' ' : '') . 
-                                $employee->last_name);
-
                 $employment = $employee->employmentInformation;
-
                 if (!$employment || $employment->rate <= 0) {
-                    $errors[] = "Invalid rate for {$fullName}";
+                    $errors[] = "Invalid rate for {$employee->first_name}";
                     continue;
                 }
 
@@ -100,7 +95,7 @@ class PayrollController extends Controller
                 );
 
                 if ($attendance['days_worked'] === 0) {
-                    $errors[] = "No attendance found for {$fullName}";
+                    $errors[] = "No attendance found for {$employee->first_name}";
                     continue;
                 }
 
@@ -116,32 +111,17 @@ class PayrollController extends Controller
                     $attendance['overtime_hours']
                 );
 
-                $grossTotal = $gross + $overtimePay;
-
-                // Calculate late deduction
                 $lateDeduction = $this->calculateLateDeduction(
                     $employment->rate,
                     $employment->rate_type,
                     $attendance['late_minutes']
                 );
 
+                $grossTotal = $gross + $overtimePay;
                 $deductions = $this->calculateDeductions($grossTotal, $employee, $lateDeduction);
                 $net = $grossTotal - $deductions['total'];
 
-                Log::info('PAYROLL COMPUTATION', [
-                    'employee_name' => $fullName,
-                    'employee_id' => $employee->id,
-                    'rate' => $employment->rate,
-                    'rate_type' => $employment->rate_type,
-                    'attendance' => $attendance,
-                    'gross' => $gross,
-                    'overtime' => $overtimePay,
-                    'late_deduction' => $lateDeduction,
-                    'deductions' => $deductions,
-                    'net' => $net
-                ]);
-
-                Payroll::create([
+                $payroll = Payroll::create([
                     'employee_id' => $employee->id,
                     'pay_period_start' => $validated['pay_period_start'],
                     'pay_period_end' => $validated['pay_period_end'],
@@ -157,6 +137,7 @@ class PayrollController extends Controller
                     'tax' => $deductions['tax'],
                     'nasfund' => $deductions['nasfund'],
                     'other_deductions' => $deductions['other'],
+                    'late_deduction' => $lateDeduction,
                     'net_pay' => $net,
                     'status' => 'Pending',
                     'days_worked' => $attendance['days_worked'],
@@ -164,6 +145,7 @@ class PayrollController extends Controller
                     'days_late' => $attendance['days_late'],
                 ]);
 
+                $createdPayrolls[] = $payroll;
                 $created++;
             }
 
@@ -176,6 +158,11 @@ class PayrollController extends Controller
             }
 
             DB::commit();
+
+            // ✅ Generate payslips AFTER successful commit
+            foreach ($createdPayrolls as $payroll) {
+                app(PayslipController::class)->generate($payroll->id);
+            }
 
             return response()->json([
                 'message' => 'Payroll processed successfully',

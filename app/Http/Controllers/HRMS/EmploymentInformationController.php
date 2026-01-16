@@ -223,238 +223,252 @@ class EmploymentInformationController extends Controller
      * GET FULL EMPLOYEE DETAILS INCLUDING ALL TABLES
      */
     public function getEmployeeDetails($biometric_id)
-    {
-        $employee = Employee::where('biometric_id', $biometric_id)
-            ->with([
-                'employmentInformation.department',
-                'personalInformation',
-                'accountInformation',
-                'leaveCredits',
-                'deminimis'
-            ])
-            ->firstOrFail();
+{
+    $employee = Employee::where('biometric_id', $biometric_id)
+        ->with([
+            'employmentInformation.department',
+            'personalInformation',
+            'accountInformation',
+            'leaveCredits',
+            'deminimis'
+        ])
+        ->firstOrFail();
 
-        // BUILD RESPONSE
-        return response()->json([
-            'id' => $employee->id, 
-            'biometric_id' => $employee->biometric_id,
-            'employee_number' => $employee->employee_number,
+    // BUILD RESPONSE
+    return response()->json([
+        'id' => $employee->id, 
+        'biometric_id' => $employee->biometric_id,
+        'employee_number' => $employee->employee_number,
 
-            'employment_information' => [
-                'department_id' => $employee->employmentInformation->department_id ?? null,
-                'position' => $employee->employmentInformation->position ?? null,
-            ],
+        'employment_information' => [
+            'department_id' => $employee->employmentInformation->department_id ?? null,
+            'position' => $employee->employmentInformation->position ?? null,
+        ],
 
-            'shift' => [
-                'shift_id' => $employee->shift_id,
-            ],
+        'shift' => [
+            'shift_id' => $employee->shift_id,
+        ],
 
-            'fullname' => trim(
-                $employee->first_name . ' ' .
-                    ($employee->middle_name ? $employee->middle_name . ' ' : '') .
-                    $employee->last_name
-            ),
+        'fullname' => trim(
+            $employee->first_name . ' ' .
+                ($employee->middle_name ? $employee->middle_name . ' ' : '') .
+                $employee->last_name
+        ),
 
-            'first_name' => $employee->first_name,
-            'middle_name' => $employee->middle_name,
-            'last_name' => $employee->last_name,
+        'first_name' => $employee->first_name,
+        'middle_name' => $employee->middle_name,
+        'last_name' => $employee->last_name,
 
-            'department' => $employee->employmentInformation->department->name ?? 'N/A',
-            'position' => $employee->employmentInformation->position ?? 'N/A',
-            'department_head' => $employee->employmentInformation->department_head ?? 'N/A',
-            'supervisor' => $employee->employmentInformation->supervisor ?? 'N/A',
-            'job_location' => $employee->employmentInformation->job_location ?? 'N/A',
-            'employment_status' => $employee->employmentInformation->employment_status ?? 'N/A',
-            'employment_classification' => $employee->employmentInformation->employment_classification ?? 'N/A',
-            'employee_type' => $employee->employmentInformation->employee_type ?? 'N/A',
+        'department' => $employee->employmentInformation->department->name ?? 'N/A',
+        'position' => $employee->employmentInformation->position ?? 'N/A',
+        'department_head' => $employee->employmentInformation->department_head ?? 'N/A',
+        'supervisor' => $employee->employmentInformation->supervisor ?? 'N/A',
+        'job_location' => $employee->employmentInformation->job_location ?? 'N/A',
+        'employment_status' => $employee->employmentInformation->employment_status ?? 'N/A',
+        'employment_classification' => $employee->employmentInformation->employment_classification ?? 'N/A',
+        'employee_type' => $employee->employmentInformation->employee_type ?? 'N/A',
 
-            'company_email' => $employee->employmentInformation->company_email ?? 'N/A',
-            'rate' => $employee->employmentInformation->rate ?? '0.00',
-            'rate_type' => $employee->employmentInformation->rate_type ?? 'N/A',
-            'date_started' => $employee->employmentInformation->date_started ?? 'N/A',
-            'date_ended' => $employee->employmentInformation->date_ended ?? 'N/A',
+        'company_email' => $employee->employmentInformation->company_email ?? 'N/A',
+        'rate' => $employee->employmentInformation->rate ?? '0.00',
+        'rate_type' => $employee->employmentInformation->rate_type ?? 'N/A',
+        'date_started' => $employee->employmentInformation->date_started ?? 'N/A',
+        'date_ended' => $employee->employmentInformation->date_ended ?? 'N/A',
 
-            // PERSONAL INFO
-            'mobile_number' => $employee->personalInformation->mobile_number ?? 'N/A',
-            'birthdate' => $employee->personalInformation->birthdate ?? null,
-            'age' => $employee->personalInformation->age ?? null,
-            'birthplace' => $employee->personalInformation->birthplace ?? null,
-            'nationality' => $employee->personalInformation->nationality ?? null,
-            'civil_status' => $employee->personalInformation->civil_status ?? null,
-            'religion' => $employee->personalInformation->religion ?? null,
-            'gender' => $employee->personalInformation->gender ?? null,
-            'present_address' => $employee->personalInformation->present_address ?? null,
-            'home_address' => $employee->personalInformation->home_address ?? null,
-            'email_address' => $employee->personalInformation->email_address ?? null,
-            'dependents' => $employee->personalInformation->dependents ?? null,
-            'lodged' => $employee->personalInformation->lodged ?? null,
-            'emergency_contact' => $employee->personalInformation->emergency_contact ?? null,
-            'emergency_number' => $employee->personalInformation->emergency_number ?? null,
+        // PERSONAL INFO
+        'mobile_number' => $employee->personalInformation->mobile_number ?? 'N/A',
+        'birthdate' => $employee->personalInformation->birthdate ?? null,
+        'age' => $employee->personalInformation->age ?? null,
+        'birthplace' => $employee->personalInformation->birthplace ?? null,
+        'nationality' => $employee->personalInformation->nationality ?? null,
+        'civil_status' => $employee->personalInformation->civil_status ?? null,
+        'religion' => $employee->personalInformation->religion ?? null,
+        'gender' => $employee->personalInformation->gender ?? null,
+        'present_address' => $employee->personalInformation->present_address ?? null,
+        'home_address' => $employee->personalInformation->home_address ?? null,
+        'email_address' => $employee->personalInformation->email_address ?? null,
+        'dependents' => $employee->personalInformation->dependents ?? null,
+        'lodged' => $employee->personalInformation->lodged ?? null,
+        'emergency_contact' => $employee->personalInformation->emergency_contact ?? null,
+        'emergency_number' => $employee->personalInformation->emergency_number ?? null,
 
-            'personal_info' => $employee->personalInformation
-                ? ['id' => $employee->personalInformation->id]
-                : null,
+        'personal_info' => $employee->personalInformation
+            ? ['id' => $employee->personalInformation->id]
+            : null,
 
-            // ACCOUNT INFO - ADD NASFUND_MEMBER HERE
-            'nasfund_member' => $employee->accountInformation->nasfund_member ?? 'No', // ADD THIS
-            'nasfund_number' => $employee->accountInformation->nasfund_number ?? null,
-            'tin_number' => $employee->accountInformation->tin_number ?? null,
-            'work_permit_number' => $employee->accountInformation->work_permit_number ?? null,
-            'work_permit_expiry' => $employee->accountInformation->work_permit_expiry ?? null,
-            'visa_number' => $employee->accountInformation->visa_number ?? null,
-            'visa_expiry' => $employee->accountInformation->visa_expiry ?? null,
-            'account_number' => $employee->accountInformation->account_number ?? null,
-            'account_name' => $employee->accountInformation->account_name ?? null,
-            'bank_name' => $employee->accountInformation->bank_name ?? null,
-            'bsb_code' => $employee->accountInformation->bsb_code ?? null,
+        // ✅ ACCOUNT INFO - Return as object with nasfund boolean
+        'account_information' => $employee->accountInformation ? [
+            'nasfund' => (bool) $employee->accountInformation->nasfund,
+            'nasfund_number' => $employee->accountInformation->nasfund_number,
+            'tin_number' => $employee->accountInformation->tin_number,
+            'work_permit_number' => $employee->accountInformation->work_permit_number,
+            'work_permit_expiry' => $employee->accountInformation->work_permit_expiry,
+            'visa_number' => $employee->accountInformation->visa_number,
+            'visa_expiry' => $employee->accountInformation->visa_expiry,
+            'account_number' => $employee->accountInformation->account_number,
+            'account_name' => $employee->accountInformation->account_name,
+            'bank_name' => $employee->accountInformation->bank_name,
+            'bsb_code' => $employee->accountInformation->bsb_code,
+        ] : null,
 
-            // LEAVE
-            'vacation_year' => $employee->leaveCredits->vacation_year ?? null,
-            'vacation_credits' => $employee->leaveCredits->vacation_credits ?? 0,
-            'sick_year' => $employee->leaveCredits->sick_year ?? null,
-            'sick_credits' => $employee->leaveCredits->sick_credits ?? 0,
-            'emergency_year' => $employee->leaveCredits->emergency_year ?? null,
-            'emergency_credits' => $employee->leaveCredits->emergency_credits ?? 0,
+        // Also keep flat structure for backward compatibility
+        'nasfund_number' => $employee->accountInformation->nasfund_number ?? null,
+        'tin_number' => $employee->accountInformation->tin_number ?? null,
+        'work_permit_number' => $employee->accountInformation->work_permit_number ?? null,
+        'work_permit_expiry' => $employee->accountInformation->work_permit_expiry ?? null,
+        'visa_number' => $employee->accountInformation->visa_number ?? null,
+        'visa_expiry' => $employee->accountInformation->visa_expiry ?? null,
+        'account_number' => $employee->accountInformation->account_number ?? null,
+        'account_name' => $employee->accountInformation->account_name ?? null,
+        'bank_name' => $employee->accountInformation->bank_name ?? null,
+        'bsb_code' => $employee->accountInformation->bsb_code ?? null,
 
-            // DEMINIMIS
-            'clothing_allowance' => $employee->deminimis->clothing_allowance ?? 0,
-            'meal_allowance' => $employee->deminimis->meal_allowance ?? 0,
-            'rice_subsidy' => $employee->deminimis->rice_subsidy ?? 0,
-            'transportation_allowance' => $employee->deminimis->transportation_allowance ?? 0,
+        // LEAVE
+        'vacation_year' => $employee->leaveCredits->vacation_year ?? null,
+        'vacation_credits' => $employee->leaveCredits->vacation_credits ?? 0,
+        'sick_year' => $employee->leaveCredits->sick_year ?? null,
+        'sick_credits' => $employee->leaveCredits->sick_credits ?? 0,
+        'emergency_year' => $employee->leaveCredits->emergency_year ?? null,
+        'emergency_credits' => $employee->leaveCredits->emergency_credits ?? 0,
 
-            // PROFILE PICTURE
-            'profile_picture' => $employee->profile_picture
-                ? asset('storage/' . $employee->profile_picture)
-                : null,
-        ]);
-    }
+        // DEMINIMIS
+        'clothing_allowance' => $employee->deminimis->clothing_allowance ?? 0,
+        'meal_allowance' => $employee->deminimis->meal_allowance ?? 0,
+        'rice_subsidy' => $employee->deminimis->rice_subsidy ?? 0,
+        'transportation_allowance' => $employee->deminimis->transportation_allowance ?? 0,
+
+        // PROFILE PICTURE
+        'profile_picture' => $employee->profile_picture
+            ? asset('storage/' . $employee->profile_picture)
+            : null,
+    ]);
+}
 
 
     /**
      * UPDATE PROFILE (with image upload)
      */
     public function updateProfile(Request $request, $biometric_id)
-    {
-        $request->validate([
-            'first_name' => 'required|string',
-            'last_name'  => 'required|string',
-            'middle_name' => 'nullable|string',
+{
+    $request->validate([
+        'first_name' => 'required|string',
+        'last_name'  => 'required|string',
+        'middle_name' => 'nullable|string',
 
-            'employee_type' => 'nullable|string',
-            'rate_type' => 'nullable|string',
-            'department_id' => 'nullable|integer|exists:departments,id',
-            'position' => 'nullable|string',
-            'employment_classification' => 'nullable|string',
-            'rate' => 'nullable|numeric',
+        'employee_type' => 'nullable|string',
+        'rate_type' => 'nullable|string',
+        'department_id' => 'nullable|integer|exists:departments,id',
+        'position' => 'nullable|string',
+        'employment_classification' => 'nullable|string',
+        'rate' => 'nullable|numeric',
 
-            'date_started' => 'nullable|date',
-            'date_ended' => 'nullable|date',
+        'date_started' => 'nullable|date',
+        'date_ended' => 'nullable|date',
 
-            'department_head' => 'nullable|string',
-            'supervisor' => 'nullable|string',
-            'job_location' => 'nullable|string',
-            'company_email' => 'nullable|email',
+        'department_head' => 'nullable|string',
+        'supervisor' => 'nullable|string',
+        'job_location' => 'nullable|string',
+        'company_email' => 'nullable|email',
 
-            // ACCOUNT
-            'nasfund_member' => 'nullable|string|in:Yes,No',
-            'nasfund_number' => 'nullable|string',
-            'tin_number' => 'nullable|string',
-            'account_number' => 'nullable|string',
-            'bank_name' => 'nullable|string',
-            'account_name' => 'nullable|string',
-            'bsb_code' => 'nullable|string',
+        // ✅ ACCOUNT - nasfund is 0 or 1
+        'nasfund' => 'nullable|integer|in:0,1',
+        'nasfund_number' => 'nullable|string',
+        'tin_number' => 'nullable|string',
+        'account_number' => 'nullable|string',
+        'bank_name' => 'nullable|string',
+        'account_name' => 'nullable|string',
+        'bsb_code' => 'nullable|string',
 
-            'work_permit_number' => 'nullable|string',
-            'work_permit_expiry' => 'nullable|date',
-            'visa_number' => 'nullable|string',
-            'visa_expiry' => 'nullable|date',
+        'work_permit_number' => 'nullable|string',
+        'work_permit_expiry' => 'nullable|date',
+        'visa_number' => 'nullable|string',
+        'visa_expiry' => 'nullable|date',
 
-            'profile_picture' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'shift_id' => 'nullable|integer|exists:shifts,id'
+        'profile_picture' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+        'shift_id' => 'nullable|integer|exists:shifts,id'
+    ]);
+
+    DB::beginTransaction();
+
+    try {
+        $employee = Employee::where('biometric_id', $biometric_id)->firstOrFail();
+
+        // UPDATE employee table
+        $employee->update([
+            'first_name'  => $request->first_name,
+            'middle_name' => $request->middle_name,
+            'last_name'   => $request->last_name,
+            'shift_id'    => $request->shift_id
         ]);
 
-        DB::beginTransaction();
+        // PERSONAL INFO
+        $personal = PersonalInformation::where('employee_id', $employee->id)->firstOrFail();
+        $personal->update([
+            'first_name'  => $request->first_name,
+            'middle_name' => $request->middle_name,
+            'last_name'   => $request->last_name
+        ]);
 
-        try {
-            $employee = Employee::where('biometric_id', $biometric_id)->firstOrFail();
+        // EMPLOYMENT INFO
+        $employment = EmploymentInformation::where('employee_id', $employee->id)->firstOrFail();
+        $employment->update([
+            'employee_type'             => $request->employee_type,
+            'rate_type'                 => $request->rate_type,
+            'rate'                      => $request->rate,
+            'department_id'             => $request->department_id,
+            'position'                  => $request->position,
+            'employment_classification' => $request->employment_classification,
+            'department_head'           => $request->department_head,
+            'supervisor'                => $request->supervisor,
+            'job_location'              => $request->job_location,
+            'company_email'             => $request->company_email,
+            'date_started'              => $request->date_started,
+            'date_ended'                => $request->date_ended,
+        ]);
 
-            // UPDATE employee table
-            $employee->update([
-                'first_name'  => $request->first_name,
-                'middle_name' => $request->middle_name,
-                'last_name'   => $request->last_name,
-                'shift_id'    => $request->shift_id
-            ]);
+        // ✅ ACCOUNT INFO - Convert 1/0 to boolean
+        $account = AccountInformation::where('employee_id', $employee->id)->firstOrFail();
+        $account->update([
+            'nasfund'            => (bool) $request->nasfund, // Convert to boolean
+            'nasfund_number'     => $request->nasfund == 1 ? $request->nasfund_number : null, // Clear if not member
+            'tin_number'         => $request->tin_number,
+            'account_number'     => $request->account_number,
+            'bank_name'          => $request->bank_name,
+            'account_name'       => $request->account_name,
+            'bsb_code'           => $request->bsb_code,
+            'work_permit_number' => $request->work_permit_number,
+            'work_permit_expiry' => $request->work_permit_expiry,
+            'visa_number'        => $request->visa_number,
+            'visa_expiry'        => $request->visa_expiry,
+        ]);
 
-            // PERSONAL INFO
-            $personal = PersonalInformation::where('employee_id', $employee->id)->firstOrFail();
-            $personal->update([
-                'first_name'  => $request->first_name,
-                'middle_name' => $request->middle_name,
-                'last_name'   => $request->last_name
-            ]);
+        // PROFILE PICTURE
+        if ($request->hasFile('profile_picture')) {
 
-            // EMPLOYMENT INFO - ADD DATE FIELDS HERE
-            $employment = EmploymentInformation::where('employee_id', $employee->id)->firstOrFail();
-            $employment->update([
-                'employee_type'             => $request->employee_type,
-                'rate_type'                 => $request->rate_type,
-                'rate'                      => $request->rate,
-                'department_id'             => $request->department_id,
-                'position'                  => $request->position,
-                'employment_classification' => $request->employment_classification,
-                'department_head'           => $request->department_head,
-                'supervisor'                => $request->supervisor,
-                'job_location'              => $request->job_location,
-                'company_email'             => $request->company_email,
-                'date_started'              => $request->date_started, // ADD THIS
-                'date_ended'                => $request->date_ended,   // ADD THIS
-            ]);
-
-            // ACCOUNT INFO - ADD NASFUND_MEMBER HERE
-            $account = AccountInformation::where('employee_id', $employee->id)->firstOrFail();
-            $account->update([
-                'nasfund_member'     => $request->nasfund_member, // ADD THIS
-                'nasfund_number'     => $request->nasfund_number,
-                'tin_number'         => $request->tin_number,
-                'account_number'     => $request->account_number,
-                'bank_name'          => $request->bank_name,
-                'account_name'       => $request->account_name,
-                'bsb_code'           => $request->bsb_code,
-                'work_permit_number' => $request->work_permit_number,
-                'work_permit_expiry' => $request->work_permit_expiry,
-                'visa_number'        => $request->visa_number,
-                'visa_expiry'        => $request->visa_expiry,
-            ]);
-
-            // PROFILE PICTURE
-            if ($request->hasFile('profile_picture')) {
-
-                if (
-                    $employee->profile_picture &&
-                    Storage::exists('public/' . $employee->profile_picture)
-                ) {
-                    Storage::delete('public/' . $employee->profile_picture);
-                }
-
-                $path = $request->file('profile_picture')->store('profile_pictures', 'public');
-
-                $employee->profile_picture = $path;
-                $employee->save();
+            if (
+                $employee->profile_picture &&
+                Storage::exists('public/' . $employee->profile_picture)
+            ) {
+                Storage::delete('public/' . $employee->profile_picture);
             }
 
-            DB::commit();
+            $path = $request->file('profile_picture')->store('profile_pictures', 'public');
 
-            return response()->json([
-                'message' => 'Profile updated successfully.',
-                'profile_picture' => $employee->profile_picture
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            return response()->json([
-                'error' => $e->getMessage(),
-            ], 500);
+            $employee->profile_picture = $path;
+            $employee->save();
         }
+
+        DB::commit();
+
+        return response()->json([
+            'message' => 'Profile updated successfully.',
+            'profile_picture' => $employee->profile_picture
+        ]);
+    } catch (\Exception $e) {
+        DB::rollBack();
+
+        return response()->json([
+            'error' => $e->getMessage(),
+        ], 500);
     }
+}
 }
