@@ -23,4 +23,10 @@ class Payslip extends Model
     {
         return $this->belongsTo(Payroll::class);
     }
+
+    public function employee()
+{
+    return $this->belongsTo(\App\Models\HRMS\Employee::class);
+}
+
 }

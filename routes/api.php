@@ -129,6 +129,11 @@ Route::prefix('payroll')->group(function () {
 
     Route::get('/payslips/{biometric_id}', [PayslipController::class, 'index']);
     Route::get('/payslip/{id}', [PayslipController::class, 'show']);
+    Route::post('/{id}/generate-payslip', [PayslipController::class, 'generate']);
+
+     Route::put('/{id}/status', [PayrollController::class, 'updateStatus']);
+    Route::post('/bulk-approve', [PayrollController::class, 'bulkApprove']);
+
 
     Route::get('/', [PayrollController::class, 'index']);
     Route::get('/{id}', [PayrollController::class, 'show']);

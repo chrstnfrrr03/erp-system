@@ -38,6 +38,7 @@ return new class extends Migration
             $table->decimal('tax', 10, 2)->default(0);
             $table->decimal('nasfund', 10, 2)->default(0);
             $table->decimal('other_deductions', 10, 2)->default(0);
+            $table->decimal('late_deduction', 10, 2)->default(0); 
             
             // Final Amount
             $table->decimal('net_pay', 10, 2)->default(0);
