@@ -1,10 +1,68 @@
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import Layout from "../../components/layouts/DashboardLayout";
-import { MdSearch, MdAdd, MdVisibility, MdEdit } from "react-icons/md";
+import aimsApi from "../../aimsApi";
+import {
+  MdSearch,
+  MdAdd,
+  MdVisibility,
+  MdEdit,
+} from "react-icons/md";
 
 export default function AIMSPurchaseRequests() {
   const navigate = useNavigate();
-  const purchaseRequests = [];
+
+  const [requests, setRequests] = useState([]);
+  const [filteredRequests, setFilteredRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // FILTER STATES
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("All");
+
+  /* ==========================================================
+     FETCH PURCHASE REQUESTS
+  ========================================================== */
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        // replace endpoint once backend is ready
+        const res = await aimsApi.get("/purchase-requests");
+        setRequests(res.data.data);
+        setFilteredRequests(res.data.data);
+      } catch (err) {
+        console.error("Failed to load purchase requests", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRequests();
+  }, []);
+
+  /* ==========================================================
+     AUTO FILTERING
+  ========================================================== */
+  useEffect(() => {
+    let data = [...requests];
+
+    // SEARCH
+    if (search.trim() !== "") {
+      const keyword = search.toLowerCase();
+      data = data.filter(
+        (r) =>
+          r.pr_number?.toLowerCase().includes(keyword) ||
+          r.item_name?.toLowerCase().includes(keyword)
+      );
+    }
+
+    // STATUS
+    if (status !== "All") {
+      data = data.filter((r) => r.status === status);
+    }
+
+    setFilteredRequests(data);
+  }, [search, status, requests]);
 
   return (
     <Layout>
@@ -21,33 +79,16 @@ export default function AIMSPurchaseRequests() {
 
           <div className="col-auto">
             <button
-              type="button"
               className="btn btn-outline-danger"
               onClick={() => navigate("/aims")}
-              style={{
-                height: "42px",
-                padding: "0 18px",
-                borderRadius: "8px",
-                fontWeight: 500,
-                fontSize: "14px",
-                whiteSpace: "nowrap",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "#dc3545";
-                e.currentTarget.style.color = "#ffffff";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent";
-                e.currentTarget.style.color = "#dc3545";
-              }}
             >
               Close
             </button>
           </div>
         </div>
 
-        {/* TOOLBAR */}
-        <div className="card shadow-sm mb-3" style={{ borderRadius: "12px" }}>
+        {/* FILTER BAR */}
+        <div className="card shadow-sm mb-3">
           <div className="card-body">
             <div className="row g-3 align-items-center">
 
@@ -58,25 +99,35 @@ export default function AIMSPurchaseRequests() {
                     <MdSearch />
                   </span>
                   <input
-                    type="text"
                     className="form-control"
-                    placeholder="Search"
+                    placeholder="Search by PR number or item"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
                   />
                 </div>
               </div>
 
               {/* STATUS */}
               <div className="col-6 col-md-3">
-                <select className="form-select">
-                  <option value="">Status: All</option>
-                  <option value="completed">Completed</option>
+                <select
+                  className="form-select"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                >
+                  <option value="All">Status: All</option>
                   <option value="pending">Pending</option>
+                  <option value="completed">Completed</option>
                 </select>
               </div>
 
-              {/* CREATE REQUEST */}
+              {/* CREATE */}
               <div className="col-6 col-md-5 text-end">
-                <button className="btn btn-primary">
+                <button
+                  className="btn btn-primary"
+                  onClick={() =>
+                    navigate("/aims/purchase-requests/create")
+                  }
+                >
                   <MdAdd className="me-1" />
                   Create Request
                 </button>
@@ -87,7 +138,7 @@ export default function AIMSPurchaseRequests() {
         </div>
 
         {/* TABLE */}
-        <div className="card shadow-sm" style={{ borderRadius: "12px" }}>
+        <div className="card shadow-sm">
           <div className="table-responsive">
             <table className="table table-hover align-middle mb-0">
               <thead className="table-light">
@@ -96,23 +147,29 @@ export default function AIMSPurchaseRequests() {
                   <th>Item Name</th>
                   <th>Quantity</th>
                   <th>Request Date</th>
-                  <th>Requested</th>
+                  <th>Requested By</th>
                   <th>Status</th>
                   <th className="text-center" style={{ width: "120px" }}>
-                    Action
+                    Actions
                   </th>
                 </tr>
               </thead>
 
               <tbody>
-                {purchaseRequests.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan="7" className="text-center py-4">
+                      Loading purchase requests...
+                    </td>
+                  </tr>
+                ) : filteredRequests.length === 0 ? (
                   <tr>
                     <td colSpan="7" className="text-center text-muted py-4">
-                      No purchase requests available
+                      No purchase requests found
                     </td>
                   </tr>
                 ) : (
-                  purchaseRequests.map((pr) => (
+                  filteredRequests.map((pr) => (
                     <PurchaseRequestRow key={pr.id} {...pr} />
                   ))
                 )}
@@ -126,7 +183,9 @@ export default function AIMSPurchaseRequests() {
   );
 }
 
-/* ROW */
+/* ==========================================================
+   TABLE ROW
+========================================================== */
 function PurchaseRequestRow({
   pr_number,
   item_name,
@@ -135,7 +194,10 @@ function PurchaseRequestRow({
   requested,
   status,
 }) {
-  const statusColor = status === "Completed" ? "success" : "warning";
+  let badge = "secondary";
+
+  if (status === "completed") badge = "success";
+  if (status === "pending") badge = "warning";
 
   return (
     <tr>
@@ -145,7 +207,7 @@ function PurchaseRequestRow({
       <td>{request_date}</td>
       <td>{requested}</td>
       <td>
-        <span className={`badge bg-${statusColor}`}>
+        <span className={`badge rounded-pill bg-${badge}`}>
           {status}
         </span>
       </td>

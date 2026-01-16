@@ -29,30 +29,48 @@ export default function RunPayroll() {
     });
 
     const [stats, setStats] = useState({
-  totalRuns: 0,
-  pendingRuns: 0,
-  completedAmount: 0,
-});
+        totalRuns: 0,
+        pendingRuns: 0,
+        completedAmount: 0,
+    });
 
-const filteredEmployees = employees.filter((emp) => {
-  const name =
-    emp.fullname ||
-    `${emp.first_name ?? ""} ${emp.last_name ?? ""}`;
+    const filteredEmployees = employees.filter((emp) => {
+        const name =
+            emp.fullname ||
+            `${emp.first_name ?? ""} ${emp.last_name ?? ""}`;
 
-  return name.toLowerCase().includes(searchTerm.toLowerCase());
-});
+        return name.toLowerCase().includes(searchTerm.toLowerCase());
+    });
 
-useEffect(() => {
-  fetchEmployees();
-}, []);
+    useEffect(() => {
+        fetchEmployees();
+        fetchDashboardStats(); // ✅ Add this
+    }, []);
 
-
+    // ✅ Add this function
+    const fetchDashboardStats = async () => {
+        try {
+            const res = await payrollApi.get("/dashboard-stats");
+            setStats({
+                totalRuns: res.data.totalRuns || 0,
+                pendingRuns: res.data.pendingRuns || 0,
+                completedAmount: res.data.completedAmount || 0,
+            });
+        } catch (err) {
+            console.error("Failed to fetch dashboard stats", err);
+            // Set default values on error
+            setStats({
+                totalRuns: 0,
+                pendingRuns: 0,
+                completedAmount: 0,
+            });
+        }
+    };
 
     const fetchEmployees = async () => {
         try {
             setLoading(true);
-           const res = await payrollApi.get("/employees");
-
+            const res = await payrollApi.get("/employees");
 
             let empList = [];
             if (res.data.data) {

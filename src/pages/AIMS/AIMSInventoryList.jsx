@@ -25,9 +25,12 @@ export default function AIMSInventoryList() {
   const [category, setCategory] = useState("All");
   const [status, setStatus] = useState("All");
 
-  // ==========================================================
-  // FETCH ITEMS
-  // ==========================================================
+  // BULK SELECTION
+  const [selectedItems, setSelectedItems] = useState([]);
+
+  /* ==========================================================
+     FETCH ITEMS
+  ========================================================== */
   useEffect(() => {
     const fetchItems = async () => {
       try {
@@ -44,13 +47,13 @@ export default function AIMSInventoryList() {
     fetchItems();
   }, []);
 
-  // ==========================================================
-  // APPLY FILTERS
-  // ==========================================================
-  const applyFilters = () => {
+  /* ==========================================================
+     AUTO FILTERING (REACTIVE)
+  ========================================================== */
+  useEffect(() => {
     let data = [...inventory];
 
-    // SEARCH (name, sku, category)
+    // SEARCH
     if (search.trim() !== "") {
       const keyword = search.toLowerCase();
       data = data.filter(
@@ -79,11 +82,29 @@ export default function AIMSInventoryList() {
     }
 
     setFilteredInventory(data);
+    setSelectedItems([]); // reset bulk selection on filter change
+  }, [search, category, status, inventory]);
+
+  /* ==========================================================
+     BULK HELPERS
+  ========================================================== */
+  const toggleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedItems(filteredInventory.map((i) => i.id));
+    } else {
+      setSelectedItems([]);
+    }
   };
 
-  // ==========================================================
-  // KPI COUNTS (FROM FILTERED DATA)
-  // ==========================================================
+  const toggleSelectItem = (id) => {
+    setSelectedItems((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  /* ==========================================================
+     KPI COUNTS
+  ========================================================== */
   const totalItems = filteredInventory.length;
 
   const lowStock = filteredInventory.filter(
@@ -97,14 +118,13 @@ export default function AIMSInventoryList() {
   return (
     <Layout>
       <div className="container-fluid px-4">
-
         {/* TITLE */}
         <h3 className="fw-bold mb-1">Inventory List</h3>
         <p className="text-muted mb-3">
           Centralized overview of all inventory records
         </p>
 
-        {/* KPI CARDS (LEFT BORDER ONLY) */}
+        {/* KPI CARDS */}
         <div className="row g-3 mb-4">
           <KPI title="Total Items" value={totalItems} icon={<MdInventory />} color="primary" />
           <KPI title="Low Stock" value={lowStock} icon={<MdWarning />} color="warning" />
@@ -114,7 +134,6 @@ export default function AIMSInventoryList() {
         {/* FILTER BAR */}
         <div className="card mb-3 shadow-sm">
           <div className="card-body d-flex flex-wrap align-items-center gap-2">
-
             {/* SEARCH */}
             <div className="input-group" style={{ maxWidth: 300 }}>
               <span className="input-group-text bg-light border-0">
@@ -158,13 +177,26 @@ export default function AIMSInventoryList() {
               <option>Low Stock</option>
               <option>Out of Stock</option>
             </select>
-
-            {/* APPLY */}
-            <button className="btn btn-primary px-4" onClick={applyFilters}>
-              Apply
-            </button>
           </div>
         </div>
+
+        {/* BULK ACTION BAR */}
+        {selectedItems.length > 0 && (
+          <div className="alert alert-light border d-flex justify-content-between align-items-center mb-2">
+            <span className="fw-semibold">
+              {selectedItems.length} item(s) selected
+            </span>
+
+            <div className="d-flex gap-2">
+              <button className="btn btn-sm btn-outline-danger">
+                <MdDelete className="me-1" /> Delete Selected
+              </button>
+              <button className="btn btn-sm btn-outline-primary">
+                <MdDownload className="me-1" /> Export Selected
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* TABLE */}
         <div className="card shadow-sm">
@@ -184,6 +216,16 @@ export default function AIMSInventoryList() {
             <table className="table table-hover align-middle mb-0">
               <thead className="table-light">
                 <tr>
+                  <th>
+                    <input
+                      type="checkbox"
+                      checked={
+                        filteredInventory.length > 0 &&
+                        selectedItems.length === filteredInventory.length
+                      }
+                      onChange={(e) => toggleSelectAll(e.target.checked)}
+                    />
+                  </th>
                   <th>Item Code</th>
                   <th>Item Name</th>
                   <th>Category</th>
@@ -198,13 +240,13 @@ export default function AIMSInventoryList() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="8" className="text-center py-4">
+                    <td colSpan="9" className="text-center py-4">
                       Loading inventory...
                     </td>
                   </tr>
                 ) : filteredInventory.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="text-center text-muted py-4">
+                    <td colSpan="9" className="text-center text-muted py-4">
                       No records found
                     </td>
                   </tr>
@@ -213,9 +255,9 @@ export default function AIMSInventoryList() {
                     <InventoryRow
                       key={item.id}
                       item={item}
-                      onEdit={() =>
-                        navigate(`/aims/items/${item.id}/edit`)
-                      }
+                      isSelected={selectedItems.includes(item.id)}
+                      onSelect={toggleSelectItem}
+                      onEdit={() => navigate(`/aims/items/${item.id}/edit`)}
                     />
                   ))
                 )}
@@ -229,7 +271,7 @@ export default function AIMSInventoryList() {
 }
 
 /* ==========================================================
-   KPI CARD (LEFT BORDER ONLY)
+   KPI CARD
 ========================================================== */
 function KPI({ title, value, icon, color }) {
   return (
@@ -253,7 +295,7 @@ function KPI({ title, value, icon, color }) {
 /* ==========================================================
    INVENTORY ROW
 ========================================================== */
-function InventoryRow({ item, onEdit }) {
+function InventoryRow({ item, onEdit, isSelected, onSelect }) {
   let status = "In Stock";
   let badge = "success";
 
@@ -267,6 +309,13 @@ function InventoryRow({ item, onEdit }) {
 
   return (
     <tr>
+      <td>
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={() => onSelect(item.id)}
+        />
+      </td>
       <td className="fw-semibold">{item.sku}</td>
       <td>{item.name}</td>
       <td>{item.category}</td>

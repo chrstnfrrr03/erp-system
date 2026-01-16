@@ -12,6 +12,8 @@ import Attendance from "./pages/HRMS/Attendance";
 /* Payroll */
 import Payroll from "./pages/Payroll/Payroll";
 import RunPayroll from "./pages/Payroll/RunPayroll";
+import PayslipView from "./pages/Payroll/PayslipView";
+import SalaryTable from "./pages/Payroll/SalaryTable";
 
 /* AIMS */
 import AIMSDashboard from "./pages/AIMS/AIMSDashboard";
@@ -22,6 +24,7 @@ import AIMSRequestOrders from "./pages/AIMS/AIMSRequestOrders";
 import AIMSPurchaseRequests from "./pages/AIMS/AIMSPurchaseRequests";
 import AIMSSuppliers from "./pages/AIMS/AIMSSuppliers";
 import EditItem from "./pages/AIMS/EditItem";
+
 
 
 
@@ -42,6 +45,8 @@ export default function App() {
       {/* Payroll */}
       <Route path="/payroll" element={<Payroll />} />
       <Route path="/payroll/run" element={<RunPayroll />} />
+      <Route path="/payslip/:id" element={<PayslipView />} />
+      <Route path="/payroll/salary-table" element={<SalaryTable />} />
 
       {/* AIMS */}
       <Route path="/aims" element={<AIMSDashboard />} />

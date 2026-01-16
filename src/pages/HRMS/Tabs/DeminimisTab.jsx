@@ -90,7 +90,7 @@ export default function DeminimisTab({ formData, setFormData, handleSubmit, load
                   value={allowance.type}
                   onChange={(e) => handleAllowanceChange(index, "type", e.target.value)}
                   className="form-control"
-                  placeholder="e.g., Clothing, Meal, Rice, Transportation"
+                  placeholder="e.g., Meal Allowance, Transportation"
                   style={inputStyle}
                 />
               </div>

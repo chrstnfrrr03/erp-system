@@ -43,7 +43,7 @@ export default function LeaveCreditsTab({
                         className="form-control"
                         value={formData.vacation_year}
                         onChange={handleInputChange}
-                        placeholder="e.g., 2025"
+                        placeholder="e.g., 2026"
                         style={inputStyle}
                     />
                 </div>
@@ -76,7 +76,7 @@ export default function LeaveCreditsTab({
                         className="form-control"
                         value={formData.sick_year}
                         onChange={handleInputChange}
-                        placeholder="e.g., 2025"
+                        placeholder="e.g., 2026"
                         style={inputStyle}
                     />
                 </div>
@@ -88,6 +88,7 @@ export default function LeaveCreditsTab({
                     <input
                         type="number"
                         name="sick_total"
+                        className="form-control"
                         value={formData.sick_total}
                         onChange={handleInputChange}
                         placeholder="Total credits"
@@ -108,7 +109,7 @@ export default function LeaveCreditsTab({
                         className="form-control"
                         value={formData.emergency_year}
                         onChange={handleInputChange}
-                        placeholder="e.g., 2025"
+                        placeholder="e.g., 2026"
                         style={inputStyle}
                     />
                 </div>
@@ -120,6 +121,7 @@ export default function LeaveCreditsTab({
                     <input
                         type="number"
                         name="emergency_total"
+                        className="form-control"
                         value={formData.emergency_total}
                         onChange={handleInputChange}
                         placeholder="Total credits"

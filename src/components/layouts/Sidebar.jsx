@@ -6,7 +6,7 @@ import {
     MdQrCodeScanner,
     MdPrecisionManufacturing,
     MdDescription,
-    MdSettings
+    MdSettings,
 } from "react-icons/md";
 
 import { Link, useLocation } from "react-router-dom";
@@ -75,13 +75,18 @@ export default function Sidebar({ open, setOpen }) {
             </div>
 
             {/* MENU LINKS */}
-            <nav style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <nav
+                style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                }}
+            >
                 {menuItems.map((item) => {
                     const isActive =
-                      item.path === "/"
-                        ? location.pathname === "/"
-                        : location.pathname.startsWith(item.path);
-
+                        item.path === "/"
+                            ? location.pathname === "/"
+                            : location.pathname.startsWith(item.path);
 
                     return (
                         <Link
@@ -95,16 +100,22 @@ export default function Sidebar({ open, setOpen }) {
                                 gap: open ? "0px" : "15px",
                                 padding: "12px 15px",
                                 borderRadius: "8px",
-                                background: isActive ? "#667eea" : "transparent",
+                                background: isActive
+                                    ? "#667eea"
+                                    : "transparent",
                                 color: isActive ? "#fff" : "#444",
                                 transition: "0.2s ease",
                                 whiteSpace: "nowrap",
                             }}
                         >
-                            <span style={{ fontSize: "22px" }}>{item.icon}</span>
+                            <span style={{ fontSize: "22px" }}>
+                                {item.icon}
+                            </span>
 
                             {!open && (
-                                <span style={{ fontSize: "15px" }}>{item.name}</span>
+                                <span style={{ fontSize: "15px" }}>
+                                    {item.name}
+                                </span>
                             )}
                         </Link>
                     );

@@ -85,69 +85,69 @@ export default function EmployeeEditModal({ show, onHide, employee, onSave }) {
   }, [employee, shifts]);
 
   useEffect(() => {
-    if (employee) {
-      // ✅ AUTO-DETECT: If NASFUND number exists, set member to "Yes"
-      // Gets nasfund from account_information
-const nasfundValue = employee.account_information?.nasfund || 0;
-      
+  if (employee) {
+    // ✅ Get nasfund as boolean from account_information
+    const nasfundMember = employee.account_information?.nasfund === true || 
+                         employee.account_information?.nasfund === 1;
 
-      setFormData({
-        biometric_id: employee.biometric_id || "",
-        first_name: employee.first_name || "",
-        middle_name: employee.middle_name || "",
-        last_name: employee.last_name || "",
+    setFormData({
+      biometric_id: employee.biometric_id || "",
+      first_name: employee.first_name || "",
+      middle_name: employee.middle_name || "",
+      last_name: employee.last_name || "",
 
-        department_id: employee.employment_information?.department_id
-          ? String(employee.employment_information.department_id)
-          : "",
+      department_id: employee.employment_information?.department_id
+        ? String(employee.employment_information.department_id)
+        : "",
 
-        shift_id: employee.shift?.shift_id
-          ? String(employee.shift.shift_id)
-          : "",
+      shift_id: employee.shift?.shift_id
+        ? String(employee.shift.shift_id)
+        : "",
 
-        job_location: employee.job_location || "",
-        department_head: employee.department_head || "",
-        supervisor: employee.supervisor || "",
-        position: employee.position || "",
-        company_email: employee.company_email || "",
+      job_location: employee.job_location || "",
+      department_head: employee.department_head || "",
+      supervisor: employee.supervisor || "",
+      position: employee.position || "",
+      company_email: employee.company_email || "",
 
-        employment_classification: employee.employment_classification || "Regular",
-        employee_type: employee.employee_type || "",
-        rate_type: employee.rate_type || "",
-        rate: employee.rate || "",
+      employment_classification: employee.employment_classification || "Regular",
+      employee_type: employee.employee_type || "",
+      rate_type: employee.rate_type || "",
+      rate: employee.rate || "",
 
-        date_started: formatDate(employee.date_started),
-        date_ended: formatDate(employee.date_ended),
+      date_started: formatDate(employee.date_started),
+      date_ended: formatDate(employee.date_ended),
 
-        nasfund: nasfundValue, 
-        nasfund_number: employee.account_information?.nasfund_number || "",
-        tin_number: employee.account_information?.tin_number || "",
+      // ✅ Convert boolean to 1/0 for radio buttons
+      nasfund: nasfundMember ? 1 : 0,
+      nasfund_number: employee.account_information?.nasfund_number || "",
+      tin_number: employee.account_information?.tin_number || "",
 
-        work_permit_number: employee.work_permit_number || "",
-        work_permit_expiry: formatDate(employee.work_permit_expiry),
+      work_permit_number: employee.work_permit_number || "",
+      work_permit_expiry: formatDate(employee.work_permit_expiry),
 
-        visa_number: employee.visa_number || "",
-        visa_expiry: formatDate(employee.visa_expiry),
+      visa_number: employee.visa_number || "",
+      visa_expiry: formatDate(employee.visa_expiry),
 
-        bsb_code: employee.bsb_code || "",
-        bank_name: employee.bank_name || "",
-        account_number: employee.account_number || "",
-        account_name: employee.account_name || "",
+      bsb_code: employee.bsb_code || "",
+      bank_name: employee.bank_name || "",
+      account_number: employee.account_number || "",
+      account_name: employee.account_name || "",
 
-        profile_picture: null,
-      });
+      profile_picture: null,
+    });
 
-      if (employee.profile_picture) {
-        const imageUrl = employee.profile_picture.startsWith("http")
-          ? employee.profile_picture
-          : `${import.meta.env.VITE_API_URL}/storage/${employee.profile_picture}`;
+    if (employee.profile_picture) {
+      const imageUrl = employee.profile_picture.startsWith("http")
+        ? employee.profile_picture
+        : `${import.meta.env.VITE_API_URL}/storage/${employee.profile_picture}`;
 
-        setImagePreview(imageUrl);
-      } else {
-        setImagePreview(null);
-      }
+      setImagePreview(imageUrl);
+    } else {
+      setImagePreview(null);
     }
-  }, [employee]);
+  }
+}, [employee]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -179,25 +179,25 @@ const nasfundValue = employee.account_information?.nasfund || 0;
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+  const { name, value } = e.target;
 
-    // Handle NASFUND radio button
-if (name === "nasfund") {
-  const nasfundValue = parseInt(value);
-  setFormData((prev) => ({
-    ...prev,
-    nasfund: nasfundValue,
-    nasfund_number: nasfundValue === 0 ? "" : prev.nasfund_number,
-  }));
-  return;
-}
-
-
+  // ✅ Handle NASFUND radio button
+  if (name === "nasfund") {
+    const nasfundValue = parseInt(value);
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      nasfund: nasfundValue,
+      // Clear nasfund_number if "No" is selected
+      nasfund_number: nasfundValue === 0 ? "" : prev.nasfund_number,
     }));
-  };
+    return;
+  }
+
+  setFormData((prev) => ({
+    ...prev,
+    [name]: value,
+  }));
+};
 
   const handleSubmit = async () => {
     const result = await Swal.fire({
@@ -206,7 +206,7 @@ if (name === "nasfund") {
       icon: "question",
       showCancelButton: true,
       confirmButtonColor: "#198754",
-      cancelButtonColor: "#6c757d",
+      cancelButtonColor: "#dc3545",
       confirmButtonText: "Yes, Save",
       cancelButtonText: "Cancel",
     });

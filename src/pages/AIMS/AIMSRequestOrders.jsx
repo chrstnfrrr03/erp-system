@@ -1,10 +1,68 @@
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import Layout from "../../components/layouts/DashboardLayout";
-import { MdSearch, MdAdd, MdVisibility, MdEdit } from "react-icons/md";
+import aimsApi from "../../aimsApi";
+import {
+  MdSearch,
+  MdAdd,
+  MdVisibility,
+  MdEdit,
+} from "react-icons/md";
 
 export default function AIMSRequestOrders() {
   const navigate = useNavigate();
-  const orders = [];
+
+  const [orders, setOrders] = useState([]);
+  const [filteredOrders, setFilteredOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // FILTER STATES
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("All");
+
+  /* ==========================================================
+     FETCH ORDERS
+  ========================================================== */
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        // replace endpoint when backend is ready
+        const res = await aimsApi.get("/request-orders");
+        setOrders(res.data.data);
+        setFilteredOrders(res.data.data);
+      } catch (err) {
+        console.error("Failed to load request orders", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, []);
+
+  /* ==========================================================
+     AUTO FILTERING
+  ========================================================== */
+  useEffect(() => {
+    let data = [...orders];
+
+    // SEARCH
+    if (search.trim() !== "") {
+      const keyword = search.toLowerCase();
+      data = data.filter(
+        (o) =>
+          o.po_number?.toLowerCase().includes(keyword) ||
+          o.supplier?.toLowerCase().includes(keyword)
+      );
+    }
+
+    // STATUS
+    if (status !== "All") {
+      data = data.filter((o) => o.status === status);
+    }
+
+    setFilteredOrders(data);
+  }, [search, status, orders]);
 
   return (
     <Layout>
@@ -21,33 +79,16 @@ export default function AIMSRequestOrders() {
 
           <div className="col-auto">
             <button
-              type="button"
               className="btn btn-outline-danger"
               onClick={() => navigate("/aims")}
-              style={{
-                height: "42px",
-                padding: "0 18px",
-                borderRadius: "8px",
-                fontWeight: 500,
-                fontSize: "14px",
-                whiteSpace: "nowrap",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "#dc3545";
-                e.currentTarget.style.color = "#ffffff";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent";
-                e.currentTarget.style.color = "#dc3545";
-              }}
             >
               Close
             </button>
           </div>
         </div>
 
-        {/* TOOLBAR */}
-        <div className="card shadow-sm mb-3" style={{ borderRadius: "12px" }}>
+        {/* FILTER BAR */}
+        <div className="card shadow-sm mb-3">
           <div className="card-body">
             <div className="row g-3 align-items-center">
 
@@ -58,26 +99,34 @@ export default function AIMSRequestOrders() {
                     <MdSearch />
                   </span>
                   <input
-                    type="text"
                     className="form-control"
                     placeholder="Search by PO number or supplier"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
                   />
                 </div>
               </div>
 
               {/* STATUS */}
               <div className="col-6 col-md-3">
-                <select className="form-select">
-                  <option value="">Status: All</option>
+                <select
+                  className="form-select"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                >
+                  <option value="All">Status: All</option>
                   <option value="pending">Pending</option>
                   <option value="approved">Approved</option>
                   <option value="cancelled">Cancelled</option>
                 </select>
               </div>
 
-              {/* CREATE ORDER */}
+              {/* CREATE */}
               <div className="col-6 col-md-5 text-end">
-                <button className="btn btn-primary">
+                <button
+                  className="btn btn-primary"
+                  onClick={() => navigate("/aims/request-orders/create")}
+                >
                   <MdAdd className="me-1" />
                   Create Order
                 </button>
@@ -88,7 +137,7 @@ export default function AIMSRequestOrders() {
         </div>
 
         {/* TABLE */}
-        <div className="card shadow-sm" style={{ borderRadius: "12px" }}>
+        <div className="card shadow-sm">
           <div className="table-responsive">
             <table className="table table-hover align-middle mb-0">
               <thead className="table-light">
@@ -99,21 +148,30 @@ export default function AIMSRequestOrders() {
                   <th>Status</th>
                   <th>Total Amount</th>
                   <th className="text-center" style={{ width: "120px" }}>
-                    Action
+                    Actions
                   </th>
                 </tr>
               </thead>
 
               <tbody>
-                {orders.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan="6" className="text-center py-4">
+                      Loading request orders...
+                    </td>
+                  </tr>
+                ) : filteredOrders.length === 0 ? (
                   <tr>
                     <td colSpan="6" className="text-center text-muted py-4">
-                      No request orders available
+                      No request orders found
                     </td>
                   </tr>
                 ) : (
-                  orders.map((order) => (
-                    <OrderRow key={order.id} {...order} />
+                  filteredOrders.map((order) => (
+                    <OrderRow
+                      key={order.id}
+                      {...order}
+                    />
                   ))
                 )}
               </tbody>
@@ -126,7 +184,9 @@ export default function AIMSRequestOrders() {
   );
 }
 
-/* ROW */
+/* ==========================================================
+   TABLE ROW
+========================================================== */
 function OrderRow({
   po_number,
   supplier,
@@ -134,12 +194,22 @@ function OrderRow({
   status,
   total_amount,
 }) {
+  let badge = "secondary";
+
+  if (status === "approved") badge = "success";
+  if (status === "pending") badge = "warning";
+  if (status === "cancelled") badge = "danger";
+
   return (
     <tr>
       <td className="fw-semibold">{po_number}</td>
       <td>{supplier}</td>
       <td>{order_date}</td>
-      <td>{status}</td>
+      <td>
+        <span className={`badge rounded-pill bg-${badge}`}>
+          {status}
+        </span>
+      </td>
       <td>{total_amount}</td>
       <td className="text-center">
         <div className="d-flex justify-content-center gap-1">
