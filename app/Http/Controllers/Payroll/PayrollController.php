@@ -105,10 +105,11 @@ class PayrollController extends Controller
                     $attendance
                 );
 
+                // ✅ Use total_overtime_hours (attendance + applications combined)
                 $overtimePay = $this->calculateOvertimePay(
                     $employment->rate,
                     $employment->rate_type,
-                    $attendance['overtime_hours']
+                    $attendance['total_overtime_hours']
                 );
 
                 $lateDeduction = $this->calculateLateDeduction(
@@ -116,6 +117,22 @@ class PayrollController extends Controller
                     $employment->rate_type,
                     $attendance['late_minutes']
                 );
+
+                // ✅ Enhanced logging for both late and overtime
+                Log::info('PAYROLL CALCULATION DEBUG', [
+                    'employee' => $employee->first_name,
+                    'rate' => $employment->rate,
+                    'rate_type' => $employment->rate_type,
+                    // Late info
+                    'late_minutes' => $attendance['late_minutes'],
+                    'days_late' => $attendance['days_late'],
+                    'late_deduction' => $lateDeduction,
+                    // Overtime info
+                    'attendance_overtime_hours' => $attendance['attendance_overtime_hours'],
+                    'application_overtime_hours' => $attendance['application_overtime_hours'],
+                    'total_overtime_hours' => $attendance['total_overtime_hours'],
+                    'overtime_pay' => $overtimePay,
+                ]);
 
                 $grossTotal = $gross + $overtimePay;
                 $deductions = $this->calculateDeductions($grossTotal, $employee, $lateDeduction);
@@ -129,7 +146,7 @@ class PayrollController extends Controller
                     'pay_type' => $validated['pay_type'],
                     'base_salary' => $employment->rate,
                     'total_hours' => $attendance['regular_hours'],
-                    'overtime_hours' => $attendance['overtime_hours'],
+                    'overtime_hours' => $attendance['total_overtime_hours'], // ✅ Combined total
                     'overtime_pay' => $overtimePay,
                     'gross_pay' => $grossTotal,
                     'bonuses' => 0,
@@ -169,7 +186,6 @@ class PayrollController extends Controller
                 'records' => $created,
                 'errors' => $errors,
             ], 201);
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('PAYROLL FAILED', ['error' => $e->getMessage()]);
@@ -180,6 +196,44 @@ class PayrollController extends Controller
             ], 500);
         }
     }
+
+    private function getApprovedOvertimeHours($employeeId, $startDate, $endDate)
+{
+    $employee = Employee::find($employeeId);
+    
+    if (!$employee) {
+        return 0;
+    }
+    
+    // ✅ Query by biometric_id instead of employee_id
+    $applications = DB::table('applications')
+        ->where('biometric_id', $employee->biometric_id)
+        ->where('application_type', 'Overtime')
+        ->where('status', 'Approved')
+        ->whereBetween('date_from', [
+            Carbon::parse($startDate)->toDateString(),
+            Carbon::parse($endDate)->toDateString(),
+        ])
+        ->get();
+
+    $totalOvertimeMinutes = 0;
+
+    foreach ($applications as $app) {
+        if ($app->time_from && $app->time_to) {
+            $timeIn = Carbon::parse($app->date_from . ' ' . $app->time_from);
+            $timeOut = Carbon::parse($app->date_from . ' ' . $app->time_to);
+            
+            
+            if ($timeOut->lt($timeIn)) {
+                $timeOut->addDay();
+            }
+            
+            $totalOvertimeMinutes += $timeIn->diffInMinutes($timeOut);
+        }
+    }
+
+    return round($totalOvertimeMinutes / 60, 2);
+}
 
     private function calculateAttendanceData($employeeId, $startDate, $endDate)
     {
@@ -194,7 +248,7 @@ class PayrollController extends Controller
             ->get();
 
         $regularMinutes = 0;
-        $overtimeMinutes = 0;
+        $overtimeMinutes = 0; 
         $daysWorked = 0;
         $daysLate = 0;
         $lateMinutes = 0;
@@ -205,10 +259,6 @@ class PayrollController extends Controller
             if (!$d->isWeekend()) {
                 $totalWorkingDays++;
             }
-            // For Mon-Sat (uncomment if needed):
-            // if ($d->dayOfWeek !== Carbon::SUNDAY) {
-            //     $totalWorkingDays++;
-            // }
         }
 
         foreach ($attendances as $attendance) {
@@ -255,7 +305,7 @@ class PayrollController extends Controller
                 $regularMinutes += $dayMinutes;
             }
 
-            // Late check
+            // Late check (unchanged - working correctly)
             if ($amIn) {
                 $scheduleStart = Carbon::parse($attendance->date)
                     ->startOfDay()
@@ -265,14 +315,24 @@ class PayrollController extends Controller
 
                 if ($amIn->gt($grace)) {
                     $daysLate++;
-                    $lateMinutes += $amIn->diffInMinutes($scheduleStart);
+                    $lateMinutes += $scheduleStart->diffInMinutes($amIn);
                 }
             }
         }
 
+        // ✅ Get approved overtime from applications
+        $applicationOvertimeHours = $this->getApprovedOvertimeHours(
+            $employeeId, 
+            $startDate, 
+            $endDate
+        );
+
+        // ✅ Return both attendance and application overtime separately + combined total
         return [
             'regular_hours' => round($regularMinutes / 60, 2),
-            'overtime_hours' => round($overtimeMinutes / 60, 2),
+            'attendance_overtime_hours' => round($overtimeMinutes / 60, 2),  // Auto-detected
+            'application_overtime_hours' => $applicationOvertimeHours,       // Pre-approved
+            'total_overtime_hours' => round($overtimeMinutes / 60, 2) + $applicationOvertimeHours,
             'days_worked' => $daysWorked,
             'days_absent' => max(0, $totalWorkingDays - $daysWorked),
             'days_late' => $daysLate,
@@ -304,7 +364,7 @@ class PayrollController extends Controller
     {
         if ($overtimeHours <= 0) return 0;
         $hourlyRate = $this->convertToHourlyRate($rate, $rateType);
-        return $hourlyRate * $overtimeHours * 1.5;
+        return round($hourlyRate * $overtimeHours * 1.5, 2);
     }
 
     private function convertToHourlyRate($rate, $rateType)
@@ -336,8 +396,10 @@ class PayrollController extends Controller
         $nasfund = 0;
 
         // Check if employee is NASFUND member (boolean flag)
-        if ($employee->accountInformation && 
-            $employee->accountInformation->nasfund === true) {
+        if (
+            $employee->accountInformation &&
+            $employee->accountInformation->nasfund === true
+        ) {
             $nasfund = $grossPay * self::NASFUND_RATE;
         }
 
@@ -358,8 +420,8 @@ class PayrollController extends Controller
             return null;
         }
 
-        $dateString = $date instanceof Carbon 
-            ? $date->format('Y-m-d') 
+        $dateString = $date instanceof Carbon
+            ? $date->format('Y-m-d')
             : Carbon::parse($date)->format('Y-m-d');
 
         $timeParts = explode(':', $time);
@@ -433,9 +495,9 @@ class PayrollController extends Controller
         ]);
 
         $summary = Payroll::whereBetween(
-                'pay_period_start',
-                [$validated['start_date'], $validated['end_date']]
-            )
+            'pay_period_start',
+            [$validated['start_date'], $validated['end_date']]
+        )
             ->selectRaw('
                 DATE_FORMAT(pay_period_start, "%Y-%m") as period,
                 SUM(net_pay) as amount
