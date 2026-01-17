@@ -8,19 +8,16 @@ export default function ApplicationFormsTab({ employee, onApplicationUpdated }) 
   const [loading, setLoading] = useState(true);
   const [showNewApplicationModal, setShowNewApplicationModal] = useState(false);
 
- useEffect(() => {
-  if (employee?.biometric_id) {
-    fetchApplications();
-  }
-}, [employee?.biometric_id]);
-
+  useEffect(() => {
+    if (employee?.biometric_id) {
+      fetchApplications();
+    }
+  }, [employee?.biometric_id]);
 
   const formatDate = (date) => {
-  if (!date) return "N/A";
-  return date.split("T")[0];
-};
-
-
+    if (!date) return "N/A";
+    return date.split("T")[0];
+  };
 
   const fetchApplications = async () => {
     try {
@@ -35,16 +32,16 @@ export default function ApplicationFormsTab({ employee, onApplicationUpdated }) 
   };
 
   const handleNewApplication = async (formData) => {
-  try {
-    await api.post(`/applications/${employee.biometric_id}`, formData);
+    try {
+      await api.post(`/applications/${employee.biometric_id}`, formData);
 
-    await fetchApplications();
+      await fetchApplications();
 
-    if (onApplicationUpdated) {
-      await onApplicationUpdated();
-    }
+      if (onApplicationUpdated) {
+        await onApplicationUpdated();
+      }
 
-    setShowNewApplicationModal(false);
+      setShowNewApplicationModal(false);
 
       Swal.fire({
         icon: "success",
@@ -63,17 +60,19 @@ export default function ApplicationFormsTab({ employee, onApplicationUpdated }) 
     }
   };
 
-  
-
   const getStatusBadge = (status) => {
     const statusMap = {
-      pending: { bg: "#ffc107", text: "Pending" },
+      "pending supervisor": { bg: "#ffc107", text: "Pending Supervisor" },
+      "pending hr": { bg: "#ff9800", text: "Pending HR" },
       approved: { bg: "#28a745", text: "Approved" },
       rejected: { bg: "#dc3545", text: "Rejected" },
       cancelled: { bg: "#6c757d", text: "Cancelled" },
     };
 
-    const statusInfo = statusMap[status?.toLowerCase()] || statusMap.pending;
+    const statusInfo = statusMap[status?.toLowerCase()] || {
+      bg: "#ffc107",
+      text: "Pending",
+    };
 
     return (
       <span
@@ -216,12 +215,11 @@ export default function ApplicationFormsTab({ employee, onApplicationUpdated }) 
                             {app.purpose || "N/A"}
                           </td>
                           <td style={{ fontSize: "13px", padding: "12px" }}>
-  {formatDate(app.date_from)}
-</td>
-<td style={{ fontSize: "13px", padding: "12px" }}>
-  {formatDate(app.date_to)}
-</td>
-
+                            {formatDate(app.date_from)}
+                          </td>
+                          <td style={{ fontSize: "13px", padding: "12px" }}>
+                            {formatDate(app.date_to)}
+                          </td>
                           <td style={{ fontSize: "13px", padding: "12px" }}>
                             {getStatusBadge(app.status)}
                           </td>
@@ -262,6 +260,10 @@ function NewApplicationModal({ onClose, onSave }) {
   const [formData, setFormData] = useState({
     application_type: "",
     leave_type: "",
+    leave_duration: "Full Day",
+    half_day_period: "AM",
+    leave_start_time: "",
+    leave_end_time: "",
     overtime_type: "Regular OT",
     status: "Pending Supervisor",
     overtime_date: "",
@@ -273,25 +275,29 @@ function NewApplicationModal({ onClose, onSave }) {
   });
 
   useEffect(() => {
-  if (formData.application_type === "Leave") {
-    setFormData((prev) => ({
-      ...prev,
-      overtime_date: "",
-      ot_in: "",
-      ot_out: "",
-    }));
-  }
+    if (formData.application_type === "Leave") {
+      setFormData((prev) => ({
+        ...prev,
+        overtime_date: "",
+        ot_in: "",
+        ot_out: "",
+        overtime_type: "Regular OT",
+      }));
+    }
 
-  if (formData.application_type === "Overtime") {
-    setFormData((prev) => ({
-      ...prev,
-      leave_type: "",
-      date_from: "",
-      date_to: "",
-    }));
-  }
-}, [formData.application_type]);
-
+    if (formData.application_type === "Overtime") {
+      setFormData((prev) => ({
+        ...prev,
+        leave_type: "",
+        leave_duration: "Full Day",
+        half_day_period: "AM",
+        leave_start_time: "",
+        leave_end_time: "",
+        date_from: "",
+        date_to: "",
+      }));
+    }
+  }, [formData.application_type]);
 
   const isOvertime = formData.application_type === "Overtime";
   const isLeave = formData.application_type === "Leave";
@@ -301,32 +307,46 @@ function NewApplicationModal({ onClose, onSave }) {
 
   let payload = { ...formData };
 
-  
   if (formData.application_type === "Overtime") {
     payload.date_from = formData.overtime_date;
     payload.date_to = formData.overtime_date;
     payload.time_from = formData.ot_in;
     payload.time_to = formData.ot_out;
     payload.leave_type = null;
+    payload.leave_duration = null;
+    payload.half_day_period = null;
   }
 
- 
   if (formData.application_type === "Leave") {
-    payload.time_from = null;
-    payload.time_to = null;
+    payload.overtime_type = null;
+
+    // If half-day leave, set date_to same as date_from and add time
+    if (formData.leave_duration === "Half Day") {
+      payload.date_to = formData.date_from;
+      payload.time_from = formData.leave_start_time;
+      payload.time_to = formData.leave_end_time;
+      // ✅ KEEP these fields - don't delete them!
+      // payload.leave_duration is already set
+      // payload.half_day_period is already set
+    } else {
+      // Full day leave - no time needed
+      payload.time_from = null;
+      payload.time_to = null;
+      payload.half_day_period = null; // Not needed for full day
+    }
   }
 
-
+  // Only delete the temporary UI fields
   delete payload.overtime_date;
   delete payload.ot_in;
   delete payload.ot_out;
+  delete payload.leave_start_time;
+  delete payload.leave_end_time;
 
-
-
+  console.log('📤 Submitting payload:', payload); // Debug log
 
   onSave(payload);
 };
-
 
   return (
     <div
@@ -349,12 +369,17 @@ function NewApplicationModal({ onClose, onSave }) {
             <div className="modal-body">
               {/* Application Type */}
               <div className="mb-3">
-                <label className="form-label">Application Type:</label>
+                <label className="form-label fw-semibold">
+                  Application Type:
+                </label>
                 <select
                   className="form-select"
                   value={formData.application_type}
                   onChange={(e) =>
-                    setFormData({ ...formData, application_type: e.target.value })
+                    setFormData({
+                      ...formData,
+                      application_type: e.target.value,
+                    })
                   }
                   required
                 >
@@ -369,7 +394,9 @@ function NewApplicationModal({ onClose, onSave }) {
                 <>
                   <div className="row mb-3">
                     <div className="col-6">
-                      <label className="form-label">Overtime Type:</label>
+                      <label className="form-label fw-semibold">
+                        Overtime Type:
+                      </label>
                       <select
                         className="form-select"
                         value={formData.overtime_type}
@@ -380,14 +407,14 @@ function NewApplicationModal({ onClose, onSave }) {
                           })
                         }
                       >
-                        <option>Regular OT</option>
-                        <option>Holiday OT</option>
-                        <option>Rest Day OT</option>
+                        <option value="Regular OT">Regular OT</option>
+                        <option value="Holiday OT">Holiday OT</option>
+                        <option value="Rest Day OT">Rest Day OT</option>
                       </select>
                     </div>
 
                     <div className="col-6">
-                      <label className="form-label">Status:</label>
+                      <label className="form-label fw-semibold">Status:</label>
                       <select
                         className="form-select"
                         value={formData.status}
@@ -406,8 +433,10 @@ function NewApplicationModal({ onClose, onSave }) {
                   </div>
 
                   <div className="row mb-3">
-                    <div className="col-6">
-                      <label className="form-label">Overtime Date:</label>
+                    <div className="col-12">
+                      <label className="form-label fw-semibold">
+                        Overtime Date:
+                      </label>
                       <input
                         type="date"
                         className="form-control"
@@ -425,7 +454,7 @@ function NewApplicationModal({ onClose, onSave }) {
 
                   <div className="row mb-3">
                     <div className="col-6">
-                      <label className="form-label">OT In:</label>
+                      <label className="form-label fw-semibold">OT In:</label>
                       <input
                         type="time"
                         className="form-control"
@@ -438,7 +467,7 @@ function NewApplicationModal({ onClose, onSave }) {
                     </div>
 
                     <div className="col-6">
-                      <label className="form-label">OT Out:</label>
+                      <label className="form-label fw-semibold">OT Out:</label>
                       <input
                         type="time"
                         className="form-control"
@@ -458,27 +487,130 @@ function NewApplicationModal({ onClose, onSave }) {
                 <>
                   <div className="row mb-3">
                     <div className="col-6">
-                      <label className="form-label">Leave Type:</label>
+                      <label className="form-label fw-semibold">
+                        Leave Type:
+                      </label>
                       <select
                         className="form-select"
                         value={formData.leave_type}
                         onChange={(e) =>
-                          setFormData({ ...formData, leave_type: e.target.value })
+                          setFormData({
+                            ...formData,
+                            leave_type: e.target.value,
+                          })
                         }
                         required
                       >
                         <option value="">Select</option>
                         <option value="Vacation Leave">Vacation Leave</option>
                         <option value="Sick Leave">Sick Leave</option>
-                        <option value="Emergency Leave">
-                          Emergency Leave
-                        </option>
+                        <option value="Emergency Leave">Emergency Leave</option>
                         <option value="Unpaid Leave">Unpaid Leave</option>
                       </select>
                     </div>
 
                     <div className="col-6">
-                      <label className="form-label">Status:</label>
+                      <label className="form-label fw-semibold">
+                        Leave Duration:
+                      </label>
+                      <select
+                        className="form-select"
+                        value={formData.leave_duration}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            leave_duration: e.target.value,
+                          })
+                        }
+                        required
+                      >
+                        <option value="Full Day">Full Day</option>
+                        <option value="Half Day">Half Day</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Half Day Period and Time */}
+                  {formData.leave_duration === "Half Day" && (
+                    <>
+                      <div className="row mb-3">
+                        <div className="col-12">
+                          <label className="form-label fw-semibold">
+                            Half Day Period:
+                          </label>
+                          <select
+                            className="form-select"
+                            value={formData.half_day_period}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                half_day_period: e.target.value,
+                              })
+                            }
+                            required
+                          >
+                            <option value="AM">Morning (AM)</option>
+                            <option value="PM">Afternoon (PM)</option>
+                          </select>
+                          <small className="text-muted">
+                            Select which half of the day you'll be on leave
+                          </small>
+                        </div>
+                      </div>
+
+                      <div className="row mb-3">
+                        <div className="col-6">
+                          <label className="form-label fw-semibold">
+                            Leave Start Time:
+                          </label>
+                          <input
+                            type="time"
+                            className="form-control"
+                            value={formData.leave_start_time}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                leave_start_time: e.target.value,
+                              })
+                            }
+                            required
+                          />
+                          <small className="text-muted">
+                            {formData.half_day_period === "AM"
+                              ? "e.g., 08:00"
+                              : "e.g., 13:00"}
+                          </small>
+                        </div>
+
+                        <div className="col-6">
+                          <label className="form-label fw-semibold">
+                            Leave End Time:
+                          </label>
+                          <input
+                            type="time"
+                            className="form-control"
+                            value={formData.leave_end_time}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                leave_end_time: e.target.value,
+                              })
+                            }
+                            required
+                          />
+                          <small className="text-muted">
+                            {formData.half_day_period === "AM"
+                              ? "e.g., 12:00"
+                              : "e.g., 17:00"}
+                          </small>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  <div className="row mb-3">
+                    <div className="col-12">
+                      <label className="form-label fw-semibold">Status:</label>
                       <select
                         className="form-select"
                         value={formData.status}
@@ -498,7 +630,11 @@ function NewApplicationModal({ onClose, onSave }) {
 
                   <div className="row mb-3">
                     <div className="col-6">
-                      <label className="form-label">Date From:</label>
+                      <label className="form-label fw-semibold">
+                        {formData.leave_duration === "Half Day"
+                          ? "Leave Date:"
+                          : "Date From:"}
+                      </label>
                       <input
                         type="date"
                         className="form-control"
@@ -513,28 +649,70 @@ function NewApplicationModal({ onClose, onSave }) {
                       />
                     </div>
 
-                    <div className="col-6">
-                      <label className="form-label">Date To:</label>
-                      <input
-                        type="date"
-                        className="form-control"
-                        value={formData.date_to}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            date_to: e.target.value,
-                          })
-                        }
-                        required
-                      />
-                    </div>
+                    {formData.leave_duration === "Full Day" && (
+                      <div className="col-6">
+                        <label className="form-label fw-semibold">
+                          Date To:
+                        </label>
+                        <input
+                          type="date"
+                          className="form-control"
+                          value={formData.date_to}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              date_to: e.target.value,
+                            })
+                          }
+                          required
+                        />
+                      </div>
+                    )}
                   </div>
+
+                  {/* Half Day Leave Summary */}
+                  {formData.leave_duration === "Half Day" &&
+                    formData.date_from &&
+                    formData.leave_start_time &&
+                    formData.leave_end_time && (
+                      <div className="alert alert-info" role="alert">
+                        <strong>📋 Half Day Leave Summary:</strong>
+                        <div className="mt-2">
+                          <div>Date: {formData.date_from}</div>
+                          <div>
+                            Period:{" "}
+                            {formData.half_day_period === "AM"
+                              ? "Morning (AM)"
+                              : "Afternoon (PM)"}
+                          </div>
+                          <div>
+                            Time: {formData.leave_start_time} -{" "}
+                            {formData.leave_end_time}
+                            <span className="ms-2">
+                              (
+                              {calculateHours(
+                                formData.leave_start_time,
+                                formData.leave_end_time
+                              )}{" "}
+                              hours)
+                            </span>
+                          </div>
+                          <div className="text-muted small mt-1">
+                            {formData.half_day_period === "AM"
+                              ? "You'll be on leave in the morning, available in the afternoon"
+                              : "You'll be available in the morning, on leave in the afternoon"}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                 </>
               )}
 
               {/* PURPOSE */}
               <div className="mb-3">
-                <label className="form-label">Purpose / Reason:</label>
+                <label className="form-label fw-semibold">
+                  Purpose / Reason:
+                </label>
                 <textarea
                   className="form-control"
                   rows="4"
@@ -542,18 +720,23 @@ function NewApplicationModal({ onClose, onSave }) {
                   onChange={(e) =>
                     setFormData({ ...formData, purpose: e.target.value })
                   }
+                  placeholder="Explain the reason for this application"
                   required
                 />
               </div>
             </div>
 
             <div className="modal-footer">
-              <button type="button"className="btn btn-danger" onClick={onClose}>
-              Close
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={onClose}
+              >
+                Close
               </button>
 
               <button type="submit" className="btn btn-primary">
-                Save
+                Submit Application
               </button>
             </div>
           </form>
@@ -561,4 +744,22 @@ function NewApplicationModal({ onClose, onSave }) {
       </div>
     </div>
   );
+}
+
+// Helper function to calculate hours
+function calculateHours(startTime, endTime) {
+  if (!startTime || !endTime) return 0;
+
+  const [startHour, startMin] = startTime.split(":").map(Number);
+  const [endHour, endMin] = endTime.split(":").map(Number);
+
+  const startMinutes = startHour * 60 + startMin;
+  let endMinutes = endHour * 60 + endMin;
+
+  if (endMinutes < startMinutes) {
+    endMinutes += 24 * 60;
+  }
+
+  const totalMinutes = endMinutes - startMinutes;
+  return (totalMinutes / 60).toFixed(1);
 }
