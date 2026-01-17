@@ -15,6 +15,9 @@ class Application extends Model
         'biometric_id',
         'application_type',
         'leave_type',
+        'leave_duration',
+        'half_day_period',
+        'overtime_type',
         'status',
         'date_from',
         'date_to',
@@ -26,8 +29,6 @@ class Application extends Model
     protected $casts = [
         'date_from' => 'date',
         'date_to' => 'date',
-        'time_from' => 'datetime:H:i',
-        'time_to' => 'datetime:H:i',
     ];
 
     // Relationship with Employee

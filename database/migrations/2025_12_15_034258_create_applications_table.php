@@ -13,11 +13,14 @@ return new class extends Migration
             $table->string('biometric_id');
             $table->string('application_type');
             $table->string('leave_type')->nullable();
+            $table->string('leave_duration')->default('Full Day'); 
+            $table->string('half_day_period')->nullable(); 
+            $table->string('overtime_type')->nullable(); 
             $table->string('status')->default('Pending Supervisor');
             $table->date('date_from');
             $table->date('date_to');
-            $table->time('time_from')->nullable();
-            $table->time('time_to')->nullable();
+            $table->time('time_from')->nullable(); 
+            $table->time('time_to')->nullable();   
             $table->text('purpose');
             $table->timestamps();
 
