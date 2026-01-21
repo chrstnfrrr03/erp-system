@@ -40,15 +40,14 @@ use App\Http\Controllers\Payroll\PayrollDashboardController;
 
 /*
 |--------------------------------------------------------------------------
-| AIMS (AUTO INVENTORY MANAGEMENT SYSTEM)
+| AIMS
 |--------------------------------------------------------------------------
 */
 use App\Http\Controllers\AIMS\AIMSDashboardController;
 use App\Http\Controllers\AIMS\ItemController;
-use App\Http\Controllers\AIMS\CategoryController;
-use App\Http\Controllers\AIMS\SupplierController;
 use App\Http\Controllers\AIMS\StockMovementController;
 use App\Http\Controllers\AIMS\RequestOrderController;
+use App\Http\Controllers\AIMS\SupplierController;
 use App\Http\Controllers\AIMS\PurchaseRequestController;
 
 /*
@@ -56,7 +55,6 @@ use App\Http\Controllers\AIMS\PurchaseRequestController;
 | GLOBAL DASHBOARD
 |--------------------------------------------------------------------------
 */
-
 Route::get('/dashboard', [DashboardController::class, 'index']);
 
 /*
@@ -74,32 +72,25 @@ Route::prefix('hrms')->group(function () {
     Route::apiResource('shifts', ShiftController::class);
     Route::apiResource('departments', DepartmentController::class);
 
-    // ✅ ADD THIS LINE - Deminimis by Employee
     Route::get('/deminimis/employee/{employeeId}', [DeminimisController::class, 'getByEmployee']);
 
-    // DASHBOARD
     Route::get('/stats', [HRMSDashboardController::class, 'getStats']);
     Route::get('/recent-employees', [HRMSDashboardController::class, 'getRecentEmployees']);
     Route::get('/department-distribution', [HRMSDashboardController::class, 'getDepartmentDistribution']);
 
-    // EMPLOYEES
     Route::get('/employees', [HRMSDashboardController::class, 'getEmployees']);
     Route::get('/employee/{biometric_id}', [EmploymentInformationController::class, 'getEmployeeDetails']);
 
-    // EXPORTS
     Route::get('/export/employees/csv', [EmployeeExportController::class, 'exportCSV']);
     Route::get('/export/employees/pdf', [EmployeeExportController::class, 'exportPDF']);
     Route::get('/employee/{biometric_id}/export-cv', [EmployeeExportController::class, 'exportEmployeeCV']);
 
-    // PROFILE UPDATES
     Route::post('/employee/{biometric_id}/update-profile', [EmploymentInformationController::class, 'updateProfile']);
     Route::put('/employee/{biometric_id}/personal', [PersonalInformationController::class, 'updateByEmployee']);
 
-    // LEAVE CREDITS
     Route::get('/employee/{biometric_id}/leave-credits', [LeaveCreditsController::class, 'showByEmployee']);
     Route::put('/employee/{biometric_id}/leave-credits', [LeaveCreditsController::class, 'updateByEmployee']);
 
-    // ATTENDANCE
     Route::prefix('attendance')->group(function () {
         Route::get('{biometric_id}', [AttendanceController::class, 'index']);
         Route::post('{biometric_id}', [AttendanceController::class, 'store']);
@@ -107,7 +98,6 @@ Route::prefix('hrms')->group(function () {
         Route::put('{id}', [AttendanceController::class, 'update']);
     });
 
-    // APPLICATIONS
     Route::get('/applications/{biometric_id}', [ApplicationController::class, 'index']);
     Route::post('/applications/{biometric_id}', [ApplicationController::class, 'store']);
     Route::get('/applications/show/{id}', [ApplicationController::class, 'show']);
@@ -131,9 +121,8 @@ Route::prefix('payroll')->group(function () {
     Route::get('/payslip/{id}', [PayslipController::class, 'show']);
     Route::post('/{id}/generate-payslip', [PayslipController::class, 'generate']);
 
-     Route::put('/{id}/status', [PayrollController::class, 'updateStatus']);
+    Route::put('/{id}/status', [PayrollController::class, 'updateStatus']);
     Route::post('/bulk-approve', [PayrollController::class, 'bulkApprove']);
-
 
     Route::get('/', [PayrollController::class, 'index']);
     Route::get('/{id}', [PayrollController::class, 'show']);
@@ -141,21 +130,56 @@ Route::prefix('payroll')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| AIMS MODULE
+| AIMS MODULE (AUTO INVENTORY MANAGEMENT SYSTEM)
 |--------------------------------------------------------------------------
 */
 Route::prefix('aims')->group(function () {
 
-    // DASHBOARD
-    Route::get('/dashboard-stats', [AIMSDashboardController::class, 'stats']);
+    /*
+    | DASHBOARD
+    */
+    Route::get('/dashboard', [AIMSDashboardController::class, 'index']);
+    Route::get('/dashboard/stock-distribution', [AIMSDashboardController::class, 'stockDistribution']);
+    Route::get('/dashboard/low-stock-trend', [AIMSDashboardController::class, 'lowStockTrend']);
 
-    // MASTER DATA
+    /*
+    | ITEMS
+    */
     Route::apiResource('items', ItemController::class);
-    Route::apiResource('categories', CategoryController::class);
-    Route::apiResource('suppliers', SupplierController::class);
+    Route::get('/items/low-stock/list', [ItemController::class, 'lowStock']);
+    Route::get('/items/out-of-stock/list', [ItemController::class, 'outOfStock']);
 
-    // OPERATIONS
-    Route::apiResource('stock-movements', StockMovementController::class);
-    Route::apiResource('request-orders', RequestOrderController::class);
-    Route::apiResource('purchase-requests', PurchaseRequestController::class);
+    /*
+    | SUPPLIERS
+    */
+    Route::get('/suppliers', [SupplierController::class, 'index']);
+    Route::post('/suppliers', [SupplierController::class, 'store']);
+
+    /*
+    | STOCK MOVEMENTS
+    */
+    Route::get('/stock-movements', [StockMovementController::class, 'index']);
+    Route::get('/stock-movements/{id}', [StockMovementController::class, 'show']);
+
+    Route::post('/stock-in', [StockMovementController::class, 'stockIn']);
+    Route::post('/stock-out', [StockMovementController::class, 'stockOut']);
+
+    /*
+    | PURCHASE REQUESTS (PR)
+    */
+    Route::get('/purchase-requests', [PurchaseRequestController::class, 'index']);
+    Route::get('/purchase-requests/latest', [PurchaseRequestController::class, 'latest']);
+    Route::post('/purchase-requests', [PurchaseRequestController::class, 'store']);
+    Route::get('/purchase-requests/{id}', [PurchaseRequestController::class, 'show']);
+    Route::post('/purchase-requests/{id}/approve', [PurchaseRequestController::class, 'approve']);
+    Route::post('/purchase-requests/{id}/reject', [PurchaseRequestController::class, 'reject']);
+
+    /*
+    | REQUEST ORDERS (PO)
+    */
+    Route::get('/request-orders', [RequestOrderController::class, 'index']);
+    Route::post('/request-orders', [RequestOrderController::class, 'store']);
+    Route::get('/request-orders/{id}', [RequestOrderController::class, 'show']);
+    Route::post('/request-orders/{id}/approve', [RequestOrderController::class, 'approve']);
+    Route::post('/request-orders/{id}/cancel', [RequestOrderController::class, 'cancel']);
 });

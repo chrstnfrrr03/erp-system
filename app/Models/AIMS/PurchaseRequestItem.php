@@ -1,0 +1,19 @@
+<?php
+
+namespace App\Models\AIMS;
+
+use Illuminate\Database\Eloquent\Model;
+
+class PurchaseRequestItem extends Model
+{
+    protected $fillable = [
+        'purchase_request_id',
+        'item_id',
+        'quantity',
+    ];
+
+    public function item()
+    {
+        return $this->belongsTo(Item::class);
+    }
+}
