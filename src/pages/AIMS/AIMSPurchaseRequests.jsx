@@ -2,12 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Layout from "../../components/layouts/DashboardLayout";
 import aimsApi from "../../aimsApi";
-import {
-  MdSearch,
-  MdAdd,
-  MdVisibility,
-  MdEdit,
-} from "react-icons/md";
+
+import { MdSearch, MdAdd, MdVisibility } from "react-icons/md";
 
 export default function AIMSPurchaseRequests() {
   const navigate = useNavigate();
@@ -16,38 +12,45 @@ export default function AIMSPurchaseRequests() {
   const [filteredRequests, setFilteredRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // FILTER STATES
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("All");
 
-  /* ==========================================================
-     FETCH PURCHASE REQUESTS
-  ========================================================== */
-  useEffect(() => {
-    const fetchRequests = async () => {
-      try {
-        // replace endpoint once backend is ready
-        const res = await aimsApi.get("/purchase-requests");
-        setRequests(res.data.data);
-        setFilteredRequests(res.data.data);
-      } catch (err) {
-        console.error("Failed to load purchase requests", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchRequests = async () => {
+    try {
+      const res = await aimsApi.get("/purchase-requests");
+      const data = Array.isArray(res.data) ? res.data : [];
 
+      const normalized = data.map((r) => {
+        const firstItem = r.items?.[0];
+
+        return {
+          id: r.id,
+          pr_number: r.pr_number,
+          item_name: firstItem?.item?.name || "—",
+          quantity: firstItem?.quantity || 0,
+          request_date: r.request_date,
+          requested: r.requester?.name || "—",
+          status: r.status,
+        };
+      });
+
+      setRequests(normalized);
+      setFilteredRequests(normalized);
+    } catch (err) {
+      console.error("Failed to load purchase requests", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchRequests();
   }, []);
 
-  /* ==========================================================
-     AUTO FILTERING
-  ========================================================== */
   useEffect(() => {
     let data = [...requests];
 
-    // SEARCH
-    if (search.trim() !== "") {
+    if (search.trim()) {
       const keyword = search.toLowerCase();
       data = data.filter(
         (r) =>
@@ -56,7 +59,6 @@ export default function AIMSPurchaseRequests() {
       );
     }
 
-    // STATUS
     if (status !== "All") {
       data = data.filter((r) => r.status === status);
     }
@@ -64,11 +66,23 @@ export default function AIMSPurchaseRequests() {
     setFilteredRequests(data);
   }, [search, status, requests]);
 
+  const getStatusBadgeClass = (status) => {
+  switch (status?.toLowerCase()) {
+    case "pending":
+      return "bg-warning text-dark";
+    case "approved":
+      return "bg-success";
+    case "rejected":
+      return "bg-danger";
+    default:
+      return "bg-secondary";
+  }
+};
+
+
   return (
     <Layout>
       <div className="container-fluid px-3 px-md-4">
-
-        {/* TITLE + CLOSE */}
         <div className="row mb-3 align-items-center">
           <div className="col">
             <h1 className="fw-bold">Purchase Requests</h1>
@@ -87,12 +101,9 @@ export default function AIMSPurchaseRequests() {
           </div>
         </div>
 
-        {/* FILTER BAR */}
         <div className="card shadow-sm mb-3">
           <div className="card-body">
             <div className="row g-3 align-items-center">
-
-              {/* SEARCH */}
               <div className="col-12 col-md-4">
                 <div className="input-group">
                   <span className="input-group-text bg-white">
@@ -107,7 +118,6 @@ export default function AIMSPurchaseRequests() {
                 </div>
               </div>
 
-              {/* STATUS */}
               <div className="col-6 col-md-3">
                 <select
                   className="form-select"
@@ -116,11 +126,11 @@ export default function AIMSPurchaseRequests() {
                 >
                   <option value="All">Status: All</option>
                   <option value="pending">Pending</option>
-                  <option value="completed">Completed</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
                 </select>
               </div>
 
-              {/* CREATE */}
               <div className="col-6 col-md-5 text-end">
                 <button
                   className="btn btn-primary"
@@ -132,12 +142,10 @@ export default function AIMSPurchaseRequests() {
                   Create Request
                 </button>
               </div>
-
             </div>
           </div>
         </div>
 
-        {/* TABLE */}
         <div className="card shadow-sm">
           <div className="table-responsive">
             <table className="table table-hover align-middle mb-0">
@@ -149,9 +157,7 @@ export default function AIMSPurchaseRequests() {
                   <th>Request Date</th>
                   <th>Requested By</th>
                   <th>Status</th>
-                  <th className="text-center" style={{ width: "120px" }}>
-                    Actions
-                  </th>
+                  <th className="text-center">Actions</th>
                 </tr>
               </thead>
 
@@ -170,57 +176,39 @@ export default function AIMSPurchaseRequests() {
                   </tr>
                 ) : (
                   filteredRequests.map((pr) => (
-                    <PurchaseRequestRow key={pr.id} {...pr} />
+                    <tr key={pr.id}>
+                      <td className="fw-semibold">{pr.pr_number}</td>
+                      <td>{pr.item_name}</td>
+                      <td>{pr.quantity}</td>
+                      <td>{pr.request_date}</td>
+                      <td>{pr.requested}</td>
+                      <td>
+                        <span
+                          className={`badge rounded-pill ${getStatusBadgeClass(
+                            pr.status
+                          )}`}
+                        >
+                          {pr.status}
+                        </span>
+                      </td>
+                      <td className="text-center">
+                        <button
+                          className="btn btn-sm btn-outline-primary"
+                          onClick={() =>
+                            navigate(`/aims/purchase-requests/${pr.id}`)
+                          }
+                        >
+                          <MdVisibility />
+                        </button>
+                      </td>
+                    </tr>
                   ))
                 )}
               </tbody>
             </table>
           </div>
         </div>
-
       </div>
     </Layout>
-  );
-}
-
-/* ==========================================================
-   TABLE ROW
-========================================================== */
-function PurchaseRequestRow({
-  pr_number,
-  item_name,
-  quantity,
-  request_date,
-  requested,
-  status,
-}) {
-  let badge = "secondary";
-
-  if (status === "completed") badge = "success";
-  if (status === "pending") badge = "warning";
-
-  return (
-    <tr>
-      <td className="fw-semibold">{pr_number}</td>
-      <td>{item_name}</td>
-      <td>{quantity}</td>
-      <td>{request_date}</td>
-      <td>{requested}</td>
-      <td>
-        <span className={`badge rounded-pill bg-${badge}`}>
-          {status}
-        </span>
-      </td>
-      <td className="text-center">
-        <div className="d-flex justify-content-center gap-1">
-          <button className="btn btn-sm btn-outline-primary">
-            <MdVisibility />
-          </button>
-          <button className="btn btn-sm btn-outline-secondary">
-            <MdEdit />
-          </button>
-        </div>
-      </td>
-    </tr>
   );
 }

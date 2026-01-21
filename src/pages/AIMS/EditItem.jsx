@@ -15,56 +15,73 @@ export default function EditItem() {
   // FORM STATE
   // ==========================================================
   const [formData, setFormData] = useState({
+    // Classification
     item_type: "",
     status: "",
     location: "",
 
+    // Basic Info
     name: "",
     sku: "",
     category: "",
+    brand: "",
+    unit: "",
 
+    // Pricing
     cost_price: "",
     selling_price: "",
-    minimum_stock: "",
+    valuation_method: "FIFO",
 
-    tax_category: "",
-    valuation_method: "",
+    // Stock Control
+    minimum_stock: 0,
+    maximum_stock: 0,
+    reorder_quantity: 0,
+
+    // Notes
+    notes: "",
   });
 
   // ==========================================================
   // FETCH ITEM
   // ==========================================================
   useEffect(() => {
-    const fetchItem = async () => {
-      try {
-        const res = await aimsApi.get(`/items/${id}`);
+  const fetchItem = async () => {
+    try {
+      const res = await aimsApi.get(`/items/${id}`);
+      const item = res.data.data; // ✅ FIX HERE
 
-        setFormData({
-          item_type: res.data.item_type,
-          status: res.data.status,
-          location: res.data.location,
+      setFormData({
+        item_type: item.item_type || "Inventory Item",
+        status: item.status || "Active",
+        location: item.location || "Main Warehouse",
 
-          name: res.data.name,
-          sku: res.data.sku,
-          category: res.data.category,
+        name: item.name || "",
+        sku: item.sku || "",
+        category: item.category || "",
+        brand: item.brand || "",
+        unit: item.unit || "",
 
-          cost_price: res.data.cost_price,
-          selling_price: res.data.selling_price,
-          minimum_stock: res.data.minimum_stock ?? 0,
+        cost_price: item.cost_price || "",
+        selling_price: item.selling_price || "",
+        valuation_method: item.valuation_method || "FIFO",
 
-          tax_category: res.data.tax_category,
-          valuation_method: res.data.valuation_method,
-        });
-      } catch (err) {
-        Swal.fire("Error", "Failed to load item", "error");
-        navigate("/aims/inventory");
-      } finally {
-        setLoading(false);
-      }
-    };
+        minimum_stock: item.minimum_stock ?? 0,
+        maximum_stock: item.maximum_stock ?? 0,
+        reorder_quantity: item.reorder_quantity ?? 0,
 
-    fetchItem();
-  }, [id, navigate]);
+        notes: item.notes || "",
+      });
+    } catch (err) {
+      Swal.fire("Error", "Failed to load item details", "error");
+      navigate("/aims/inventory");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchItem();
+}, [id, navigate]);
+
 
   // ==========================================================
   // INPUT HANDLER
@@ -89,6 +106,8 @@ export default function EditItem() {
         cost_price: Number(formData.cost_price),
         selling_price: Number(formData.selling_price),
         minimum_stock: Number(formData.minimum_stock),
+        maximum_stock: Number(formData.maximum_stock),
+        reorder_quantity: Number(formData.reorder_quantity),
       });
 
       await Swal.fire({
@@ -108,6 +127,32 @@ export default function EditItem() {
   };
 
   // ==========================================================
+  // STYLES (MATCH AddItem.jsx)
+  // ==========================================================
+  const inputStyle = {
+    height: "48px",
+    borderRadius: "8px",
+    fontSize: "14px",
+  };
+
+  const labelStyle = {
+    fontWeight: 600,
+    fontSize: "13px",
+    marginBottom: "8px",
+    color: "#2c3e50",
+  };
+
+  const sectionTitle = {
+    fontWeight: 700,
+    fontSize: "16px",
+    marginBottom: "16px",
+    color: "#1a252f",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  };
+
+  // ==========================================================
   // LOADING STATE
   // ==========================================================
   if (loading) {
@@ -123,47 +168,153 @@ export default function EditItem() {
   // ==========================================================
   return (
     <Layout>
-      <div className="container-fluid px-3 px-md-4">
-        <h1 className="fw-bold mb-3">Edit Inventory Item</h1>
+      <div className="container-fluid px-3 px-md-4 py-4">
+        {/* HEADER */}
+        <div className="row mb-4 align-items-center">
+          <div className="col">
+            <h1 className="fw-bold mb-2" style={{ fontSize: "28px" }}>
+              Edit Inventory Item
+            </h1>
+            <p className="text-muted mb-0" style={{ fontSize: "14px" }}>
+              Update item details and stock configuration
+            </p>
+          </div>
 
-        <div className="card shadow-sm">
-          <div className="card-body">
+          <div className="col-auto">
+            <button
+  className="btn btn-outline-danger"
+  onClick={() => navigate("/aims/inventory")}
+>
+  Close
+</button>
+
+          </div>
+        </div>
+
+        {/* MAIN CARD */}
+        <div className="card shadow-sm border-0" style={{ borderRadius: "12px" }}>
+          <div className="card-body p-4 p-md-5">
             <form className="row g-4" onSubmit={handleSubmit}>
 
-              <div className="col-md-6">
-                <label className="form-label">Item Name</label>
+              {/* ==================== SECTION 1: CLASSIFICATION ==================== */}
+              <div className="col-12">
+                <div style={sectionTitle}>Item Classification</div>
+              </div>
+
+              <div className="col-md-4">
+                <label style={labelStyle}>Item Type</label>
+                <select
+                  name="item_type"
+                  value={formData.item_type}
+                  onChange={handleChange}
+                  className="form-select"
+                  style={inputStyle}
+                >
+                  <option>Inventory Item</option>
+                  <option>Consumable</option>
+                  <option>Fixed Asset</option>
+                  <option>Service</option>
+                </select>
+              </div>
+
+              <div className="col-md-4">
+                <label style={labelStyle}>Status</label>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleChange}
+                  className="form-select"
+                  style={inputStyle}
+                >
+                  <option>Active</option>
+                  <option>Inactive</option>
+                  <option>Discontinued</option>
+                </select>
+              </div>
+
+              <div className="col-md-4">
+                <label style={labelStyle}>Warehouse Location</label>
+                <select
+                  name="location"
+                  value={formData.location}
+                  onChange={handleChange}
+                  className="form-select"
+                  style={inputStyle}
+                >
+                  <option>Main Warehouse</option>
+                  <option>Secondary Storage</option>
+                  <option>Showroom</option>
+                  <option>Transit</option>
+                </select>
+              </div>
+
+              {/* ==================== SECTION 2: BASIC INFO ==================== */}
+              <div className="col-12 mt-5">
+                <div style={sectionTitle}>Basic Information</div>
+              </div>
+
+              <div className="col-md-8">
+                <label style={labelStyle}>Item Name</label>
                 <input
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
                   className="form-control"
-                  required
+                  style={inputStyle}
                 />
               </div>
 
-              <div className="col-md-3">
-                <label className="form-label">SKU</label>
+              <div className="col-md-4">
+                <label style={labelStyle}>SKU</label>
                 <input
                   name="sku"
                   value={formData.sku}
-                  onChange={handleChange}
-                  className="form-control"
-                  required
+                  disabled
+                  className="form-control bg-light"
+                  style={inputStyle}
                 />
               </div>
 
-              <div className="col-md-3">
-                <label className="form-label">Category</label>
+              <div className="col-md-4">
+                <label style={labelStyle}>Category</label>
                 <input
                   name="category"
                   value={formData.category}
                   onChange={handleChange}
                   className="form-control"
+                  style={inputStyle}
                 />
               </div>
 
               <div className="col-md-4">
-                <label className="form-label">Cost Price</label>
+                <label style={labelStyle}>Unit</label>
+                <input
+                  name="unit"
+                  value={formData.unit}
+                  onChange={handleChange}
+                  className="form-control"
+                  style={inputStyle}
+                />
+              </div>
+
+              <div className="col-md-4">
+                <label style={labelStyle}>Brand</label>
+                <input
+                  name="brand"
+                  value={formData.brand}
+                  onChange={handleChange}
+                  className="form-control"
+                  style={inputStyle}
+                />
+              </div>
+
+              {/* ==================== SECTION 3: PRICING ==================== */}
+              <div className="col-12 mt-5">
+                <div style={sectionTitle}>Pricing & Valuation</div>
+              </div>
+
+              <div className="col-md-4">
+                <label style={labelStyle}>Cost Price</label>
                 <input
                   type="number"
                   step="0.01"
@@ -172,12 +323,12 @@ export default function EditItem() {
                   value={formData.cost_price}
                   onChange={handleChange}
                   className="form-control"
-                  required
+                  style={inputStyle}
                 />
               </div>
 
               <div className="col-md-4">
-                <label className="form-label">Selling Price</label>
+                <label style={labelStyle}>Selling Price</label>
                 <input
                   type="number"
                   step="0.01"
@@ -186,12 +337,32 @@ export default function EditItem() {
                   value={formData.selling_price}
                   onChange={handleChange}
                   className="form-control"
-                  required
+                  style={inputStyle}
                 />
               </div>
 
               <div className="col-md-4">
-                <label className="form-label">Minimum Stock</label>
+                <label style={labelStyle}>Valuation Method</label>
+                <select
+                  name="valuation_method"
+                  value={formData.valuation_method}
+                  onChange={handleChange}
+                  className="form-select"
+                  style={inputStyle}
+                >
+                  <option>FIFO</option>
+                  <option>LIFO</option>
+                  <option>Weighted Average</option>
+                </select>
+              </div>
+
+              {/* ==================== SECTION 4: STOCK CONTROL ==================== */}
+              <div className="col-12 mt-5">
+                <div style={sectionTitle}>Stock Control</div>
+              </div>
+
+              <div className="col-md-4">
+                <label style={labelStyle}>Minimum Stock</label>
                 <input
                   type="number"
                   min="0"
@@ -199,20 +370,64 @@ export default function EditItem() {
                   value={formData.minimum_stock}
                   onChange={handleChange}
                   className="form-control"
+                  style={inputStyle}
                 />
               </div>
 
-              <div className="col-12 d-flex justify-content-end gap-3 pt-2">
+              <div className="col-md-4">
+                <label style={labelStyle}>Maximum Stock</label>
+                <input
+                  type="number"
+                  min="0"
+                  name="maximum_stock"
+                  value={formData.maximum_stock}
+                  onChange={handleChange}
+                  className="form-control"
+                  style={inputStyle}
+                />
+              </div>
+
+              <div className="col-md-4">
+                <label style={labelStyle}>Reorder Quantity</label>
+                <input
+                  type="number"
+                  min="0"
+                  name="reorder_quantity"
+                  value={formData.reorder_quantity}
+                  onChange={handleChange}
+                  className="form-control"
+                  style={inputStyle}
+                />
+              </div>
+
+              {/* ==================== NOTES ==================== */}
+              <div className="col-12 mt-5">
+                <div style={sectionTitle}>Additional Notes</div>
+              </div>
+
+              <div className="col-12">
+                <textarea
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleChange}
+                  className="form-control"
+                  rows="4"
+                  style={{ borderRadius: "8px", fontSize: "14px" }}
+                />
+              </div>
+
+              {/* ==================== ACTIONS ==================== */}
+              <div className="col-12 d-flex justify-content-end gap-3 pt-4 mt-4 border-top">
                 <button
                   type="button"
-                  className="btn btn-outline-danger"
+                  className="btn btn-danger"
                   onClick={() => navigate("/aims/inventory")}
                 >
                   Cancel
                 </button>
 
-                <button className="btn btn-primary" type="submit">
-                  <MdSave className="me-1" /> Save Changes
+                <button type="submit" className="btn btn-primary">
+                  <MdSave /> Save Changes
                 </button>
               </div>
 

@@ -1,7 +1,7 @@
 import Layout from "../../components/layouts/DashboardLayout";
 import { useNavigate } from "react-router-dom";
-import { MdSave } from "react-icons/md";
-import { useState } from "react";
+import { MdSave, MdClose, MdInfo } from "react-icons/md";
+import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import aimsApi from "../../aimsApi";
 
@@ -33,7 +33,6 @@ export default function AddItem() {
     // Pricing
     cost_price: "",
     selling_price: "",
-    tax_category: "VAT 12%",
     valuation_method: "FIFO",
 
     // Stock Control
@@ -46,6 +45,65 @@ export default function AddItem() {
     notes: "",
   });
 
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [profitMargin, setProfitMargin] = useState(0);
+
+  // ==========================================================
+  // CALCULATE PROFIT MARGIN
+  // ==========================================================
+  useEffect(() => {
+    const cost = parseFloat(formData.cost_price) || 0;
+    const selling = parseFloat(formData.selling_price) || 0;
+    
+    if (cost > 0 && selling > 0) {
+      const margin = ((selling - cost) / selling * 100).toFixed(2);
+      setProfitMargin(margin);
+    } else {
+      setProfitMargin(0);
+    }
+  }, [formData.cost_price, formData.selling_price]);
+
+  // ==========================================================
+  // VALIDATION
+  // ==========================================================
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Required fields
+    if (!formData.name.trim()) newErrors.name = "Item name is required";
+    if (!formData.sku.trim()) newErrors.sku = "SKU is required";
+    if (!formData.category) newErrors.category = "Category is required";
+    if (!formData.unit) newErrors.unit = "Unit is required";
+    
+    // Pricing validation
+    const cost = parseFloat(formData.cost_price);
+    const selling = parseFloat(formData.selling_price);
+    
+    if (!formData.cost_price || cost <= 0) {
+      newErrors.cost_price = "Cost price must be greater than 0";
+    }
+    
+    if (!formData.selling_price || selling <= 0) {
+      newErrors.selling_price = "Selling price must be greater than 0";
+    }
+    
+    if (cost > 0 && selling > 0 && selling < cost) {
+      newErrors.selling_price = "Selling price should be greater than cost price";
+    }
+
+    // Stock validation
+    const minStock = parseFloat(formData.minimum_stock);
+    const maxStock = parseFloat(formData.maximum_stock);
+    
+    if (maxStock > 0 && minStock > maxStock) {
+      newErrors.minimum_stock = "Minimum stock cannot exceed maximum stock";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   // ==========================================================
   // INPUT HANDLER
   // ==========================================================
@@ -55,13 +113,67 @@ export default function AddItem() {
       ...prev,
       [name]: value,
     }));
+
+    // Clear error for this field
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   };
+
+  // ==========================================================
+  // AUTO-GENERATE SKU
+  // ==========================================================
+  const generateSKU = () => {
+    const prefix = formData.category ? formData.category.substring(0, 3).toUpperCase() : "ITM";
+    const timestamp = Date.now().toString().slice(-6);
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    
+    setFormData((prev) => ({
+      ...prev,
+      sku: `${prefix}-${timestamp}-${random}`,
+    }));
+  };
+
+  // ==========================================================
+// SUPPLIERS
+// ==========================================================
+const [suppliers, setSuppliers] = useState([]);
+
+useEffect(() => {
+  const fetchSuppliers = async () => {
+    try {
+      const res = await aimsApi.get("/suppliers");
+     setSuppliers(res.data.data ?? res.data);
+    } catch (err) {
+      console.error("Failed to fetch suppliers", err);
+    }
+  };
+
+  fetchSuppliers();
+}, []);
+
 
   // ==========================================================
   // SUBMIT
   // ==========================================================
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!validateForm()) {
+      Swal.fire({
+        icon: "warning",
+        title: "Validation Error",
+        text: "Please correct the highlighted fields before submitting.",
+        confirmButtonColor: "#f39c12",
+      });
+      return;
+    }
+
+    setLoading(true);
 
     try {
       await aimsApi.post("/items", {
@@ -85,8 +197,8 @@ export default function AddItem() {
 
       await Swal.fire({
         icon: "success",
-        title: "Item Added",
-        text: "Inventory item has been saved successfully.",
+        title: "Item Added Successfully",
+        text: `${formData.name} has been registered in the inventory.`,
         confirmButtonColor: "#28a745",
       });
 
@@ -96,12 +208,14 @@ export default function AddItem() {
 
       Swal.fire({
         icon: "error",
-        title: "Save Failed",
+        title: "Failed to Save Item",
         text:
           err.response?.data?.message ||
-          "Please complete all required fields.",
+          "An error occurred while saving the item. Please try again.",
         confirmButtonColor: "#d33",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -109,21 +223,33 @@ export default function AddItem() {
   // STYLES
   // ==========================================================
   const inputStyle = {
-    height: "54px",
-    borderRadius: "10px",
-    fontSize: "15px",
+    height: "48px",
+    borderRadius: "8px",
+    fontSize: "14px",
+    border: "1px solid #dee2e6",
   };
 
   const labelStyle = {
     fontWeight: 600,
-    fontSize: "14px",
-    marginBottom: "6px",
+    fontSize: "13px",
+    marginBottom: "8px",
+    color: "#2c3e50",
   };
 
   const sectionTitle = {
-    fontWeight: 600,
-    fontSize: "15px",
-    marginBottom: "6px",
+    fontWeight: 700,
+    fontSize: "16px",
+    marginBottom: "16px",
+    color: "#1a252f",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  };
+
+  const errorStyle = {
+    fontSize: "12px",
+    color: "#dc3545",
+    marginTop: "4px",
   };
 
   // ==========================================================
@@ -131,33 +257,40 @@ export default function AddItem() {
   // ==========================================================
   return (
     <Layout>
-      <div className="container-fluid px-3 px-md-4">
+      <div className="container-fluid px-3 px-md-4 py-4">
         {/* HEADER */}
         <div className="row mb-4 align-items-center">
           <div className="col">
-            <h1 className="fw-bold mb-1">Add Inventory Item</h1>
-            <div className="text-muted" style={{ fontSize: "14px" }}>
-              Register item details for inventory, accounting, and procurement
-            </div>
+            <h1 className="fw-bold mb-2" style={{ fontSize: "28px", color: "#1a252f" }}>
+              Add New Inventory Item
+            </h1>
+            <p className="text-muted mb-0" style={{ fontSize: "14px" }}>
+              Complete the form below to register a new item in your inventory system
+            </p>
           </div>
 
           <div className="col-auto">
             <button
-              className="btn btn-outline-danger"
-              onClick={() => navigate("/aims")}
-            >
-              Close
-            </button>
+  className="btn btn-outline-danger"
+  onClick={() => navigate("/aims")}
+>
+  Close
+</button>
+
           </div>
         </div>
 
-        <div className="card shadow-sm" style={{ borderRadius: "14px" }}>
-          <div className="card-body p-4">
+        {/* MAIN FORM CARD */}
+        <div className="card shadow-sm border-0" style={{ borderRadius: "12px" }}>
+          <div className="card-body p-4 p-md-5">
             <form className="row g-4" onSubmit={handleSubmit}>
-              {/* ITEM CLASSIFICATION */}
+              
+              {/* ==================== SECTION 1: CLASSIFICATION ==================== */}
               <div className="col-12">
-                <div style={sectionTitle}>Item Classification</div>
-                <hr />
+                <div style={sectionTitle}>
+                  <div className="badge bg-primary" style={{ width: "28px", height: "28px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>1</div>
+                  Item Classification
+                </div>
               </div>
 
               <div className="col-md-4">
@@ -172,6 +305,7 @@ export default function AddItem() {
                   <option>Inventory Item</option>
                   <option>Consumable</option>
                   <option>Fixed Asset</option>
+                  <option>Service</option>
                 </select>
               </div>
 
@@ -191,7 +325,7 @@ export default function AddItem() {
               </div>
 
               <div className="col-md-4">
-                <label style={labelStyle}>Warehouse / Location</label>
+                <label style={labelStyle}>Warehouse Location</label>
                 <select
                   name="location"
                   value={formData.location}
@@ -201,69 +335,117 @@ export default function AddItem() {
                 >
                   <option>Main Warehouse</option>
                   <option>Secondary Storage</option>
+                  <option>Showroom</option>
+                  <option>Transit</option>
                 </select>
               </div>
 
-              {/* BASIC INFORMATION */}
-              <div className="col-12 mt-3">
-                <div style={sectionTitle}>Basic Information</div>
-                <hr />
+              {/* ==================== SECTION 2: BASIC INFORMATION ==================== */}
+              <div className="col-12 mt-5">
+                <div style={sectionTitle}>
+                  <div className="badge bg-primary" style={{ width: "28px", height: "28px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>2</div>
+                  Basic Information
+                </div>
               </div>
 
-              <div className="col-md-6">
-                <label style={labelStyle}>Item Name *</label>
+              <div className="col-md-8">
+                <label style={labelStyle}>
+                  Item Name <span className="text-danger">*</span>
+                </label>
                 <input
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="form-control"
+                  className={`form-control ${errors?.name ? 'is-invalid' : ''}`}
                   style={inputStyle}
-                  required
+                  placeholder="Enter descriptive item name"
                 />
+                {errors.name && <div style={errorStyle}>{errors.name}</div>}
               </div>
 
-              <div className="col-md-3">
-                <label style={labelStyle}>SKU *</label>
-                <input
-                  name="sku"
-                  value={formData.sku}
-                  onChange={handleChange}
-                  className="form-control"
-                  style={inputStyle}
-                  required
-                />
+              <div className="col-md-4">
+                <label style={labelStyle}>
+                  SKU (Stock Keeping Unit) <span className="text-danger">*</span>
+                </label>
+                <div className="input-group">
+                  <input
+                    name="sku"
+                    value={formData.sku}
+                    onChange={handleChange}
+                    className={`form-control ${errors?.sku ? 'is-invalid' : ''}`}
+                    style={{ ...inputStyle, borderRadius: "8px 0 0 8px" }}
+                    placeholder="Auto-generate or enter"
+                  />
+                  <button
+                    className="btn btn-primary"
+                    type="button"
+                    onClick={generateSKU}
+                    style={{ borderRadius: "0 8px 8px 0", height: "48px" }}
+                    title="Auto-generate SKU"
+                  >
+                    Generate
+                  </button>
+                </div>
+                {errors.sku && <div style={errorStyle}>{errors.sku}</div>}
               </div>
 
-              <div className="col-md-3">
-                <label style={labelStyle}>Barcode</label>
+              <div className="col-md-4">
+                <label style={labelStyle}>Barcode / EAN</label>
                 <input
                   name="barcode"
                   value={formData.barcode}
                   onChange={handleChange}
                   className="form-control"
                   style={inputStyle}
+                  placeholder="Scan or enter barcode"
                 />
               </div>
 
               <div className="col-md-4">
-                <label style={labelStyle}>Category *</label>
+                <label style={labelStyle}>
+                  Category <span className="text-danger">*</span>
+                </label>
                 <select
                   name="category"
                   value={formData.category}
                   onChange={handleChange}
-                  className="form-select"
+                  className={`form-select ${errors.category ? 'is-invalid' : ''}`}
                   style={inputStyle}
-                  required
                 >
                   <option value="">Select Category</option>
                   <option>Spare Parts</option>
                   <option>Consumables</option>
-                  <option>Tools</option>
+                  <option>Tools & Equipment</option>
                   <option>Electronics</option>
+                  <option>Raw Materials</option>
+                  <option>Finished Goods</option>
                 </select>
+                {errors.category && <div style={errorStyle}>{errors.category}</div>}
               </div>
 
-              <div className="col-md-4">
+              <div className="col-md-2">
+                <label style={labelStyle}>
+                  Unit <span className="text-danger">*</span>
+                </label>
+                <select
+                  name="unit"
+                  value={formData.unit}
+                  onChange={handleChange}
+                  className={`form-select ${errors.unit ? 'is-invalid' : ''}`}
+                  style={inputStyle}
+                >
+                  <option value="">Select</option>
+                  <option>Pieces</option>
+                  <option>Boxes</option>
+                  <option>Liters</option>
+                  <option>Kilograms</option>
+                  <option>Meters</option>
+                  <option>Sets</option>
+                </select>
+                {errors.unit && <div style={errorStyle}>{errors.unit}</div>}
+              </div>
+
+              <div className="col-md-2">
                 <label style={labelStyle}>Brand</label>
                 <input
                   name="brand"
@@ -271,60 +453,106 @@ export default function AddItem() {
                   onChange={handleChange}
                   className="form-control"
                   style={inputStyle}
+                  placeholder="Optional"
                 />
               </div>
 
+              {/* ==================== SECTION 3: PRICING & VALUATION ==================== */}
+              <div className="col-12 mt-5">
+                <div style={sectionTitle}>
+                  <div className="badge bg-primary" style={{ width: "28px", height: "28px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>3</div>
+                  Pricing & Valuation
+                </div>
+              </div>
+
               <div className="col-md-4">
-                <label style={labelStyle}>Unit *</label>
+                <label style={labelStyle}>
+                  Cost Price <span className="text-danger">*</span>
+                </label>
+                <div className="input-group">
+                  <span className="input-group-text" style={{ borderRadius: "8px 0 0 8px" }}>$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    name="cost_price"
+                    value={formData.cost_price}
+                    onChange={handleChange}
+                    className={`form-control ${errors?.cost_price ? 'is-invalid' : ''}`}
+                    style={{ ...inputStyle, borderLeft: "none", borderRadius: "0 8px 8px 0" }}
+                    placeholder="0.00"
+                  />
+                </div>
+                {errors.cost_price && <div style={errorStyle}>{errors.cost_price}</div>}
+              </div>
+
+              <div className="col-md-4">
+                <label style={labelStyle}>
+                  Selling Price <span className="text-danger">*</span>
+                </label>
+                <div className="input-group">
+                  <span className="input-group-text" style={{ borderRadius: "8px 0 0 8px" }}>$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    name="selling_price"
+                    value={formData.selling_price}
+                    onChange={handleChange}
+                    className={`form-control ${errors?.selling_price ? 'is-invalid' : ''}`}
+                    style={{ ...inputStyle, borderLeft: "none", borderRadius: "0 8px 8px 0" }}
+                    placeholder="0.00"
+                  />
+                </div>
+                {errors.selling_price && <div style={errorStyle}>{errors.selling_price}</div>}
+              </div>
+
+              <div className="col-md-4">
+                <label style={labelStyle}>Profit Margin</label>
+                <div 
+                  className="form-control d-flex align-items-center justify-content-center fw-bold"
+                  style={{ 
+                    ...inputStyle, 
+                    backgroundColor: profitMargin > 0 ? "#d4edda" : "#f8f9fa",
+                    color: profitMargin > 0 ? "#155724" : "#6c757d",
+                    border: profitMargin > 0 ? "1px solid #c3e6cb" : "1px solid #dee2e6"
+                  }}
+                >
+                  {profitMargin}%
+                </div>
+              </div>
+
+              <div className="col-md-4">
+                <label style={labelStyle}>Valuation Method</label>
                 <select
-                  name="unit"
-                  value={formData.unit}
+                  name="valuation_method"
+                  value={formData.valuation_method}
                   onChange={handleChange}
                   className="form-select"
                   style={inputStyle}
-                  required
                 >
-                  <option value="">Select Unit</option>
-                  <option>Pieces</option>
-                  <option>Boxes</option>
-                  <option>Liters</option>
-                  <option>Kilograms</option>
+                  <option>FIFO</option>
+                  <option>LIFO</option>
+                  <option>Weighted Average</option>
                 </select>
               </div>
 
-              {/* PRICING */}
-              <div className="col-md-4">
-                <label style={labelStyle}>Cost Price *</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  name="cost_price"
-                  value={formData.cost_price}
-                  onChange={handleChange}
-                  className="form-control"
-                  style={inputStyle}
-                  required
-                />
+              {/* ==================== SECTION 4: STOCK CONTROL ==================== */}
+              <div className="col-12 mt-5">
+                <div style={sectionTitle}>
+                  <div className="badge bg-primary" style={{ width: "28px", height: "28px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>4</div>
+                  Stock Control & Thresholds
+                </div>
               </div>
 
-              <div className="col-md-4">
-                <label style={labelStyle}>Selling Price *</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  name="selling_price"
-                  value={formData.selling_price}
-                  onChange={handleChange}
-                  className="form-control"
-                  style={inputStyle}
-                  required
-                />
-              </div>
+              <div className="col-md-3">
+                <label style={labelStyle}>
+  Opening Stock <span className="text-danger">*</span>
+</label>
+<small className="text-muted">
+  This will create an automatic stock-in record
+</small>
 
-              <div className="col-md-4">
-                <label style={labelStyle}>Opening Stock *</label>
                 <input
                   type="number"
                   min="0"
@@ -333,38 +561,176 @@ export default function AddItem() {
                   onChange={handleChange}
                   className="form-control"
                   style={inputStyle}
-                  required
+                  placeholder="0"
                 />
               </div>
 
-              {/* NOTES */}
+              <div className="col-md-3">
+                <label style={labelStyle}>Minimum Stock Level</label>
+                <input
+                  type="number"
+                  min="0"
+                  name="minimum_stock"
+                  value={formData.minimum_stock}
+                  onChange={handleChange}
+                  className={`form-control ${errors?.minimum_stock ? 'is-invalid' : ''}`}
+                  style={inputStyle}
+                  placeholder="0"
+                />
+                {errors.minimum_stock && <div style={errorStyle}>{errors.minimum_stock}</div>}
+              </div>
+
+              <div className="col-md-3">
+                <label style={labelStyle}>Maximum Stock Level</label>
+                <input
+                  type="number"
+                  min="0"
+                  name="maximum_stock"
+                  value={formData.maximum_stock}
+                  onChange={handleChange}
+                  className="form-control"
+                  style={inputStyle}
+                  placeholder="0"
+                />
+              </div>
+
+              <div className="col-md-3">
+                <label style={labelStyle}>Reorder Quantity</label>
+                <input
+                  type="number"
+                  min="0"
+                  name="reorder_quantity"
+                  value={formData.reorder_quantity}
+                  onChange={handleChange}
+                  className="form-control"
+                  style={inputStyle}
+                  placeholder="0"
+                />
+              </div>
+
+              {/* INFO BOX */}
               <div className="col-12">
-                <label style={labelStyle}>Internal Notes</label>
+                <div 
+                  className="alert alert-info d-flex align-items-start gap-2" 
+                  style={{ borderRadius: "8px", backgroundColor: "#e7f3ff", border: "1px solid #b3d9ff" }}
+                >
+                  <MdInfo size={20} style={{ marginTop: "2px", color: "#0066cc" }} />
+                  <div style={{ fontSize: "13px", color: "#004085" }}>
+                    <strong>Stock Thresholds:</strong> Set minimum stock to trigger low stock alerts. 
+                    Maximum stock helps prevent overstocking. Reorder quantity suggests how much to order when restocking.
+                  </div>
+                </div>
+              </div>
+
+              {/* ==================== SECTION 5: SUPPLIER & PROCUREMENT ==================== */}
+              <div className="col-12 mt-5">
+                <div style={sectionTitle}>
+                  <div className="badge bg-primary" style={{ width: "28px", height: "28px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>5</div>
+                  Supplier & Procurement (Optional)
+                </div>
+              </div>
+
+              <div className="col-md-4">
+               <label style={labelStyle}>Preferred Supplier</label>
+                <select
+  name="supplier_id"
+  value={formData.supplier_id}
+  onChange={handleChange}
+  className="form-select"
+  style={inputStyle}
+  disabled={!Array.isArray(suppliers) || suppliers.length === 0}
+>
+  <option value="">Select Supplier</option>
+
+  {Array.isArray(suppliers) &&
+    suppliers.map((s) => (
+      <option key={s.id} value={s.id}>
+        {s.name}
+      </option>
+    ))}
+</select>
+
+
+              </div>
+
+              <div className="col-md-4">
+                <label style={labelStyle}>Lead Time (Days)</label>
+                <input
+                  type="number"
+                  min="0"
+                  name="lead_time"
+                  value={formData.lead_time}
+                  onChange={handleChange}
+                  className="form-control"
+                  style={inputStyle}
+                  placeholder="0"
+                />
+              </div>
+
+              <div className="col-md-4">
+                <label style={labelStyle}>Preferred Purchase Quantity</label>
+                <input
+                  type="number"
+                  min="0"
+                  name="preferred_purchase_qty"
+                  value={formData.preferred_purchase_qty}
+                  onChange={handleChange}
+                  className="form-control"
+                  style={inputStyle}
+                  placeholder="0"
+                />
+              </div>
+
+              {/* ==================== SECTION 6: NOTES ==================== */}
+              <div className="col-12 mt-5">
+                <div style={sectionTitle}>
+                  <div className="badge bg-primary" style={{ width: "28px", height: "28px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>6</div>
+                  Additional Notes
+                </div>
+              </div>
+
+              <div className="col-12">
+                <label style={labelStyle}>Internal Notes & Remarks</label>
                 <textarea
                   name="notes"
                   value={formData.notes}
                   onChange={handleChange}
                   className="form-control"
-                  rows="3"
-                  style={{ borderRadius: "10px" }}
+                  rows="4"
+                  style={{ borderRadius: "8px", fontSize: "14px" }}
+                  placeholder="Add any additional information about this item (storage instructions, handling notes, etc.)"
                 />
               </div>
 
-              {/* ACTIONS */}
-              <div className="col-12 d-flex justify-content-end gap-3 pt-3">
+              {/* ==================== ACTIONS ==================== */}
+              <div className="col-12 d-flex justify-content-end gap-3 pt-4 mt-4 border-top">
                 <button
-                  type="button"
-                  className="btn btn-outline-danger"
-                  onClick={() => navigate("/aims")}
-                >
-                  Cancel
-                </button>
+  type="button"
+  className="btn btn-danger d-flex align-items-center gap-2"
+  onClick={() => navigate("/aims")}
+  disabled={loading}
+>
+  Cancel
+</button>
+
 
                 <button
                   type="submit"
                   className="btn btn-primary d-flex align-items-center gap-2"
+                  disabled={loading}
+                  style={{ borderRadius: "8px", padding: "12px 32px" }}
                 >
-                  <MdSave size={18} /> Save Item
+                  {loading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <MdSave size={18} />
+                      Save Item
+                    </>
+                  )}
                 </button>
               </div>
             </form>

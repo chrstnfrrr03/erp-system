@@ -1,179 +1,266 @@
-import { useNavigate } from "react-router-dom";
 import Layout from "../../components/layouts/DashboardLayout";
-import {
-  MdSearch,
-  MdAdd,
-  MdVisibility,
-  MdEdit,
-  MdDelete,
-} from "react-icons/md";
+import { useEffect, useState } from "react";
+import aimsApi from "../../aimsApi";
+import Swal from "sweetalert2";
+
+import { MdAdd, MdEdit, MdDelete } from "react-icons/md";
 
 export default function AIMSSuppliers() {
-  const navigate = useNavigate();
+  const [suppliers, setSuppliers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // 🔹 API data later
-  const suppliers = [];
+  const [form, setForm] = useState({
+    name: "",
+    contact_person: "",
+    email: "",
+    phone: "",
+    address: "",
+  });
+
+  const [editingId, setEditingId] = useState(null);
+
+  /* ===============================
+     FETCH SUPPLIERS
+  =============================== */
+  useEffect(() => {
+    fetchSuppliers();
+  }, []);
+
+  const fetchSuppliers = async () => {
+    try {
+      const res = await aimsApi.get("/suppliers");
+      setSuppliers(res.data.data ?? res.data);
+    } catch (err) {
+      console.error("Failed to fetch suppliers", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ===============================
+     SUBMIT
+  =============================== */
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      if (editingId) {
+        await aimsApi.put(`/suppliers/${editingId}`, form);
+        Swal.fire("Updated", "Supplier updated successfully", "success");
+      } else {
+        await aimsApi.post("/suppliers", form);
+        Swal.fire("Created", "Supplier added successfully", "success");
+      }
+
+      setForm({
+        name: "",
+        contact_person: "",
+        email: "",
+        phone: "",
+        address: "",
+      });
+      setEditingId(null);
+      fetchSuppliers();
+    } catch (err) {
+      Swal.fire("Error", "Failed to save supplier", "error");
+    }
+  };
+
+  /* ===============================
+     EDIT
+  =============================== */
+  const handleEdit = (supplier) => {
+    setForm({
+      name: supplier.name,
+      contact_person: supplier.contact_person,
+      email: supplier.email,
+      phone: supplier.phone,
+      address: supplier.address,
+    });
+    setEditingId(supplier.id);
+  };
+
+  /* ===============================
+     DELETE
+  =============================== */
+  const handleDelete = async (id) => {
+    const result = await Swal.fire({
+      title: "Delete supplier?",
+      text: "This action cannot be undone",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, delete",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await aimsApi.delete(`/suppliers/${id}`);
+      Swal.fire("Deleted", "Supplier removed", "success");
+      fetchSuppliers();
+    } catch (err) {
+      Swal.fire("Error", "Failed to delete supplier", "error");
+    }
+  };
 
   return (
     <Layout>
       <div className="container-fluid px-3 px-md-4">
 
-        {/* TITLE + CLOSE */}
-        <div className="row mb-3 align-items-center">
+        {/* HEADER */}
+        <div className="row mb-3">
           <div className="col">
             <h1 className="fw-bold">Suppliers</h1>
-            <p className="text-muted mb-0">
-              Manage supplier information and contacts
-            </p>
-          </div>
-
-          <div className="col-auto">
-            <button
-              type="button"
-              className="btn btn-outline-danger"
-              onClick={() => navigate("/aims")}
-              style={{
-                height: "42px",
-                padding: "0 18px",
-                borderRadius: "8px",
-                fontWeight: 500,
-                fontSize: "14px",
-                whiteSpace: "nowrap",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "#dc3545";
-                e.currentTarget.style.color = "#ffffff";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent";
-                e.currentTarget.style.color = "#dc3545";
-              }}
-            >
-              Close
-            </button>
+            <p className="text-muted mb-0">Manage suppliers for procurement</p>
           </div>
         </div>
 
-        {/* TOOLBAR */}
-        <div className="card shadow-sm mb-4" style={{ borderRadius: "12px" }}>
+        {/* FORM */}
+        <div className="card shadow-sm mb-4">
+          <div className="card-header bg-white fw-semibold">
+            {editingId ? "Edit Supplier" : "Add Supplier"}
+          </div>
+
           <div className="card-body">
-            <div className="row g-3 align-items-center">
-
-              {/* SEARCH */}
-              <div className="col-12 col-md-6">
-                <div className="input-group">
-                  <span className="input-group-text bg-white">
-                    <MdSearch />
-                  </span>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Search supplier name or contact person"
-                  />
-                </div>
+            <form onSubmit={handleSubmit} className="row g-3">
+              <div className="col-md-6">
+                <label className="form-label">Supplier Name</label>
+                <input
+                  className="form-control"
+                  required
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                />
               </div>
 
-              {/* STATUS */}
-              <div className="col-12 col-md-3">
-                <select className="form-select">
-                  <option value="">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
+              <div className="col-md-6">
+                <label className="form-label">Contact Person</label>
+                <input
+                  className="form-control"
+                  value={form.contact_person}
+                  onChange={(e) =>
+                    setForm({ ...form, contact_person: e.target.value })
+                  }
+                />
               </div>
 
-              {/* ADD SUPPLIER */}
-              <div className="col-12 col-md-3 text-md-end">
-                <button className="btn btn-info text-white">
-                  <MdAdd className="me-1" /> Add Supplier
+              <div className="col-md-4">
+                <label className="form-label">Email</label>
+                <input
+                  type="email"
+                  className="form-control"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                />
+              </div>
+
+              <div className="col-md-4">
+                <label className="form-label">Phone</label>
+                <input
+                  className="form-control"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                />
+              </div>
+
+              <div className="col-md-4">
+                <label className="form-label">Address</label>
+                <input
+                  className="form-control"
+                  value={form.address}
+                  onChange={(e) => setForm({ ...form, address: e.target.value })}
+                />
+              </div>
+
+              <div className="col-12 d-flex gap-2">
+                <button type="submit" className="btn btn-primary">
+                  <MdAdd className="me-1" />
+                  {editingId ? "Update Supplier" : "Add Supplier"}
                 </button>
-              </div>
 
-            </div>
+                {editingId && (
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => {
+                      setEditingId(null);
+                      setForm({
+                        name: "",
+                        contact_person: "",
+                        email: "",
+                        phone: "",
+                        address: "",
+                      });
+                    }}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </form>
           </div>
         </div>
 
         {/* TABLE */}
-        <div className="card shadow-sm" style={{ borderRadius: "12px" }}>
+        <div className="card shadow-sm">
+          <div className="card-header bg-white fw-semibold">
+            Supplier List
+          </div>
+
           <div className="table-responsive">
-            <table className="table table-hover align-middle mb-0">
+            <table className="table align-middle mb-0">
               <thead className="table-light">
                 <tr>
-                  <th>Supplier Code</th>
-                  <th>Supplier Name</th>
-                  <th>Contact Person</th>
-                  <th>Phone</th>
+                  <th>Name</th>
+                  <th>Contact</th>
                   <th>Email</th>
-                  <th>Status</th>
-                  <th className="text-center" style={{ width: "140px" }}>
-                    Action
-                  </th>
+                  <th>Phone</th>
+                  <th width="120"></th>
                 </tr>
               </thead>
 
               <tbody>
-                {suppliers.length === 0 ? (
+                {loading ? (
                   <tr>
-                    <td colSpan="7" className="text-center text-muted py-4">
-                      No suppliers available
+                    <td colSpan="5" className="text-center py-4 text-muted">
+                      Loading...
+                    </td>
+                  </tr>
+                ) : suppliers.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="text-center py-4 text-muted">
+                      No suppliers found
                     </td>
                   </tr>
                 ) : (
                   suppliers.map((supplier) => (
-                    <SupplierRow key={supplier.id} {...supplier} />
+                    <tr key={supplier.id}>
+                      <td className="fw-semibold">{supplier.name}</td>
+                      <td>{supplier.contact_person || "—"}</td>
+                      <td>{supplier.email || "—"}</td>
+                      <td>{supplier.phone || "—"}</td>
+                      <td className="text-end">
+                        <button
+                          className="btn btn-sm btn-outline-primary me-2"
+                          onClick={() => handleEdit(supplier)}
+                        >
+                          <MdEdit />
+                        </button>
+                        <button
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() => handleDelete(supplier.id)}
+                        >
+                          <MdDelete />
+                        </button>
+                      </td>
+                    </tr>
                   ))
                 )}
               </tbody>
             </table>
           </div>
-
-          {/* FOOTER */}
-          <div className="card-footer bg-white text-muted">
-            No supplier data loaded
-          </div>
         </div>
-
       </div>
     </Layout>
-  );
-}
-
-/* SUPPLIER ROW */
-function SupplierRow({
-  supplier_code,
-  name,
-  contact_person,
-  phone,
-  email,
-  status,
-}) {
-  return (
-    <tr>
-      <td className="fw-semibold">{supplier_code}</td>
-      <td>{name}</td>
-      <td>{contact_person}</td>
-      <td>{phone}</td>
-      <td>{email}</td>
-      <td>
-        <span
-          className={`badge bg-${status === "active" ? "success" : "secondary"}`}
-        >
-          {status}
-        </span>
-      </td>
-      <td className="text-center">
-        <div className="d-flex justify-content-center gap-1">
-          <button className="btn btn-sm btn-outline-primary">
-            <MdVisibility size={16} />
-          </button>
-          <button className="btn btn-sm btn-outline-warning">
-            <MdEdit size={16} />
-          </button>
-          <button className="btn btn-sm btn-outline-danger">
-            <MdDelete size={16} />
-          </button>
-        </div>
-      </td>
-    </tr>
   );
 }

@@ -2,6 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Layout from "../../components/layouts/DashboardLayout";
 import aimsApi from "../../aimsApi";
+import Swal from "sweetalert2";
+
 import {
   MdSearch,
   MdAdd,
@@ -23,20 +25,27 @@ export default function AIMSRequestOrders() {
   /* ==========================================================
      FETCH ORDERS
   ========================================================== */
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        // replace endpoint when backend is ready
-        const res = await aimsApi.get("/request-orders");
-        setOrders(res.data.data);
-        setFilteredOrders(res.data.data);
-      } catch (err) {
-        console.error("Failed to load request orders", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchOrders = async () => {
+  try {
+    const res = await aimsApi.get("/request-orders");
 
+    const normalized = (res.data.data || []).map((o) => ({
+      ...o,
+      supplier:
+        typeof o.supplier === "object" ? o.supplier?.name : o.supplier,
+    }));
+
+    setOrders(normalized);
+    setFilteredOrders(normalized);
+  } catch (err) {
+    console.error("Failed to load request orders", err);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+  useEffect(() => {
     fetchOrders();
   }, []);
 
@@ -46,7 +55,6 @@ export default function AIMSRequestOrders() {
   useEffect(() => {
     let data = [...orders];
 
-    // SEARCH
     if (search.trim() !== "") {
       const keyword = search.toLowerCase();
       data = data.filter(
@@ -56,7 +64,6 @@ export default function AIMSRequestOrders() {
       );
     }
 
-    // STATUS
     if (status !== "All") {
       data = data.filter((o) => o.status === status);
     }
@@ -64,11 +71,45 @@ export default function AIMSRequestOrders() {
     setFilteredOrders(data);
   }, [search, status, orders]);
 
+  /* ==========================================================
+     APPROVE REQUEST ORDER (AUTO STOCK IN)
+  ========================================================== */
+  const handleApprove = async (orderId) => {
+    const confirm = await Swal.fire({
+      title: "Approve Request Order?",
+      text: "Approving will automatically stock in all items.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Approve",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#198754",
+      cancelButtonColor: "#dc3545",
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    try {
+      await aimsApi.post(`/request-orders/${orderId}/approve`);
+
+      Swal.fire({
+        icon: "success",
+        title: "Approved",
+        text: "Stock updated successfully.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+
+      fetchOrders();
+    } catch (error) {
+      Swal.fire("Error", "Failed to approve request order", "error");
+    }
+  };
+
   return (
     <Layout>
       <div className="container-fluid px-3 px-md-4">
 
-        {/* TITLE + CLOSE */}
+        {/* TITLE */}
         <div className="row mb-3 align-items-center">
           <div className="col">
             <h1 className="fw-bold">Request Orders</h1>
@@ -92,7 +133,6 @@ export default function AIMSRequestOrders() {
           <div className="card-body">
             <div className="row g-3 align-items-center">
 
-              {/* SEARCH */}
               <div className="col-12 col-md-4">
                 <div className="input-group">
                   <span className="input-group-text bg-white">
@@ -107,7 +147,6 @@ export default function AIMSRequestOrders() {
                 </div>
               </div>
 
-              {/* STATUS */}
               <div className="col-6 col-md-3">
                 <select
                   className="form-select"
@@ -121,7 +160,6 @@ export default function AIMSRequestOrders() {
                 </select>
               </div>
 
-              {/* CREATE */}
               <div className="col-6 col-md-5 text-end">
                 <button
                   className="btn btn-primary"
@@ -147,7 +185,7 @@ export default function AIMSRequestOrders() {
                   <th>Order Date</th>
                   <th>Status</th>
                   <th>Total Amount</th>
-                  <th className="text-center" style={{ width: "120px" }}>
+                  <th className="text-center" style={{ width: "160px" }}>
                     Actions
                   </th>
                 </tr>
@@ -167,10 +205,18 @@ export default function AIMSRequestOrders() {
                     </td>
                   </tr>
                 ) : (
+
                   filteredOrders.map((order) => (
                     <OrderRow
                       key={order.id}
                       {...order}
+                      onView={() =>
+                        navigate(`/aims/request-orders/${order.id}`)
+                      }
+                      onEdit={() =>
+                        navigate(`/aims/request-orders/${order.id}/edit`)
+                      }
+                      onApprove={() => handleApprove(order.id)}
                     />
                   ))
                 )}
@@ -193,9 +239,11 @@ function OrderRow({
   order_date,
   status,
   total_amount,
+  onView,
+  onEdit,
+  onApprove,
 }) {
   let badge = "secondary";
-
   if (status === "approved") badge = "success";
   if (status === "pending") badge = "warning";
   if (status === "cancelled") badge = "danger";
@@ -203,22 +251,32 @@ function OrderRow({
   return (
     <tr>
       <td className="fw-semibold">{po_number}</td>
-      <td>{supplier}</td>
+      <td>
+  {typeof supplier === "object" ? supplier?.name : supplier}
+</td>
       <td>{order_date}</td>
       <td>
         <span className={`badge rounded-pill bg-${badge}`}>
           {status}
         </span>
       </td>
-      <td>{total_amount}</td>
+     <td>{Number(total_amount).toFixed(2)}</td>
       <td className="text-center">
         <div className="d-flex justify-content-center gap-1">
-          <button className="btn btn-sm btn-outline-primary">
+          <button className="btn btn-sm btn-outline-primary" onClick={onView}>
             <MdVisibility />
           </button>
-          <button className="btn btn-sm btn-outline-secondary">
-            <MdEdit />
-          </button>
+
+          {status === "pending" && (
+            <>
+              <button className="btn btn-sm btn-outline-secondary" onClick={onEdit}>
+                <MdEdit />
+              </button>
+              <button className="btn btn-sm btn-outline-success" onClick={onApprove}>
+                Approve
+              </button>
+            </>
+          )}
         </div>
       </td>
     </tr>

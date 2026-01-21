@@ -1,23 +1,60 @@
 import Layout from "../../components/layouts/DashboardLayout";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import aimsApi from "../../aimsApi";
+
 import {
   MdInventory,
   MdWarning,
-  MdPeople,
   MdAddBox,
   MdList,
   MdLocalShipping,
   MdSwapHoriz,
 } from "react-icons/md";
 
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+
 export default function AIMSDashboard() {
   const navigate = useNavigate();
 
-  const buttonStyle = {
-    height: "52px",
-    fontSize: "15px",
-    fontWeight: "500",
-    borderRadius: "8px",
+  /* ===============================
+     STATE
+  =============================== */
+  const [kpis, setKpis] = useState({
+    total_items: 0,
+    low_stock_items: 0,
+    out_of_stock_items: 0,
+  });
+
+  const [lowStockTrend, setLowStockTrend] = useState([]);
+
+  /* ===============================
+     FETCH DASHBOARD DATA
+  =============================== */
+  useEffect(() => {
+    fetchDashboard();
+  }, []);
+
+  const fetchDashboard = async () => {
+    try {
+      const [kpiRes, trendRes] = await Promise.all([
+        aimsApi.get("/dashboard"),
+        aimsApi.get("/dashboard/low-stock-trend"),
+      ]);
+
+      setKpis(kpiRes.data);
+      setLowStockTrend(trendRes.data);
+    } catch (error) {
+      console.error("Failed to fetch AIMS dashboard data", error);
+    }
   };
 
   return (
@@ -37,46 +74,55 @@ export default function AIMSDashboard() {
         <div className="row g-3 mb-4">
           <AIMSCard
             title="Total Items"
-            value="0"
+            value={kpis.total_items}
             color="#3b82f6"
             icon={<MdInventory size={30} color="#fff" />}
           />
 
           <AIMSCard
             title="Low Stock Items"
-            value="0"
+            value={kpis.low_stock_items}
             color="#f59e0b"
             icon={<MdWarning size={30} color="#fff" />}
           />
 
           <AIMSCard
-            title="Active Suppliers"
-            value="0"
-            color="#10b981"
-            icon={<MdPeople size={30} color="#fff" />}
+            title="Out of Stock Items"
+            value={kpis.out_of_stock_items}
+            color="#ef4444"
+            icon={<MdWarning size={30} color="#fff" />}
           />
         </div>
 
-        {/* CHARTS */}
+        {/* LOW STOCK TREND CHART */}
         <div className="row g-3 mb-4">
-          <div className="col-12 col-lg-6">
-            <div className="card h-100 shadow-sm" style={{ borderRadius: "12px" }}>
-              <div className="card-header bg-white">
-                <h5 className="mb-0 fw-semibold">Stock Distribution</h5>
-              </div>
-              <div className="card-body d-flex align-items-center justify-content-center text-muted">
-                No data available
-              </div>
-            </div>
-          </div>
-
-          <div className="col-12 col-lg-6">
+          <div className="col-12">
             <div className="card h-100 shadow-sm" style={{ borderRadius: "12px" }}>
               <div className="card-header bg-white">
                 <h5 className="mb-0 fw-semibold">Low Stock Trend</h5>
               </div>
-              <div className="card-body d-flex align-items-center justify-content-center text-muted">
-                No data available
+
+              <div className="card-body" style={{ height: "350px" }}>
+                {lowStockTrend.length ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={lowStockTrend}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis allowDecimals={false} />
+                      <Tooltip />
+                      <Line
+                        type="monotone"
+                        dataKey="count"
+                        stroke="#f59e0b"
+                        strokeWidth={3}
+                        dot={{ r: 4 }}
+                        animationDuration={1200}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="text-muted">Loading...</div>
+                )}
               </div>
             </div>
           </div>
@@ -127,13 +173,13 @@ export default function AIMSDashboard() {
                     onClick={() => navigate("/aims/purchase-requests")}
                   />
 
+                  {/* ✅ NEW: SUPPLIERS */}
                   <ActionButton
-  label="View Supplier"
-  icon={<MdPeople size={20} />}
-  color="#14b8a6" 
-  onClick={() => navigate("/aims/suppliers")}
-/>
-
+                    label="Suppliers"
+                    icon={<MdLocalShipping size={20} />}
+                    color="#0ea5e9"
+                    onClick={() => navigate("/aims/suppliers")}
+                  />
                 </div>
               </div>
             </div>
