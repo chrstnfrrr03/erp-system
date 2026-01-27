@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { FaUserCircle } from "react-icons/fa";
 import { MdSearch } from "react-icons/md";
-import api from "../../api";
+import baseApi from "../../api/baseApi";
 import Swal from "sweetalert2";
+import { can } from "../../utils/permissions"; 
 
-export default function AttendanceTab({ employee }) {
+export default function AttendanceTab({ employee, permissions }) { 
     const [attendanceRecords, setAttendanceRecords] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
@@ -27,7 +28,7 @@ export default function AttendanceTab({ employee }) {
     const fetchAttendanceRecords = async () => {
         try {
             setLoading(true);
-            const res = await api.get(`/attendance/${employee.biometric_id}`);
+            const res = await baseApi.get(`/api/hrms/attendance/${employee.biometric_id}`);
             setAttendanceRecords(res.data || []);
         } catch (err) {
             console.error("Failed to fetch attendance:", err);
@@ -51,7 +52,7 @@ export default function AttendanceTab({ employee }) {
         }
 
         try {
-            await api.post(`/attendance/${employee.biometric_id}`, formData);
+            await baseApi.post(`/api/hrms/attendance/${employee.biometric_id}`, formData);
             await fetchAttendanceRecords();
             setShowAddModal(false);
             Swal.fire({
@@ -73,10 +74,7 @@ export default function AttendanceTab({ employee }) {
 
     const handleMarkAbsent = async (formData) => {
         try {
-            await api.post(
-                `/attendance/${employee.biometric_id}/absent`,
-                formData
-            );
+            await baseApi.post(`/api/hrms/attendance/${employee.biometric_id}/absent`, formData);
             await fetchAttendanceRecords();
             setShowAbsentModal(false);
             Swal.fire({
@@ -98,7 +96,7 @@ export default function AttendanceTab({ employee }) {
 
     const handleUpdateAttendance = async (id, formData) => {
         try {
-            await api.put(`/attendance/${id}`, formData);
+            await baseApi.put(`/api/hrms/attendance/${id}`, formData);
             await fetchAttendanceRecords();
             setShowUpdateModal(false);
             setSelectedRecord(null);
@@ -256,34 +254,19 @@ export default function AttendanceTab({ employee }) {
                     }}
                 >
                     <div className="card-body p-4">
-                        {/* Action Buttons */}
-                        <div className="d-flex justify-content-between align-items-center mb-4">
-                            <div className="d-flex gap-2">
-                                <button
-                                    className="btn btn-primary"
-                                    onClick={() => setShowAddModal(true)}
-                                    style={{
-                                        fontSize: "14px",
-                                        padding: "8px 20px",
-                                        borderRadius: "6px",
-                                    }}
-                                >
-                                    Add Attendance
-                                </button>
-                                <button
-                                    className="btn btn-danger"
-                                    onClick={() => setShowAbsentModal(true)}
-                                    style={{
-                                        fontSize: "14px",
-                                        padding: "8px 20px",
-                                        borderRadius: "6px",
-                                        fontWeight: 500,
-                                    }}
-                                >
-                                    Mark Absent
-                                </button>
-                            </div>
-                        </div>
+                       {/* Action Buttons */}
+<div className="d-flex justify-content-between align-items-center mb-4">
+    {can(permissions, 'attendance.manage') && (
+        <div className="d-flex gap-2">
+            <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+                Add Attendance
+            </button>
+            <button className="btn btn-danger" onClick={() => setShowAbsentModal(true)}>
+                Mark Absent
+            </button>
+        </div>
+    )}
+</div>
 
                         {/* Table Controls */}
                         <div className="d-flex justify-content-between align-items-center mb-3">
@@ -482,33 +465,19 @@ export default function AttendanceTab({ employee }) {
                                                                 record.pm_time_out
                                                             )}
                                                         </td>
-                                                        <td
-                                                            style={{
-                                                                fontSize:
-                                                                    "13px",
-                                                                padding: "12px",
-                                                            }}
-                                                        >
-                                                            <button
-                                                                className="btn btn-sm btn-outline-primary"
-                                                                style={{
-                                                                    fontSize:
-                                                                        "12px",
-                                                                    padding:
-                                                                        "4px 16px",
-                                                                }}
-                                                                onClick={() => {
-                                                                    setSelectedRecord(
-                                                                        record
-                                                                    );
-                                                                    setShowUpdateModal(
-                                                                        true
-                                                                    );
-                                                                }}
-                                                            >
-                                                                Update
-                                                            </button>
-                                                        </td>
+                                                        <td style={{ fontSize: "13px", padding: "12px" }}>
+    {can(permissions, 'attendance.manage') && (
+        <button
+            className="btn btn-sm btn-outline-primary"
+            onClick={() => {
+                setSelectedRecord(record);
+                setShowUpdateModal(true);
+            }}
+        >
+            Update
+        </button>
+    )}
+</td>
                                                     </tr>
                                                 ))
                                             ) : (

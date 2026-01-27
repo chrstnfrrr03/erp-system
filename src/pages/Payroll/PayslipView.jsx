@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import payrollApi from "../../payrollApi";
+import baseApi from "../../api/baseApi";
 import Layout from "../../components/layouts/DashboardLayout";
 import { MdArrowBack, MdDownload, MdHome } from "react-icons/md";
 
@@ -16,7 +16,7 @@ export default function PayslipView() {
 
   const fetchPayslip = async () => {
     try {
-      const res = await payrollApi.get(`/payslip/${id}`);
+      const res = await baseApi.get(`/api/payroll/payslip/${id}`);
       console.log("Payslip data:", res.data);
       setPayslip(res.data);
     } catch (err) {

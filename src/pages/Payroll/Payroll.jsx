@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import Layout from "../../components/layouts/DashboardLayout";
 import { useNavigate } from "react-router-dom";
-import payrollApi from "../../payrollApi";
+import baseApi from "../../api/baseApi";
+
 
 import {
     BarChart,
@@ -41,7 +42,7 @@ export default function Payroll() {
 
     const fetchDashboardStats = async () => {
         try {
-            const res = await payrollApi.get("/dashboard-stats");
+            const res = await baseApi.get("/api/payroll/dashboard-stats");
 
             setTotalRuns(res.data.totalRuns);
             setPendingRuns(res.data.pendingRuns);

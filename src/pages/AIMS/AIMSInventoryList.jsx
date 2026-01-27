@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import Layout from "../../components/layouts/DashboardLayout";
-import aimsApi from "../../aimsApi";
+import baseApi from "../../api/baseApi";
+
 import {
   MdRemoveCircle,
   MdInventory,
@@ -41,7 +42,7 @@ export default function AIMSInventoryList() {
 
   const fetchItems = async () => {
     try {
-      const res = await aimsApi.get("/items");
+      const res = await baseApi.get("/api/aims/items");
       const data = res.data.data || res.data;
       setInventory(data);
       setFilteredInventory(data);
@@ -91,7 +92,7 @@ const handleStockOut = async (item) => {
   }
 
   try {
-    await aimsApi.post("/stock-out", {
+    await baseApi.post("/api/aims/stock-out", {
       item_id: item.id,
       quantity: qty,
       remarks: "Manual stock out",
@@ -122,7 +123,7 @@ const handleStockIn = async (item) => {
   if (!qty || qty <= 0) return;
 
   try {
-    await aimsApi.post("/stock-in", {
+    await baseApi.post("/api/aims/stock-in", {
       item_id: item.id,
       quantity: qty,
       remarks: "Manual stock in",
@@ -209,7 +210,7 @@ const handleStockIn = async (item) => {
 
   if (!confirm.isConfirmed) return;
 
-  await aimsApi.delete(`/items/${id}`);
+  await baseApi.delete(`/api/aims/items/${id}`);
   fetchItems();
   Swal.fire("Deleted", "Item removed", "success");
 };

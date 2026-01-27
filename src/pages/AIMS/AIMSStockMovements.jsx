@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Layout from "../../components/layouts/DashboardLayout";
-import aimsApi from "../../aimsApi";
+import baseApi from "../../api/baseApi";
+
 import {
   MdSearch,
   MdSwapHoriz,
@@ -35,7 +36,7 @@ export default function AIMSStockMovements() {
 
   const fetchMovements = async () => {
     try {
-      const res = await aimsApi.get("/stock-movements");
+      const res = await baseApi.get("/api/aims/stock-movements");
       setMovements(res.data.data || []);
       setFilteredMovements(res.data.data || []);
     } catch (err) {
@@ -78,7 +79,7 @@ export default function AIMSStockMovements() {
     setShowModal(true);
     
     try {
-      const res = await aimsApi.get(`/stock-movements/${movement.id}`);
+      const res = await baseApi.get(`/api/aims/stock-movements/${movement.id}`);
       setSelectedMovement(res.data.data);
     } catch (err) {
       console.error("Failed to fetch movement details", err);

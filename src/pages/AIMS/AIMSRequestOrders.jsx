@@ -1,14 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Layout from "../../components/layouts/DashboardLayout";
-import aimsApi from "../../aimsApi";
+import baseApi from "../../api/baseApi";
 import Swal from "sweetalert2";
 
 import {
   MdSearch,
   MdAdd,
   MdVisibility,
-  MdEdit,
 } from "react-icons/md";
 
 export default function AIMSRequestOrders() {
@@ -26,24 +25,23 @@ export default function AIMSRequestOrders() {
      FETCH ORDERS
   ========================================================== */
   const fetchOrders = async () => {
-  try {
-    const res = await aimsApi.get("/request-orders");
+    try {
+      const res = await baseApi.get("/api/aims/request-orders");
 
-    const normalized = (res.data.data || []).map((o) => ({
-      ...o,
-      supplier:
-        typeof o.supplier === "object" ? o.supplier?.name : o.supplier,
-    }));
+      const normalized = (res.data.data || []).map((o) => ({
+        ...o,
+        supplier:
+          typeof o.supplier === "object" ? o.supplier?.name : o.supplier,
+      }));
 
-    setOrders(normalized);
-    setFilteredOrders(normalized);
-  } catch (err) {
-    console.error("Failed to load request orders", err);
-  } finally {
-    setLoading(false);
-  }
-};
-
+      setOrders(normalized);
+      setFilteredOrders(normalized);
+    } catch (err) {
+      console.error("Failed to load request orders", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchOrders();
@@ -89,7 +87,7 @@ export default function AIMSRequestOrders() {
     if (!confirm.isConfirmed) return;
 
     try {
-      await aimsApi.post(`/request-orders/${orderId}/approve`);
+      await baseApi.post(`/api/aims/request-orders/${orderId}/approve`);
 
       Swal.fire({
         icon: "success",
@@ -205,16 +203,12 @@ export default function AIMSRequestOrders() {
                     </td>
                   </tr>
                 ) : (
-
                   filteredOrders.map((order) => (
                     <OrderRow
                       key={order.id}
                       {...order}
                       onView={() =>
                         navigate(`/aims/request-orders/${order.id}`)
-                      }
-                      onEdit={() =>
-                        navigate(`/aims/request-orders/${order.id}/edit`)
                       }
                       onApprove={() => handleApprove(order.id)}
                     />
@@ -240,7 +234,6 @@ function OrderRow({
   status,
   total_amount,
   onView,
-  onEdit,
   onApprove,
 }) {
   let badge = "secondary";
@@ -251,31 +244,30 @@ function OrderRow({
   return (
     <tr>
       <td className="fw-semibold">{po_number}</td>
-      <td>
-  {typeof supplier === "object" ? supplier?.name : supplier}
-</td>
+      <td>{typeof supplier === "object" ? supplier?.name : supplier}</td>
       <td>{order_date}</td>
       <td>
         <span className={`badge rounded-pill bg-${badge}`}>
           {status}
         </span>
       </td>
-     <td>{Number(total_amount).toFixed(2)}</td>
+      <td>{Number(total_amount).toFixed(2)}</td>
       <td className="text-center">
         <div className="d-flex justify-content-center gap-1">
-          <button className="btn btn-sm btn-outline-primary" onClick={onView}>
+          <button
+            className="btn btn-sm btn-outline-primary"
+            onClick={onView}
+          >
             <MdVisibility />
           </button>
 
           {status === "pending" && (
-            <>
-              <button className="btn btn-sm btn-outline-secondary" onClick={onEdit}>
-                <MdEdit />
-              </button>
-              <button className="btn btn-sm btn-outline-success" onClick={onApprove}>
-                Approve
-              </button>
-            </>
+            <button
+              className="btn btn-sm btn-outline-success"
+              onClick={onApprove}
+            >
+              Approve
+            </button>
           )}
         </div>
       </td>

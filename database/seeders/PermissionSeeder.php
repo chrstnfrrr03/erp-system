@@ -67,15 +67,13 @@ class PermissionSeeder extends Seeder
             */
             ['slug' => 'payslip.view', 'description' => 'View payslip'],
 
-             /*
+            /*
             |--------------------------------------------------------------------------
             | User Account Management (ADMIN ONLY)
             |--------------------------------------------------------------------------
             */
             ['slug' => 'user.create', 'description' => 'Create user login accounts'],
         ];
-
-        
 
         foreach ($permissions as $permission) {
             Permission::firstOrCreate(

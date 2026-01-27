@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../../components/layouts/DashboardLayout";
-import payrollApi from "../../payrollApi";
+import baseApi from "../../api/baseApi";
 import Swal from "sweetalert2";
 import {
     MdSearch,
@@ -50,7 +50,7 @@ export default function RunPayroll() {
     // ✅ Add this function
     const fetchDashboardStats = async () => {
         try {
-            const res = await payrollApi.get("/dashboard-stats");
+            const res = await baseApi.get("/api/payroll/dashboard-stats");
             setStats({
                 totalRuns: res.data.totalRuns || 0,
                 pendingRuns: res.data.pendingRuns || 0,
@@ -70,7 +70,7 @@ export default function RunPayroll() {
     const fetchEmployees = async () => {
         try {
             setLoading(true);
-            const res = await payrollApi.get("/employees");
+            const res = await baseApi.get("/api/hrms/employees");
 
             let empList = [];
             if (res.data.data) {
@@ -183,7 +183,7 @@ export default function RunPayroll() {
 
         console.log("🚀 SENDING PAYLOAD:", JSON.stringify(payload, null, 2));
 
-        const res = await payrollApi.post("/run", payload);
+        const res = await baseApi.post("/api/payroll/run", payload);
 
         console.log("✅ SUCCESS RESPONSE:", res.data);
 

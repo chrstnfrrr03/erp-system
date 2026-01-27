@@ -3,7 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { MdSave } from "react-icons/md";
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
-import aimsApi from "../../aimsApi";
+import baseApi from "../../api/baseApi";
+
 
 export default function EditItem() {
   const navigate = useNavigate();
@@ -47,8 +48,8 @@ export default function EditItem() {
   useEffect(() => {
   const fetchItem = async () => {
     try {
-      const res = await aimsApi.get(`/items/${id}`);
-      const item = res.data.data; // ✅ FIX HERE
+      const res = await baseApi.get(`/api/aims/items/${id}`);
+      const item = res.data.data; 
 
       setFormData({
         item_type: item.item_type || "Inventory Item",
@@ -101,7 +102,7 @@ export default function EditItem() {
     e.preventDefault();
 
     try {
-      await aimsApi.put(`/items/${id}`, {
+      await baseApi.put(`/api/aims/items/${id}`, {
         ...formData,
         cost_price: Number(formData.cost_price),
         selling_price: Number(formData.selling_price),

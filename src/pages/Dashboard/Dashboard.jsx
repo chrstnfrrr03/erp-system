@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../../components/layouts/DashboardLayout";
+import baseApi from "../../api/baseApi";
 
 import {
   MdPeople,
@@ -14,104 +15,157 @@ import {
 export default function Dashboard() {
   const navigate = useNavigate();
 
-  const [employees, setEmployees] = useState(0);
-  const [payroll, setPayroll] = useState(0);
-  const [inventory, setInventory] = useState(0);
-  const [lowStock, setLowStock] = useState(0);
-  const [systemUsers, setSystemUsers] = useState(0);
-  const [recentActivity, setRecentActivity] = useState("Loading...");
+  /* ================= STATE ================= */
+  const [loading, setLoading] = useState(true);
 
+  const [stats, setStats] = useState({
+    employees: 0,
+    payroll: 0,
+    inventory: 0,
+    lowStock: 0,
+    systemUsers: 0,
+    recentActivity: "Loading...",
+  });
+
+  const [user, setUser] = useState({
+    role: null,
+    permissions: [],
+  });
+
+  /* ================= EFFECT ================= */
   useEffect(() => {
-    fetchDashboardData();
+    init();
   }, []);
 
-  const fetchDashboardData = async () => {
+  const init = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/dashboard");
-      const data = await res.json();
-
-      setEmployees(data.employees);
-      setPayroll(data.payroll);
-      setInventory(data.inventory);
-      setLowStock(data.lowStock);
-      setSystemUsers(data.systemUsers);
-      setRecentActivity(data.recentActivity);
-    } catch (error) {
-      console.error("Dashboard fetch error:", error);
+      await Promise.all([fetchUser(), fetchDashboardData()]);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
     }
   };
 
+  /* ================= API ================= */
+  const fetchUser = async () => {
+    const res = await baseApi.get("/api/me");
+
+    setUser({
+      role: res.data.role,
+      permissions: res.data.permissions ?? [],
+    });
+  };
+
+  const fetchDashboardData = async () => {
+    const res = await baseApi.get("/api/dashboard");
+    const data = res.data;
+
+    setStats({
+      employees: data.employees ?? 0,
+      payroll: data.payroll ?? 0,
+      inventory: data.inventory ?? 0,
+      lowStock: data.lowStock ?? 0,
+      systemUsers: data.systemUsers ?? 0,
+      recentActivity: data.recentActivity ?? "No recent activity.",
+    });
+  };
+
+  /* ================= PERMISSION HELPERS ================= */
+  const isAdmin = user.role === "system_admin";
+
+  const hasPermission = (permission) => {
+    if (isAdmin) return true;
+    return user.permissions.includes(permission);
+  };
+
+  if (loading) return null;
+
+  /* ================= UI ================= */
   return (
     <Layout>
-      <h1 className="mb-4" style={{ fontWeight: "bold", fontSize: "clamp(20px, 5vw, 28px)" }}>
+      <h1
+        className="mb-4"
+        style={{ fontWeight: "bold", fontSize: "clamp(20px, 5vw, 28px)" }}
+      >
         Dashboard
       </h1>
 
-      {/* SUMMARY CARDS */}
+      {/* ================= SUMMARY CARDS ================= */}
       <div className="row g-3 mb-4">
-        <DashboardCard
-          title="Employees"
-          value={employees}
-          color="#3b82f6"
-          icon={<MdPeople size={30} color="#fff" />}
-          onView={() => navigate("/hrms/employee-overview")}
-        />
 
-        <DashboardCard
-          title="Payroll"
-          value={payroll}
-          color="#8b5cf6"
-          icon={<MdAttachMoney size={30} color="#fff" />}
-        />
+        {/* HRMS */}
+        {hasPermission("access_hrms") && (
+          <DashboardCard
+            title="Employees"
+            value={stats.employees}
+            color="#3b82f6"
+            icon={<MdPeople size={30} color="#fff" />}
+            onView={() => navigate("/hrms/employee-overview")}
+          />
+        )}
 
-        <DashboardCard
-          title="Inventory"
-          value={inventory}
-          color="#10b981"
-          icon={<MdInventory size={30} color="#fff" />}
-        />
+        {/* PAYROLL */}
+        {hasPermission("access_payroll") && (
+          <DashboardCard
+            title="Payroll"
+            value={stats.payroll}
+            color="#8b5cf6"
+            icon={<MdAttachMoney size={30} color="#fff" />}
+            onView={() => navigate("/payroll")}
+          />
+        )}
 
-        <DashboardCard
-          title="Low Stock Items"
-          value={lowStock}
-          color="#f59e0b"
-          icon={<MdWarning size={30} color="#fff" />}
-        />
+        {/* AIMS */}
+        {hasPermission("access_aims") && (
+          <DashboardCard
+            title="Inventory"
+            value={stats.inventory}
+            color="#10b981"
+            icon={<MdInventory size={30} color="#fff" />}
+            onView={() => navigate("/aims/items")}
+          />
+        )}
 
-        <DashboardCard
-          title="Activity Logs"
-          value="View"
-          color="#6366f1"
-          icon={<MdCode size={30} color="#fff" />}
-          onView={() => navigate("/logs")}
-        />
+        {hasPermission("access_aims") && (
+          <DashboardCard
+            title="Low Stock Items"
+            value={stats.lowStock}
+            color="#f59e0b"
+            icon={<MdWarning size={30} color="#fff" />}
+            onView={() => navigate("/aims/stock-movements")}
+          />
+        )}
 
-        <DashboardCard
-          title="System Users"
-          value={systemUsers}
-          color="#ef4444"
-          icon={<MdManageAccounts size={30} color="#fff" />}
-        />
+        {/* SYSTEM */}
+        {isAdmin && (
+          <DashboardCard
+            title="System Users"
+            value={stats.systemUsers}
+            color="#ef4444"
+            icon={<MdManageAccounts size={30} color="#fff" />}
+          />
+        )}
+
+        {isAdmin && (
+          <DashboardCard
+            title="Activity Logs"
+            value="Soon"
+            color="#6366f1"
+            icon={<MdCode size={30} color="#fff" />}
+          />
+        )}
       </div>
 
-      {/* RECENT ACTIVITY */}
+      {/* ================= RECENT ACTIVITY ================= */}
       <div className="row">
         <div className="col-12">
-          <div
-            className="card shadow-sm"
-            style={{
-              borderRadius: "15px",
-              overflow: "hidden",
-            }}
-          >
+          <div className="card shadow-sm" style={{ borderRadius: 15 }}>
             <div className="card-header bg-white p-3">
-              <h5 className="mb-0" style={{ fontWeight: 600 }}>
-                Recent Activities
-              </h5>
+              <h5 className="mb-0 fw-semibold">Recent Activities</h5>
             </div>
-
             <div className="card-body p-3">
-              <p className="mb-0">{recentActivity}</p>
+              <p className="mb-0">{stats.recentActivity}</p>
             </div>
           </div>
         </div>
@@ -120,7 +174,7 @@ export default function Dashboard() {
   );
 }
 
-/* 🔥 Dashboard Card WITH View Button Preserved */
+/* ================= CARD ================= */
 function DashboardCard({ title, value, color, icon, onView }) {
   return (
     <div className="col-12 col-sm-6 col-lg-4">
@@ -129,23 +183,21 @@ function DashboardCard({ title, value, color, icon, onView }) {
         style={{
           background: color,
           color: "white",
-          borderRadius: "15px",
-          padding: "20px",
-          minHeight: onView ? "170px" : "140px",
+          borderRadius: 15,
+          padding: 20,
+          minHeight: onView ? 170 : 140,
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          gap: "12px",
         }}
       >
-        {/* ICON + TITLE */}
-        <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+        <div className="d-flex align-items-center gap-3">
           <div
             style={{
               background: "rgba(255,255,255,0.25)",
-              width: "55px",
-              height: "55px",
-              borderRadius: "12px",
+              width: 55,
+              height: 55,
+              borderRadius: 12,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -153,22 +205,15 @@ function DashboardCard({ title, value, color, icon, onView }) {
           >
             {icon}
           </div>
-
-          <h6 style={{ fontWeight: "bold", margin: 0 }}>{title}</h6>
+          <h6 className="fw-bold m-0">{title}</h6>
         </div>
 
-        {/* VALUE */}
-        <h2 style={{ fontWeight: "bold", margin: 0 }}>{value}</h2>
+        <h2 className="fw-bold m-0">{value}</h2>
 
-        {/* VIEW BUTTON (IF AVAILABLE) */}
         {onView && (
           <button
-            className="btn btn-light"
-            style={{
-              fontWeight: 600,
-              borderRadius: "8px",
-              marginTop: "5px",
-            }}
+            className="btn btn-light fw-semibold mt-2"
+            style={{ borderRadius: 8 }}
             onClick={onView}
           >
             View

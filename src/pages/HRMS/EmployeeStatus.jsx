@@ -1,7 +1,7 @@
 import Layout from "../../components/layouts/DashboardLayout";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import axios from "axios";
+import baseApi from "../../api/baseApi";
 
 export default function EmployeeStatus() {
   const navigate = useNavigate();
@@ -10,14 +10,14 @@ export default function EmployeeStatus() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
 
-  useEffect(() => {
-    axios
-      .get("http://127.0.0.1:8000/api/hrms/employees")
-      .then((res) => {
-        setEmployees(res.data);
-      })
-      .catch((err) => console.error("Error loading employees:", err));
-  }, []);
+ useEffect(() => {
+  baseApi
+    .get("/api/hrms/employees")  
+    .then((res) => {
+      setEmployees(res.data);
+    })
+    .catch((err) => console.error("Error loading employees:", err));
+}, []);
 
   const filteredEmployees = employees.filter((emp) => {
     const matchSearch =

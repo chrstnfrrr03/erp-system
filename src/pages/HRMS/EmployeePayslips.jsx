@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import payrollApi from "../../payrollApi";
+import baseApi from "../../api/baseApi";
 import Swal from "sweetalert2";
 import {
     MdSearch,
@@ -23,10 +23,8 @@ export default function EmployeePayslips({ employee }) {
     const fetchPayslips = async () => {
         try {
             setLoading(true);
-            const res = await payrollApi.get(
-                `/payslips/${employee.biometric_id}`
-            );
-            console.log("Payslips data:", res.data); // Debug log
+            const res = await baseApi.get(`/api/payroll/payslips/${employee.biometric_id}`);
+            console.log("Payslips data:", res.data); 
             setPayslips(res.data || []);
         } catch (err) {
             console.error("Failed to fetch payslips:", err);

@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { MdSave, MdClose, MdInfo } from "react-icons/md";
 import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
-import aimsApi from "../../aimsApi";
+import baseApi from "../../api/baseApi";
+
 
 export default function AddItem() {
   const navigate = useNavigate();
@@ -146,7 +147,7 @@ const [suppliers, setSuppliers] = useState([]);
 useEffect(() => {
   const fetchSuppliers = async () => {
     try {
-      const res = await aimsApi.get("/suppliers");
+      const res = await baseApi.get("/api/aims/suppliers");
      setSuppliers(res.data.data ?? res.data);
     } catch (err) {
       console.error("Failed to fetch suppliers", err);
@@ -176,7 +177,7 @@ useEffect(() => {
     setLoading(true);
 
     try {
-      await aimsApi.post("/items", {
+      await baseApi.post("/api/aims/items", {
         ...formData,
         supplier_id: formData.supplier_id || null,
         lead_time:

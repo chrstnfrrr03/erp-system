@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../../components/layouts/DashboardLayout";
-import api from "../../api";
+import baseApi from "../../api/baseApi";
 import Swal from "sweetalert2";
+import { useAuth } from "../../contexts/AuthContext";
+import { can } from "../../utils/permissions";
 
 // Tabs
 import EmploymentInfoTab from "./Tabs/EmploymentInfoTab";
@@ -13,10 +15,17 @@ import DeminimisTab from "./Tabs/DeminimisTab";
 
 export default function AddEmployee() {
   const navigate = useNavigate();
+  const { permissions } = useAuth();
 
   const [activeTab, setActiveTab] = useState("employment");
   const [employeeId, setEmployeeId] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // User Account Creation State
+  const [createUserAccount, setCreateUserAccount] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
+  const [userPassword, setUserPassword] = useState("");
+  const [userRole, setUserRole] = useState("employee");
 
   // ===========================================================
   // LOAD ALL SHIFTS
@@ -26,7 +35,7 @@ export default function AddEmployee() {
   useEffect(() => {
     const loadShifts = async () => {
       try {
-        const res = await api.get("/shifts");
+        const res = await baseApi.get("/api/hrms/shifts");
         setShifts(res.data);
       } catch (err) {
         console.error("Failed to load shifts:", err);
@@ -43,10 +52,10 @@ export default function AddEmployee() {
     first_name: "",
     middle_name: "",
     last_name: "",
-    department_id: "",           // CHANGED from department
+    department_id: "",
     position: "",
-    department_head: "",         // ADDED
-    supervisor: "",              // ADDED
+    department_head: "",
+    supervisor: "",
     job_location: "",
     employee_type: "",
     employment_status: "",
@@ -90,14 +99,12 @@ export default function AddEmployee() {
     account_name: "",
 
     // Leave Credits
-vacation_year: "",
-vacation_total: "",
-sick_year: "",
-sick_total: "",
-emergency_year: "",
-emergency_total: "",
-
-
+    vacation_year: "",
+    vacation_total: "",
+    sick_year: "",
+    sick_total: "",
+    emergency_year: "",
+    emergency_total: "",
   });
 
   // ===========================================================
@@ -112,23 +119,20 @@ emergency_total: "",
   };
 
   // ===========================================================
-  // STEP 1 — EMPLOYMENT + EMPLOYEE (biometric_id auto-generated)
+  // STEP 1 — EMPLOYMENT + EMPLOYEE (with optional user account)
   // ===========================================================
   const submitEmployment = async () => {
     setLoading(true);
     try {
-      const res = await api.post("/employment", {
+      const payload = {
         first_name: formData.first_name,
         middle_name: formData.middle_name,
         last_name: formData.last_name,
-
-        // FIXED TO MATCH BACKEND
         department_id: formData.department_id,
         position: formData.position,
-        department_head: formData.department_head,    // CHANGED from department_head_id
-        supervisor: formData.supervisor,              // CHANGED from supervisor_id
+        department_head: formData.department_head,
+        supervisor: formData.supervisor,
         job_location: formData.job_location,
-
         employee_type: formData.employee_type,
         employment_status: formData.employment_status,
         employment_classification: formData.employment_classification,
@@ -137,11 +141,40 @@ emergency_total: "",
         rate_type: formData.rate_type,
         date_started: formData.date_started,
         date_ended: formData.date_ended,
-
         shift_id: formData.shift_id,
-      });
+      };
+
+      // Add user account data if checkbox is checked
+      if (createUserAccount && can(permissions, 'user.create')) {
+        payload.create_user_account = true;
+        payload.user_email = userEmail;
+        payload.user_password = userPassword;
+        payload.user_role = userRole;
+      }
+
+      const res = await baseApi.post("/api/hrms/employment", payload);
 
       setEmployeeId(res.data.employee_id);
+
+      // Show success message with login credentials if user was created
+      if (res.data.user_created) {
+        await Swal.fire({
+          icon: "success",
+          title: "Employee & User Account Created!",
+          html: `
+            <p>Employee created successfully!</p>
+            <hr>
+            <strong>Login Credentials:</strong><br>
+            <strong>Email:</strong> ${userEmail}<br>
+            <strong>Password:</strong> ${userPassword}<br>
+            <strong>Role:</strong> ${userRole}<br>
+            <hr>
+            <small class="text-warning">⚠️ Please save these credentials securely!</small>
+          `,
+          confirmButtonColor: "#28a745",
+        });
+      }
+
       return true;
     } catch (err) {
       console.error(err.response?.data);
@@ -160,7 +193,7 @@ emergency_total: "",
   };
 
   // ===========================================================
-  // STEP 2 — PERSONAL (now sends name fields instead of biometric_id)
+  // STEP 2 — PERSONAL
   // ===========================================================
   const submitPersonal = async () => {
     if (!employeeId) {
@@ -175,14 +208,11 @@ emergency_total: "",
 
     setLoading(true);
     try {
-      await api.post("/personal", {
-        // Send name fields so controller can generate/match biometric_id
+      await baseApi.post("/api/hrms/personal", {
         first_name: formData.first_name,
         middle_name: formData.middle_name,
         last_name: formData.last_name,
         shift_id: formData.shift_id,
-
-        // Personal info fields
         birthdate: formData.birthdate,
         age: formData.age,
         birthplace: formData.birthplace,
@@ -206,7 +236,9 @@ emergency_total: "",
       Swal.fire({
         icon: "error",
         title: "Personal Info Failed",
-        text: err.response?.data?.message || "Failed to save personal information. Please try again.",
+        text:
+          err.response?.data?.message ||
+          "Failed to save personal information. Please try again.",
         confirmButtonColor: "#d33",
       });
       return false;
@@ -218,51 +250,50 @@ emergency_total: "",
   // ===========================================================
   // STEP 3 — ACCOUNT
   // ===========================================================
-  // ===========================================================
-// STEP 3 — ACCOUNT (FIXED - Now includes nasfund boolean)
-// ===========================================================
-const submitAccount = async () => {
-  if (!employeeId) {
-    Swal.fire({
-      icon: "warning",
-      title: "Oops!",
-      text: "Please complete the Employment Info tab first.",
-      confirmButtonColor: "#f39c12",
-    });
-    return false;
-  }
+  const submitAccount = async () => {
+    if (!employeeId) {
+      Swal.fire({
+        icon: "warning",
+        title: "Oops!",
+        text: "Please complete the Employment Info tab first.",
+        confirmButtonColor: "#f39c12",
+      });
+      return false;
+    }
 
-  setLoading(true);
-  try {
-    await api.post("/account", {
-      employee_id: employeeId,
-      nasfund: formData.nasfund || 0,              // ✅ ADDED THIS
-      nasfund_number: formData.nasfund_number,
-      tin_number: formData.tin_number,
-      work_permit_number: formData.work_permit_number,
-      work_permit_expiry: formData.work_permit_expiry,
-      visa_number: formData.visa_number,
-      visa_expiry: formData.visa_expiry,
-      bsb_code: formData.bsb_code,
-      bank_name: formData.bank_name,
-      account_number: formData.account_number,
-      account_name: formData.account_name,
-    });
+    setLoading(true);
+    try {
+      await baseApi.post("/api/hrms/account", {
+        employee_id: employeeId,
+        nasfund: formData.nasfund || 0,
+        nasfund_number: formData.nasfund_number,
+        tin_number: formData.tin_number,
+        work_permit_number: formData.work_permit_number,
+        work_permit_expiry: formData.work_permit_expiry,
+        visa_number: formData.visa_number,
+        visa_expiry: formData.visa_expiry,
+        bsb_code: formData.bsb_code,
+        bank_name: formData.bank_name,
+        account_number: formData.account_number,
+        account_name: formData.account_name,
+      });
 
-    return true;
-  } catch (err) {
-    console.error(err.response?.data);
-    Swal.fire({
-      icon: "error",
-      title: "Account Info Failed",
-      text: err.response?.data?.message || "Failed to save account information. Please try again.",
-      confirmButtonColor: "#d33",
-    });
-    return false;
-  } finally {
-    setLoading(false);
-  }
-};
+      return true;
+    } catch (err) {
+      console.error(err.response?.data);
+      Swal.fire({
+        icon: "error",
+        title: "Account Info Failed",
+        text:
+          err.response?.data?.message ||
+          "Failed to save account information. Please try again.",
+        confirmButtonColor: "#d33",
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // ===========================================================
   // STEP 4 — LEAVE CREDITS
@@ -280,19 +311,15 @@ const submitAccount = async () => {
 
     setLoading(true);
     try {
-      await api.post("/leave-credits", {
-  employee_id: employeeId,
-
-  vacation_year: formData.vacation_year,
-  vacation_total: formData.vacation_total,
-
-  sick_year: formData.sick_year,
-  sick_total: formData.sick_total,
-
-  emergency_year: formData.emergency_year,
-  emergency_total: formData.emergency_total,
-});
-
+      await baseApi.post("/api/hrms/leave-credits", {
+        employee_id: employeeId,
+        vacation_year: formData.vacation_year,
+        vacation_total: formData.vacation_total,
+        sick_year: formData.sick_year,
+        sick_total: formData.sick_total,
+        emergency_year: formData.emergency_year,
+        emergency_total: formData.emergency_total,
+      });
 
       return true;
     } catch (err) {
@@ -300,7 +327,9 @@ const submitAccount = async () => {
       Swal.fire({
         icon: "error",
         title: "Leave Credits Failed",
-        text: err.response?.data?.message || "Failed to save leave credits. Please try again.",
+        text:
+          err.response?.data?.message ||
+          "Failed to save leave credits. Please try again.",
         confirmButtonColor: "#d33",
       });
       return false;
@@ -313,68 +342,56 @@ const submitAccount = async () => {
   // STEP 5 — DEMINIMIS
   // ===========================================================
   const submitDeminimis = async (allowances) => {
-  if (!employeeId) {
-    Swal.fire({
-      icon: "warning",
-      title: "Oops!",
-      text: "Please complete the Employment Info tab first.",
-      confirmButtonColor: "#f39c12",
-    });
-    return false;
-  }
+    if (!employeeId) {
+      Swal.fire({
+        icon: "warning",
+        title: "Oops!",
+        text: "Please complete the Employment Info tab first.",
+        confirmButtonColor: "#f39c12",
+      });
+      return false;
+    }
 
-  // Validate that we have at least one valid allowance
-  if (!allowances || allowances.length === 0) {
-    Swal.fire({
-      icon: "warning",
-      title: "No Allowances",
-      text: "Please add at least one allowance or skip this step.",
-      confirmButtonColor: "#f39c12",
-    });
-    return false;
-  }
+    if (!allowances || allowances.length === 0) {
+      Swal.fire({
+        icon: "warning",
+        title: "No Allowances",
+        text: "Please add at least one allowance or skip this step.",
+        confirmButtonColor: "#f39c12",
+      });
+      return false;
+    }
 
-  setLoading(true);
-  try {
-    await api.post("/deminimis", {
-      employee_id: employeeId,
-      allowances: allowances
-    });
+    setLoading(true);
+    try {
+      await baseApi.post("/api/hrms/deminimis", {
+        employee_id: employeeId,
+        allowances: allowances,
+      });
 
-    // Success! Show celebration message
-    await Swal.fire({
-      icon: "success",
-      title: "Success!",
-      text: "Employee has been successfully added to the system.",
-      confirmButtonText: "OK",
-      confirmButtonColor: "#28a745",
-    });
-    
-    navigate("/hrms");
-  } catch (err) {
-    console.error(err.response?.data);
-    Swal.fire({
-      icon: "error",
-      title: "Deminimis Failed",
-      text: err.response?.data?.message || "Failed to save deminimis benefits. Please try again.",
-      confirmButtonColor: "#d33",
-    });
-  } finally {
-    setLoading(false);
-  }
-};
+      await Swal.fire({
+        icon: "success",
+        title: "Success!",
+        text: "Employee has been successfully added to the system.",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#28a745",
+      });
 
-// ===========================================================
-// UPDATE THE DEMINIMIS TAB RENDER
-// ===========================================================
-{activeTab === "deminimis" && (
-  <DeminimisTab
-    formData={formData}
-    setFormData={setFormData}
-    handleSubmit={submitDeminimis}
-    loading={loading}
-  />
-)}
+      navigate("/hrms");
+    } catch (err) {
+      console.error(err.response?.data);
+      Swal.fire({
+        icon: "error",
+        title: "Deminimis Failed",
+        text:
+          err.response?.data?.message ||
+          "Failed to save deminimis benefits. Please try again.",
+        confirmButtonColor: "#d33",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // ===========================================================
   // NEXT BUTTON HANDLER
@@ -420,25 +437,138 @@ const submitAccount = async () => {
 
       <div className="card shadow-sm">
         <div className="card-body">
-
           {/* TABS */}
           <ul className="nav nav-tabs mb-4">
-            <Tab label="Employment Info" tab="employment" activeTab={activeTab} setActiveTab={setActiveTab} />
-            <Tab label="Personal Info" tab="personal" activeTab={activeTab} setActiveTab={setActiveTab} />
-            <Tab label="Account Info" tab="account" activeTab={activeTab} setActiveTab={setActiveTab} />
-            <Tab label="Leave Credits" tab="leave" activeTab={activeTab} setActiveTab={setActiveTab} />
-            <Tab label="Deminimis" tab="deminimis" activeTab={activeTab} setActiveTab={setActiveTab} />
+            <Tab
+              label="Employment Info"
+              tab="employment"
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+            />
+            <Tab
+              label="Personal Info"
+              tab="personal"
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+            />
+            <Tab
+              label="Account Info"
+              tab="account"
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+            />
+            <Tab
+              label="Leave Credits"
+              tab="leave"
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+            />
+            <Tab
+              label="Deminimis"
+              tab="deminimis"
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+            />
           </ul>
 
           {/* TAB CONTENT */}
           {activeTab === "employment" && (
-            <EmploymentInfoTab
-              formData={formData}
-              handleInputChange={handleInputChange}
-              handleNext={handleNext}
-              loading={loading}
-              shifts={shifts}
-            />
+            <>
+              <EmploymentInfoTab
+                formData={formData}
+                handleInputChange={handleInputChange}
+                handleNext={handleNext}
+                loading={loading}
+                shifts={shifts}
+              />
+
+              {/* ✅ USER ACCOUNT CREATION SECTION - Only for system_admin */}
+              {can(permissions, "user.create") && (
+                <div className="mt-4 p-4 border rounded bg-light">
+                  <h5 className="mb-3">
+                    <strong>Create User Login Account (Optional)</strong>
+                  </h5>
+
+                  <div className="form-check mb-3">
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      id="createUserAccount"
+                      checked={createUserAccount}
+                      onChange={(e) => setCreateUserAccount(e.target.checked)}
+                    />
+                    <label
+                      className="form-check-label"
+                      htmlFor="createUserAccount"
+                    >
+                      <strong>
+                        Create a login account for this employee
+                      </strong>
+                    </label>
+                  </div>
+
+                  {createUserAccount && (
+                    <>
+                      <div className="row g-3 mb-3">
+                        <div className="col-md-4">
+                          <label className="form-label">
+                            Login Email <span className="text-danger">*</span>
+                          </label>
+                          <input
+                            type="email"
+                            className="form-control"
+                            value={userEmail}
+                            onChange={(e) => setUserEmail(e.target.value)}
+                            required
+                            placeholder="employee@erp.test"
+                          />
+                        </div>
+
+                        <div className="col-md-4">
+                          <label className="form-label">
+                            Password <span className="text-danger">*</span>
+                          </label>
+                          <input
+                            type="password"
+                            className="form-control"
+                            value={userPassword}
+                            onChange={(e) => setUserPassword(e.target.value)}
+                            required
+                            placeholder="Minimum 8 characters"
+                            minLength={8}
+                          />
+                        </div>
+
+                        <div className="col-md-4">
+                          <label className="form-label">
+                            User Role <span className="text-danger">*</span>
+                          </label>
+                          <select
+                            className="form-select"
+                            value={userRole}
+                            onChange={(e) => setUserRole(e.target.value)}
+                            required
+                          >
+                            <option value="employee">Employee</option>
+                            <option value="dept_head">Department Head</option>
+                            <option value="hr">HR</option>
+                            <option value="system_admin">System Admin</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="alert alert-warning mb-0">
+                        <small>
+                          <strong>⚠️ Warning:</strong> This will create a login
+                          account with <strong>{userRole}</strong> permissions.
+                          Only create accounts for users who need system access.
+                        </small>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </>
           )}
 
           {activeTab === "personal" && (
@@ -468,14 +598,14 @@ const submitAccount = async () => {
             />
           )}
 
-         {activeTab === "deminimis" && (
-  <DeminimisTab
-    formData={formData}
-    setFormData={setFormData}
-    handleSubmit={submitDeminimis}
-    loading={loading}
-  />
-)}
+          {activeTab === "deminimis" && (
+            <DeminimisTab
+              formData={formData}
+              setFormData={setFormData}
+              handleSubmit={submitDeminimis}
+              loading={loading}
+            />
+          )}
         </div>
       </div>
     </Layout>
@@ -490,7 +620,9 @@ function Tab({ label, tab, activeTab, setActiveTab }) {
     <li className="nav-item">
       <button
         type="button"
-        className={`nav-link ${activeTab === tab ? "active fw-semibold" : ""}`}
+        className={`nav-link ${
+          activeTab === tab ? "active fw-semibold" : ""
+        }`}
         onClick={() => setActiveTab(tab)}
       >
         {label}

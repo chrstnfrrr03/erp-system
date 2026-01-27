@@ -1,7 +1,8 @@
 import Layout from "../../components/layouts/DashboardLayout";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import aimsApi from "../../aimsApi";
+import baseApi from "../../api/baseApi";
+
 
 import {
   MdInventory,
@@ -46,8 +47,8 @@ export default function AIMSDashboard() {
   const fetchDashboard = async () => {
     try {
       const [kpiRes, trendRes] = await Promise.all([
-        aimsApi.get("/dashboard"),
-        aimsApi.get("/dashboard/low-stock-trend"),
+        baseApi.get("/api/aims/dashboard"),
+        baseApi.get("/api/aims/dashboard/low-stock-trend"),
       ]);
 
       setKpis(kpiRes.data);

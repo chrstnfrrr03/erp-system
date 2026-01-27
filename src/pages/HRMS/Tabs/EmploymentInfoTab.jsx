@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import baseApi from "../../../api/baseApi";
 
 export default function EmploymentInfoTab({ formData, handleInputChange, handleNext }) {
   const baseInputStyle = {
@@ -14,10 +14,11 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
 
   // Fetch shifts + departments only
   useEffect(() => {
-    axios
-      .get(`${import.meta.env.VITE_API_URL}/api/hrms/shifts`)
+    // Load shifts
+    baseApi
+      .get("/api/hrms/shifts")
       .then((res) => {
-        console.log("Shifts Response:", res.data); // DEBUG
+        console.log("Shifts Response:", res.data);
         const shiftList = Array.isArray(res.data)
           ? res.data
           : Array.isArray(res.data.data)
@@ -27,10 +28,10 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
       })
       .catch((err) => console.error("Shift fetch error:", err));
 
-    axios
-      .get(`${import.meta.env.VITE_API_URL}/api/hrms/departments`)
+    baseApi
+      .get("/api/hrms/departments")
       .then((res) => {
-        console.log("Departments Response:", res.data); // DEBUG
+        console.log("Departments Response:", res.data);
         setDepartments(res.data.data || res.data || []);
       })
       .catch((err) => console.error("Department fetch error:", err));

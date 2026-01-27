@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Layout from "../../components/layouts/DashboardLayout";
-import aimsApi from "../../aimsApi";
+import baseApi from "../../api/baseApi";
+
 
 import { MdSearch, MdAdd, MdVisibility } from "react-icons/md";
 
@@ -17,7 +18,7 @@ export default function AIMSPurchaseRequests() {
 
   const fetchRequests = async () => {
     try {
-      const res = await aimsApi.get("/purchase-requests");
+      const res = await baseApi.get("/api/aims/purchase-requests");
       const data = Array.isArray(res.data) ? res.data : [];
 
       const normalized = data.map((r) => {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../../components/layouts/DashboardLayout";
-import payrollApi from "../../payrollApi";
+import baseApi from "../../api/baseApi";
 import Swal from "sweetalert2";
 import {
   MdSearch,
@@ -39,7 +39,7 @@ export default function SalaryTable() {
         params.status = filterStatus;
       }
 
-      const res = await payrollApi.get("/", { params });
+      const res = await baseApi.get("/api/payroll", { params });
       
       setPayrolls(res.data.data || []);
       setTotalPages(res.data.last_page || 1);
@@ -71,9 +71,9 @@ export default function SalaryTable() {
 
       if (!result.isConfirmed) return;
 
-      await payrollApi.put(`/${payrollId}/status`, {
-        status: newStatus,
-      });
+      await baseApi.put(`/api/payroll/${payrollId}/status`, {
+  status: newStatus,
+});
 
       Swal.fire({
         icon: "success",
@@ -120,9 +120,9 @@ export default function SalaryTable() {
 
       if (!result.isConfirmed) return;
 
-      await payrollApi.post("/bulk-approve", {
-        payroll_ids: selectedPayrolls,
-      });
+      await baseApi.post("/api/payroll/bulk-approve", {
+  payroll_ids: selectedPayrolls,
+});
 
       Swal.fire({
         icon: "success",

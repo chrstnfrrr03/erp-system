@@ -1,7 +1,8 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Layout from "../../components/layouts/DashboardLayout";
-import aimsApi from "../../aimsApi";
+import baseApi from "../../api/baseApi";
+
 
 export default function AIMSViewPurchaseRequest() {
   const { id } = useParams();
@@ -16,7 +17,7 @@ export default function AIMSViewPurchaseRequest() {
 
   const fetchPurchaseRequest = async () => {
     try {
-      const res = await aimsApi.get(`/purchase-requests/${id}`);
+      const res = await baseApi.get(`/api/aims/purchase-requests/${id}`);
       setPr(res.data);
     } catch (err) {
       console.error("Failed to load purchase request", err);
@@ -26,12 +27,12 @@ export default function AIMSViewPurchaseRequest() {
   };
 
   const approve = async () => {
-    await aimsApi.post(`/purchase-requests/${id}/approve`);
+    await baseApi.post(`/api/aims/purchase-requests/${id}/approve`);
     fetchPurchaseRequest();
   };
 
   const reject = async () => {
-    await aimsApi.post(`/purchase-requests/${id}/reject`);
+    await baseApi.post(`/api/aims/purchase-requests/${id}/reject`);
     fetchPurchaseRequest();
   };
 

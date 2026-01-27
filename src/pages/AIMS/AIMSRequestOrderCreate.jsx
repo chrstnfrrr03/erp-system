@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../../components/layouts/DashboardLayout";
-import aimsApi from "../../aimsApi";
+import baseApi from "../../api/baseApi";
 import Swal from "sweetalert2";
 
 import { MdAdd, MdDelete } from "react-icons/md";
@@ -37,8 +37,8 @@ export default function AIMSRequestOrderCreate() {
     const fetchData = async () => {
       try {
         const [itemsRes, suppliersRes] = await Promise.all([
-          aimsApi.get("/items"),
-          aimsApi.get("/suppliers"),
+          baseApi.get("/api/aims/items"),
+          baseApi.get("/api/aims/suppliers"),
         ]);
 
         const itemsData =
@@ -115,7 +115,7 @@ export default function AIMSRequestOrderCreate() {
     }
 
     try {
-      await aimsApi.post("/request-orders", {
+      await baseApi.post("/api/aims/request-orders", {
         ...form,
         items: rows,
       });

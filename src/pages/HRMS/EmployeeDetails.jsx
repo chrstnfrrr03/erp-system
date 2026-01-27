@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import api from "../../api";
+import baseApi from "../../api/baseApi";
 import Layout from "../../components/layouts/DashboardLayout";
 import EmployeeEditModal from "../../components/modals/EmployeeEditModal";
 import PersonalInfoEditModal from "../../components/modals/PersonalInfoEditModal";
 import AddLeaveCreditModal from "../../components/modals/AddLeaveCreditModal";
-import DeminimisModal from "../../components/modals/DeminimisModal"; // ✅ ADD THIS IMPORT
+import DeminimisModal from "../../components/modals/DeminimisModal";
 import Swal from "sweetalert2";
 import AttendanceTab from "./EmployeeAttendance";
 import ApplicationFormsTab from "./EmployeeApplicationForm";
 import EmployeePayslips from "./EmployeePayslips";
+import { useAuth } from "../../contexts/AuthContext";
+import { can } from "../../utils/permissions";
 
 // Icons
 import { FaUserCircle } from "react-icons/fa";
@@ -25,6 +27,7 @@ import {
 export default function EmployeeDetails() {
   const { biometric_id } = useParams();
   const navigate = useNavigate();
+  const { permissions, role } = useAuth();
   const [employee, setEmployee] = useState(null);
   const [activeTab, setActiveTab] = useState("employment");
   const [benefitsTab, setBenefitsTab] = useState("leave");
@@ -34,7 +37,6 @@ export default function EmployeeDetails() {
   const [showAddCreditModal, setShowAddCreditModal] = useState(false);
   const [editLeaveType, setEditLeaveType] = useState(null);
   
-  // ✅ DEMINIMIS STATE
   const [deminimisAllowances, setDeminimisAllowances] = useState([]);
   const [showDeminimisModal, setShowDeminimisModal] = useState(false);
 
@@ -44,8 +46,7 @@ export default function EmployeeDetails() {
 
   const fetchEmployeeDetails = async () => {
   try {
-    const res = await api.get(`/employee/${biometric_id}`);
-    console.log('Employee Data:', res.data);
+    const res = await baseApi.get(`/api/hrms/employee/${biometric_id}`);  
     console.log('Employee ID:', res.data.id);
     setEmployee(res.data);
   } catch (err) {
@@ -60,14 +61,14 @@ export default function EmployeeDetails() {
   };
 
   const handleSaveEmployee = async (formData) => {
-    try {
-      await api.post(
-        `/employee/${biometric_id}/update-profile`,
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
-      );
+  try {
+    await baseApi.post(
+      `/api/hrms/employee/${biometric_id}/update-profile`,  
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      }
+    );
 
       await fetchEmployeeDetails();
       setShowEditModal(false);
@@ -90,20 +91,20 @@ export default function EmployeeDetails() {
   };
 
   const handleSavePersonalInfo = async (formData) => {
-    try {
-      const personalInfoId = employee?.personal_info?.id;
+  try {
+    const personalInfoId = employee?.personal_info?.id;
 
-      if (!personalInfoId) {
-        Swal.fire({
-          icon: "error",
-          title: "Missing Information",
-          text: "Cannot update personal info — ID is missing.",
-          confirmButtonColor: "#d33",
-        });
-        return;
-      }
+    if (!personalInfoId) {
+      Swal.fire({
+        icon: "error",
+        title: "Missing Information",
+        text: "Cannot update personal info — ID is missing.",
+        confirmButtonColor: "#d33",
+      });
+      return;
+    }
 
-      await api.put(`/personal/${personalInfoId}`, formData);
+    await baseApi.put(`/api/hrms/personal/${personalInfoId}`, formData);
 
       await fetchEmployeeDetails();
       setShowPersonalModal(false);
@@ -127,15 +128,14 @@ export default function EmployeeDetails() {
   };
 
   const fetchLeaveCredits = async () => {
-    try {
-      const res = await api.get(`/employee/${biometric_id}/leave-credits`);
-      setLeaveCredits(res.data || null);
-    } catch (err) {
-      console.error("Failed to fetch leave credits", err);
-    }
-  };
+  try {
+    const res = await baseApi.get(`/api/hrms/employee/${biometric_id}/leave-credits`);  
+    setLeaveCredits(res.data || null);
+  } catch (err) {
+    console.error("Failed to fetch leave credits", err);
+  }
+};
 
-  // ✅ FETCH DEMINIMIS (INSIDE THE COMPONENT)
   const fetchDeminimis = async () => {
   if (!employee?.id) {
     console.log('⚠️ Employee ID not available yet');
@@ -145,7 +145,7 @@ export default function EmployeeDetails() {
   console.log('🔍 Fetching deminimis for employee ID:', employee.id); 
   
   try {
-    const res = await api.get(`/deminimis/employee/${employee.id}`);
+    const res = await baseApi.get(`/api/hrms/deminimis/employee/${employee.id}`);
     console.log('Deminimis Response:', res.data); 
     console.log('Number of allowances:', res.data?.length); 
     setDeminimisAllowances(res.data || []);
@@ -156,7 +156,6 @@ export default function EmployeeDetails() {
   }
 };
 
-  // ✅ COMBINED USEEFFECT
   useEffect(() => {
     if (biometric_id) {
       fetchLeaveCredits();
@@ -187,22 +186,20 @@ export default function EmployeeDetails() {
 
     if (!confirm.isConfirmed) return;
 
-    try {
-      await api.put(`/employee/${biometric_id}/leave-credits`, {
-        [`${type}_year`]: null,
-        [`${type}_total`]: null,
-        [`${type}_credits`]: null,
-      });
+   try {
+    await baseApi.put(`/api/hrms/employee/${biometric_id}/leave-credits`, {  
+      [`${type}_total`]: null,
+      [`${type}_credits`]: null,
+    });
 
-      Swal.fire("Deleted!", "Leave credit removed successfully.", "success");
-      fetchLeaveCredits();
-    } catch (err) {
-      console.error(err);
-      Swal.fire("Error", "Failed to delete leave credit.", "error");
-    }
-  };
+    Swal.fire("Deleted!", "Leave credit removed successfully.", "success");
+    fetchLeaveCredits();
+  } catch (err) {
+    console.error(err);
+    Swal.fire("Error", "Failed to delete leave credit.", "error");
+  }
+};
 
-  // ✅ DELETE DEMINIMIS (INSIDE THE COMPONENT)
   const handleDeleteDeminimis = async (id) => {
     const confirm = await Swal.fire({
       title: "Delete Allowance?",
@@ -217,14 +214,14 @@ export default function EmployeeDetails() {
     if (!confirm.isConfirmed) return;
 
     try {
-      await api.delete(`/deminimis/${id}`);
-      Swal.fire("Deleted!", "Allowance removed successfully.", "success");
-      fetchDeminimis();
-    } catch (err) {
-      console.error(err);
-      Swal.fire("Error", "Failed to delete allowance.", "error");
-    }
-  };
+    await baseApi.delete(`/api/hrms/deminimis/${id}`);  
+    Swal.fire("Deleted!", "Allowance removed successfully.", "success");
+    fetchDeminimis();
+  } catch (err) {
+    console.error(err);
+    Swal.fire("Error", "Failed to delete allowance.", "error");
+  }
+};
 
   const handleExportCV = () => {
     window.open(
@@ -318,7 +315,9 @@ export default function EmployeeDetails() {
                   {/* Employment Information */}
                   <div className="d-flex justify-content-between align-items-center mb-3">
                     <h5 className="mb-0 fw-bold">Employment Information</h5>
-                    <button className="btn btn-warning btn-sm px-3" style={{ color: "white" }} onClick={() => setShowEditModal(true)}>Edit</button>
+                    {can(permissions, 'employee.update') && (
+                      <button className="btn btn-warning btn-sm px-3" style={{ color: "white" }} onClick={() => setShowEditModal(true)}>Edit</button>
+                    )}
                   </div>
                   <div className="row g-3 mb-4">
                     <InfoField label="Employment Status:" value={employee.employment_classification || "N/A"} />
@@ -372,11 +371,13 @@ export default function EmployeeDetails() {
                   {/* Leave Credits */}
                   {benefitsTab === "leave" && (
                     <>
-                      <div className="d-flex justify-content-end mb-3">
-                        <button className="btn btn-success btn-sm px-4" onClick={() => { setEditLeaveType(null); setShowAddCreditModal(true); }}>
-                          Add Credit
-                        </button>
-                      </div>
+                      {can(permissions, 'leave.manage') && (
+                        <div className="d-flex justify-content-end mb-3">
+                          <button className="btn btn-success btn-sm px-4" onClick={() => { setEditLeaveType(null); setShowAddCreditModal(true); }}>
+                            Add Credit
+                          </button>
+                        </div>
+                      )}
 
                       <div className="table-responsive">
                         <table className="table table-bordered bg-white">
@@ -387,13 +388,13 @@ export default function EmployeeDetails() {
                               <th>Total Credits</th>
                               <th>Used</th>
                               <th>Remaining</th>
-                              <th>Actions</th>
+                              {can(permissions, 'leave.manage') && <th>Actions</th>}
                             </tr>
                           </thead>
                           <tbody>
                             {!leaveCredits && (
                               <tr>
-                                <td colSpan="6" className="text-center text-muted">No leave credits found</td>
+                                <td colSpan={can(permissions, 'leave.manage') ? "6" : "5"} className="text-center text-muted">No leave credits found</td>
                               </tr>
                             )}
 
@@ -406,10 +407,12 @@ export default function EmployeeDetails() {
                                     <td>{leaveCredits.vacation_total}</td>
                                     <td>{(leaveCredits.vacation_total - leaveCredits.vacation_credits).toFixed(2)}</td>
                                     <td>{leaveCredits.vacation_credits}</td>
-                                    <td>
-                                      <button className="btn btn-sm btn-warning me-2 px-3" style={{ color: "white" }} onClick={() => handleEditLeave("vacation")}>Edit</button>
-                                      <button className="btn btn-sm btn-danger px-3" onClick={() => handleDeleteLeave("vacation")}>Delete</button>
-                                    </td>
+                                    {can(permissions, 'leave.manage') && (
+                                      <td>
+                                        <button className="btn btn-sm btn-warning me-2 px-3" style={{ color: "white" }} onClick={() => handleEditLeave("vacation")}>Edit</button>
+                                        <button className="btn btn-sm btn-danger px-3" onClick={() => handleDeleteLeave("vacation")}>Delete</button>
+                                      </td>
+                                    )}
                                   </tr>
                                 )}
 
@@ -420,10 +423,12 @@ export default function EmployeeDetails() {
                                     <td>{leaveCredits.sick_total}</td>
                                     <td>{(leaveCredits.sick_total - leaveCredits.sick_credits).toFixed(2)}</td>
                                     <td>{leaveCredits.sick_credits}</td>
-                                    <td>
-                                      <button className="btn btn-sm btn-warning me-2 px-3" style={{ color: "white" }} onClick={() => handleEditLeave("sick")}>Edit</button>
-                                      <button className="btn btn-sm btn-danger px-3" onClick={() => handleDeleteLeave("sick")}>Delete</button>
-                                    </td>
+                                    {can(permissions, 'leave.manage') && (
+                                      <td>
+                                        <button className="btn btn-sm btn-warning me-2 px-3" style={{ color: "white" }} onClick={() => handleEditLeave("sick")}>Edit</button>
+                                        <button className="btn btn-sm btn-danger px-3" onClick={() => handleDeleteLeave("sick")}>Delete</button>
+                                      </td>
+                                    )}
                                   </tr>
                                 )}
 
@@ -434,10 +439,12 @@ export default function EmployeeDetails() {
                                     <td>{leaveCredits.emergency_total}</td>
                                     <td>{(leaveCredits.emergency_total - leaveCredits.emergency_credits).toFixed(2)}</td>
                                     <td>{leaveCredits.emergency_credits}</td>
-                                    <td>
-                                      <button className="btn btn-sm btn-warning me-2 px-3" style={{ color: "white" }} onClick={() => handleEditLeave("emergency")}>Edit</button>
-                                      <button className="btn btn-sm btn-danger px-3" onClick={() => handleDeleteLeave("emergency")}>Delete</button>
-                                    </td>
+                                    {can(permissions, 'leave.manage') && (
+                                      <td>
+                                        <button className="btn btn-sm btn-warning me-2 px-3" style={{ color: "white" }} onClick={() => handleEditLeave("emergency")}>Edit</button>
+                                        <button className="btn btn-sm btn-danger px-3" onClick={() => handleDeleteLeave("emergency")}>Delete</button>
+                                      </td>
+                                    )}
                                   </tr>
                                 )}
                               </>
@@ -448,14 +455,16 @@ export default function EmployeeDetails() {
                     </>
                   )}
 
-                  {/* ✅ DEMINIMIS TAB (UPDATED) */}
+                  {/* DEMINIMIS TAB */}
                   {benefitsTab === "deminimis" && (
                     <>
-                      <div className="d-flex justify-content-end mb-3">
-                        <button className="btn btn-success btn-sm px-4" onClick={() => setShowDeminimisModal(true)}>
-                          Add Allowance
-                        </button>
-                      </div>
+                      {can(permissions, 'leave.manage') && (
+                        <div className="d-flex justify-content-end mb-3">
+                          <button className="btn btn-success btn-sm px-4" onClick={() => setShowDeminimisModal(true)}>
+                            Add Allowance
+                          </button>
+                        </div>
+                      )}
 
                       <div className="table-responsive">
                         <table className="table table-bordered bg-white">
@@ -463,24 +472,26 @@ export default function EmployeeDetails() {
                             <tr>
                               <th>Allowance Type</th>
                               <th>Amount (USD)</th>
-                              <th>Actions</th>
+                              {can(permissions, 'leave.manage') && <th>Actions</th>}
                             </tr>
                           </thead>
                           <tbody>
                             {deminimisAllowances.length === 0 ? (
                               <tr>
-                                <td colSpan="3" className="text-center text-muted">No allowances found</td>
+                                <td colSpan={can(permissions, 'leave.manage') ? "3" : "2"} className="text-center text-muted">No allowances found</td>
                               </tr>
                             ) : (
                               deminimisAllowances.map((allowance) => (
                                 <tr key={allowance.id}>
                                   <td>{allowance.type}</td>
                                   <td>{parseFloat(allowance.amount).toFixed(2)}</td>
-                                  <td>
-                                    <button className="btn btn-sm btn-danger px-3" onClick={() => handleDeleteDeminimis(allowance.id)}>
-                                      Delete
-                                    </button>
-                                  </td>
+                                  {can(permissions, 'leave.manage') && (
+                                    <td>
+                                      <button className="btn btn-sm btn-danger px-3" onClick={() => handleDeleteDeminimis(allowance.id)}>
+                                        Delete
+                                      </button>
+                                    </td>
+                                  )}
                                 </tr>
                               ))
                             )}
@@ -501,7 +512,9 @@ export default function EmployeeDetails() {
             <div className="card-body p-4">
               <div className="d-flex justify-content-between align-items-center mb-4">
                 <h5 className="mb-0 fw-bold">Personal Information</h5>
-                <button className="btn btn-warning btn-sm px-3" style={{ color: "white" }} onClick={() => setShowPersonalModal(true)}>Edit</button>
+                {can(permissions, 'employee.update') && (
+                  <button className="btn btn-warning btn-sm px-3" style={{ color: "white" }} onClick={() => setShowPersonalModal(true)}>Edit</button>
+                )}
               </div>
               
               <div className="row g-3 mb-4">
@@ -540,7 +553,7 @@ export default function EmployeeDetails() {
         )}
 
         {/* Other Tabs */}
-        {activeTab === "attendance" && <AttendanceTab employee={employee} />}
+        {activeTab === "attendance" && <AttendanceTab employee={employee} permissions={permissions} />}
         {activeTab === "applications" && <ApplicationFormsTab employee={employee} onApplicationUpdated={fetchLeaveCredits} />}
         {activeTab === "payslips" && <EmployeePayslips employee={employee} />}
 
@@ -549,7 +562,6 @@ export default function EmployeeDetails() {
       <PersonalInfoEditModal show={showPersonalModal} onHide={() => setShowPersonalModal(false)} employee={employee} onSave={handleSavePersonalInfo} />
       <AddLeaveCreditModal show={showAddCreditModal} onHide={() => { setShowAddCreditModal(false); setEditLeaveType(null); }} biometricId={biometric_id} leaveCredits={leaveCredits} editType={editLeaveType} onSuccess={fetchLeaveCredits} />
       
-      {/* ✅ DEMINIMIS MODAL */}
       <DeminimisModal show={showDeminimisModal} onHide={() => setShowDeminimisModal(false)} employeeId={employee?.id} onSuccess={fetchDeminimis} />
     </Layout>
   );

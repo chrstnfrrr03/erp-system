@@ -1,7 +1,12 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
+
+/* ================= AUTH ================= */
+import Login from "./pages/auth/Login";
+
+/* ================= DASHBOARD ================= */
 import Dashboard from "./pages/Dashboard/Dashboard";
 
-/* HRMS */
+/* ================= HRMS ================= */
 import HRMS from "./pages/HRMS/HRMS";
 import AddEmployee from "./pages/HRMS/AddEmployee";
 import EmployeeOverview from "./pages/HRMS/EmployeeOverview";
@@ -9,88 +14,95 @@ import EmployeeDetails from "./pages/HRMS/EmployeeDetails";
 import EmployeeStatus from "./pages/HRMS/EmployeeStatus";
 import Attendance from "./pages/HRMS/Attendance";
 
-/* Payroll */
+/* ✅ NEW: Applications Page (Single UI for all roles) */
+import Applications from "./pages/HRMS/Applications";
+
+/* ================= PAYROLL ================= */
 import Payroll from "./pages/Payroll/Payroll";
 import RunPayroll from "./pages/Payroll/RunPayroll";
 import PayslipView from "./pages/Payroll/PayslipView";
 import SalaryTable from "./pages/Payroll/SalaryTable";
 
-/* AIMS */
+/* ================= AIMS ================= */
 import AIMSDashboard from "./pages/AIMS/AIMSDashboard";
 import AddItem from "./pages/AIMS/AddItem";
 import EditItem from "./pages/AIMS/EditItem";
 import AIMSInventoryList from "./pages/AIMS/AIMSInventoryList";
 import AIMSStockMovements from "./pages/AIMS/AIMSStockMovements";
-
-/* Request Orders */
 import AIMSRequestOrders from "./pages/AIMS/AIMSRequestOrders";
 import AIMSRequestOrderCreate from "./pages/AIMS/AIMSRequestOrderCreate";
-
-/* Purchase Requests */
+import AIMSRequestOrderView from "./pages/AIMS/AIMSRequestOrderView";
 import AIMSPurchaseRequests from "./pages/AIMS/AIMSPurchaseRequests";
 import AIMSPurchaseRequestCreate from "./pages/AIMS/AIMSPurchaseRequestCreate";
 import AIMSViewPurchaseRequest from "./pages/AIMS/AIMSViewPurchaseRequest";
-
-
-/* Suppliers */
 import AIMSSuppliers from "./pages/AIMS/AIMSSuppliers";
 
-/* Settings */
+/* ================= SETTINGS ================= */
 import SettingsPage from "./pages/Settings/SettingsPage";
+
+/* ================= ROUTE GUARDS ================= */
+import ProtectedRoute from "./routes/ProtectedRoute";
+import PermissionRoute from "./routes/PermissionRoute";
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Dashboard />} />
+      {/* ================= PUBLIC ================= */}
+      <Route path="/login" element={<Login />} />
 
-      {/* ================= HRMS ================= */}
-      <Route path="/hrms" element={<HRMS />} />
-      <Route path="/hrms/add-employee" element={<AddEmployee />} />
-      <Route path="/hrms/employee-overview" element={<EmployeeOverview />} />
-      <Route path="/hrms/employee/:biometric_id" element={<EmployeeDetails />} />
-      <Route path="/hrms/employee-status" element={<EmployeeStatus />} />
-      <Route path="/hrms/attendance" element={<Attendance />} />
+      {/* ================= AUTHENTICATED ================= */}
+      <Route element={<ProtectedRoute />}>
 
-      {/* ================= Payroll ================= */}
-      <Route path="/payroll" element={<Payroll />} />
-      <Route path="/payroll/run" element={<RunPayroll />} />
-      <Route path="/payslip/:id" element={<PayslipView />} />
-      <Route path="/payroll/salary-table" element={<SalaryTable />} />
+        <Route path="/" element={<Dashboard />} />
 
-      {/* ================= AIMS ================= */}
-      <Route path="/aims" element={<AIMSDashboard />} />
-      <Route path="/aims/add-item" element={<AddItem />} />
-      <Route path="/aims/items/:id/edit" element={<EditItem />} />
-      <Route path="/aims/inventory" element={<AIMSInventoryList />} />
-      <Route path="/aims/stock-movements" element={<AIMSStockMovements />} />
+        {/* ================= HRMS ================= */}
+        <Route element={<PermissionRoute permission="access_hrms" />}>
+          <Route path="/hrms" element={<HRMS />} />
+          <Route path="/hrms/add-employee" element={<AddEmployee />} />
+          <Route path="/hrms/employee-overview" element={<EmployeeOverview />} />
+          <Route path="/hrms/employee/:biometric_id" element={<EmployeeDetails />} />
+          <Route path="/hrms/employee-status" element={<EmployeeStatus />} />
+          <Route path="/hrms/attendance" element={<Attendance />} />
+          
+          {/* ✅ Applications page (Leave & Overtime) */}
+          <Route path="/hrms/applications" element={<Applications />} />
+        </Route>
 
-      {/* Suppliers */}
-      <Route path="/aims/suppliers" element={<AIMSSuppliers />} />
+        {/* ================= PAYROLL ================= */}
+        <Route element={<PermissionRoute permission="access_payroll" />}>
+          <Route path="/payroll" element={<Payroll />} />
+          <Route path="/payroll/run" element={<RunPayroll />} />
+          <Route path="/payslip/:id" element={<PayslipView />} />
+          <Route path="/payroll/salary-table" element={<SalaryTable />} />
+        </Route>
 
-      {/* ================= Request Orders ================= */}
-      <Route path="/aims/request-orders" element={<AIMSRequestOrders />} />
-      <Route
-        path="/aims/request-orders/create"
-        element={<AIMSRequestOrderCreate />}
-      />
+        {/* ================= AIMS ================= */}
+        <Route element={<PermissionRoute permission="access_aims" />}>
+          <Route path="/aims" element={<AIMSDashboard />} />
+          <Route path="/aims/add-item" element={<AddItem />} />
+          <Route path="/aims/items/:id/edit" element={<EditItem />} />
+          <Route path="/aims/inventory" element={<AIMSInventoryList />} />
+          <Route path="/aims/stock-movements" element={<AIMSStockMovements />} />
+          <Route path="/aims/suppliers" element={<AIMSSuppliers />} />
 
-      {/* ================= Purchase Requests ================= */}
-      <Route
-        path="/aims/purchase-requests"
-        element={<AIMSPurchaseRequests />}
-      />
-      <Route
-        path="/aims/purchase-requests/create"
-        element={<AIMSPurchaseRequestCreate />}
-      />
-      <Route
-  path="/aims/purchase-requests/:id"
-  element={<AIMSViewPurchaseRequest />}
-/>
+          <Route path="/aims/request-orders" element={<AIMSRequestOrders />} />
+          <Route path="/aims/request-orders/create" element={<AIMSRequestOrderCreate />} />
+          <Route path="/aims/request-orders/:id" element={<AIMSRequestOrderView />} />
 
+          <Route path="/aims/purchase-requests" element={<AIMSPurchaseRequests />} />
+          <Route path="/aims/purchase-requests/create" element={<AIMSPurchaseRequestCreate />} />
+          <Route path="/aims/purchase-requests/:id" element={<AIMSViewPurchaseRequest />} />
+        </Route>
 
-      {/* ================= Settings ================= */}
-      <Route path="/settings" element={<SettingsPage />} />
+        {/* ================= SETTINGS ================= */}
+        <Route element={<PermissionRoute permission="access_settings" />}>
+          <Route path="/settings" element={<SettingsPage />} />
+        </Route>
+
+      </Route>
+
+      {/* ================= FALLBACK ================= */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

@@ -1,6 +1,6 @@
 import Layout from "../../components/layouts/DashboardLayout";
 import { useEffect, useState } from "react";
-import aimsApi from "../../aimsApi";
+import baseApi from "../../api/baseApi";
 import Swal from "sweetalert2";
 
 import { MdAdd, MdEdit, MdDelete } from "react-icons/md";
@@ -28,7 +28,7 @@ export default function AIMSSuppliers() {
 
   const fetchSuppliers = async () => {
     try {
-      const res = await aimsApi.get("/suppliers");
+      const res = await baseApi.get("/api/aims/suppliers");
       setSuppliers(res.data.data ?? res.data);
     } catch (err) {
       console.error("Failed to fetch suppliers", err);
@@ -45,10 +45,10 @@ export default function AIMSSuppliers() {
 
     try {
       if (editingId) {
-        await aimsApi.put(`/suppliers/${editingId}`, form);
+        await baseApi.put(`/api/aims/suppliers/${editingId}`, form);
         Swal.fire("Updated", "Supplier updated successfully", "success");
       } else {
-        await aimsApi.post("/suppliers", form);
+        await baseApi.post("/api/aims/suppliers", form);
         Swal.fire("Created", "Supplier added successfully", "success");
       }
 
@@ -95,7 +95,7 @@ export default function AIMSSuppliers() {
     if (!result.isConfirmed) return;
 
     try {
-      await aimsApi.delete(`/suppliers/${id}`);
+      await baseApi.delete(`/api/aims/suppliers/${id}`);
       Swal.fire("Deleted", "Supplier removed", "success");
       fetchSuppliers();
     } catch (err) {

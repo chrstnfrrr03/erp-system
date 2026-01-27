@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Swal from "sweetalert2";
-import api from "../../api";
+import baseApi from "../../api/baseApi";
 
 export default function DeminimisModal({ show, onHide, employeeId, onSuccess }) {
   const [allowances, setAllowances] = useState([{ type: "", amount: "" }]);
@@ -39,11 +39,11 @@ export default function DeminimisModal({ show, onHide, employeeId, onSuccess }) 
     }
 
     setLoading(true);
-    try {
-      await api.post("/deminimis", {
-        employee_id: employeeId,
-        allowances: validAllowances,
-      });
+   try {
+  await baseApi.post("/api/hrms/deminimis", {  
+    employee_id: employeeId,
+    allowances: validAllowances,
+  });
 
       Swal.fire({
         icon: "success",

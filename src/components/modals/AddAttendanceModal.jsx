@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Modal } from "react-bootstrap";
-import api from "../../api";
+import baseApi from "../../api/baseApi";
 import Swal from "sweetalert2";
 
 export default function AddAttendanceModal({ show, onHide, onSuccess }) {
@@ -22,7 +22,7 @@ export default function AddAttendanceModal({ show, onHide, onSuccess }) {
 
   const fetchEmployees = async () => {
     try {
-      const res = await api.get("/employees");
+      const res = await baseApi.get("/api/hrms/employees");
       setEmployees(res.data || []);
     } catch {
       Swal.fire("Error", "Failed to load employees.", "error");
@@ -47,9 +47,7 @@ export default function AddAttendanceModal({ show, onHide, onSuccess }) {
       setLoading(true);
 
       // ✅ POST TO SHIFT-AWARE ENDPOINT
-      await api.post(
-        `/attendance/${form.biometric_id}`,
-        {
+     await baseApi.post(`/api/hrms/attendance/${form.biometric_id}`, {
           date: form.date,
           am_time_in: form.am_time_in,
           am_time_out: form.am_time_out || null,

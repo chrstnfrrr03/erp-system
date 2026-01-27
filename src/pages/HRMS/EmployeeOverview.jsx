@@ -1,29 +1,29 @@
 import Layout from "../../components/layouts/DashboardLayout";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import axios from "axios";
+import baseApi from "../../api/baseApi";
 import { FaEye, FaTrash } from "react-icons/fa";
+import { useAuth } from "../../contexts/AuthContext";
+import { can } from "../../utils/permissions";
 
 export default function EmployeeOverview() {
   const navigate = useNavigate();
+  const { permissions } = useAuth();
 
   const [employees, setEmployees] = useState([]);
   const [search, setSearch] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("All");
-
-  // ⭐ NEW: Status filter
   const [statusFilter, setStatusFilter] = useState("All");
 
   useEffect(() => {
-  axios
-    .get("http://127.0.0.1:8000/api/hrms/employees")
-    .then((res) => {
-      console.log("EMPLOYEES:", res.data);  // 🔥 SHOW REAL FIELDS
-      setEmployees(res.data);
-    })
-    .catch((err) => console.error("Error loading employees:", err));
-}, []);
-
+    baseApi
+      .get("/api/hrms/employees")
+      .then((res) => {
+        console.log("EMPLOYEES:", res.data);
+        setEmployees(res.data);
+      })
+      .catch((err) => console.error("Error loading employees:", err));
+  }, []);
 
   const filteredEmployees = employees.filter((emp) => {
     const matchSearch =
@@ -35,25 +35,22 @@ export default function EmployeeOverview() {
       emp.department === departmentFilter;
 
     const matchStatus =
-  statusFilter === "All" || emp.status === statusFilter;
-
-
-
+      statusFilter === "All" || emp.status === statusFilter;
 
     return matchSearch && matchDept && matchStatus;
   });
 
-  // ⭐ Optional: Export with status filtering
+  // ✅ Updated export URLs
   const handleExportCSV = () => {
     window.open(
-      `http://127.0.0.1:8000/api/hrms/export/employees/csv?search=${search}&department=${departmentFilter}&status=${statusFilter}`,
+      `http://localhost:8000/api/hrms/export/employees/csv?search=${search}&department=${departmentFilter}&status=${statusFilter}`,
       "_blank"
     );
   };
 
   const handleExportPDF = () => {
     window.open(
-      `http://127.0.0.1:8000/api/hrms/export/employees/pdf?search=${search}&department=${departmentFilter}&status=${statusFilter}`,
+      `http://localhost:8000/api/hrms/export/employees/pdf?search=${search}&department=${departmentFilter}&status=${statusFilter}`,
       "_blank"
     );
   };
@@ -67,74 +64,77 @@ export default function EmployeeOverview() {
 
           <div className="row g-4 align-items-center mb-4">
 
-  {/* SEARCH */}
-  <div className="col-12 col-md-3">
-    <label className="form-label fw-semibold">Search:</label>
-    <input
-      type="text"
-      className="form-control"
-      placeholder="Search employee..."
-      value={search}
-      onChange={(e) => setSearch(e.target.value)}
-    />
-  </div>
+            {/* SEARCH */}
+            <div className="col-12 col-md-3">
+              <label className="form-label fw-semibold">Search:</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Search employee..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
 
-  {/* DEPARTMENT FILTER */}
-  <div className="col-12 col-md-3">
-    <label className="form-label fw-semibold">Department:</label>
-    <select
-      className="form-select"
-      value={departmentFilter}
-      onChange={(e) => setDepartmentFilter(e.target.value)}
-    >
-      <option value="All">All</option>
-      <option value="HR">HR</option>
-      <option value="IT">IT</option>
-      <option value="Finance">Finance</option>
-      <option value="Marketing">Marketing</option>
-      <option value="Operations">Operations</option>
-    </select>
-  </div>
+            {/* DEPARTMENT FILTER */}
+            <div className="col-12 col-md-3">
+              <label className="form-label fw-semibold">Department:</label>
+              <select
+                className="form-select"
+                value={departmentFilter}
+                onChange={(e) => setDepartmentFilter(e.target.value)}
+              >
+                <option value="All">All</option>
+                <option value="HR">HR</option>
+                <option value="IT">IT</option>
+                <option value="Finance">Finance</option>
+                <option value="Marketing">Marketing</option>
+                <option value="Operations">Operations</option>
+              </select>
+            </div>
 
-  {/* STATUS FILTER */}
-  <div className="col-12 col-md-3">
-    <label className="form-label fw-semibold">Status:</label>
-    <select
-      className="form-select"
-      value={statusFilter}
-      onChange={(e) => setStatusFilter(e.target.value)}
-    >
-      <option value="All">All</option>
-      <option value="Regular">Regular</option>
-      <option value="Probationary">Probationary</option>
-      <option value="End of Contract">End of Contract</option>
-      <option value="Retired">Retired</option>
-      <option value="Terminated">Terminated</option>
-      <option value="Resigned">Resigned</option>
-    </select>
-  </div>
+            {/* STATUS FILTER */}
+            <div className="col-12 col-md-3">
+              <label className="form-label fw-semibold">Status:</label>
+              <select
+                className="form-select"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="All">All</option>
+                <option value="Regular">Regular</option>
+                <option value="Probationary">Probationary</option>
+                <option value="End of Contract">End of Contract</option>
+                <option value="Retired">Retired</option>
+                <option value="Terminated">Terminated</option>
+                <option value="Resigned">Resigned</option>
+              </select>
+            </div>
 
-  {/* EXPORTS + ADD BUTTON FIXED */}
-  <div
-    className="col-12 col-md-3 d-flex flex-wrap justify-content-md-end gap-2"
-    style={{ rowGap: "10px" }}
-  >
-    <button className="btn btn-success" onClick={handleExportCSV}>
-      Export CSV
-    </button>
+            {/* EXPORTS + ADD BUTTON */}
+            <div
+              className="col-12 col-md-3 d-flex flex-wrap justify-content-md-end gap-2"
+              style={{ rowGap: "10px" }}
+            >
+              <button className="btn btn-success" onClick={handleExportCSV}>
+                Export CSV
+              </button>
 
-    <button className="btn btn-danger" onClick={handleExportPDF}>
-      Export PDF
-    </button>
+              <button className="btn btn-danger" onClick={handleExportPDF}>
+                Export PDF
+              </button>
 
-    <button
-      className="btn btn-primary"
-      onClick={() => navigate("/hrms/add-employee")}
-    >
-      Add Employee
-    </button>
-  </div>
-</div>
+              {/* ✅ Only show Add Employee for system_admin and hr */}
+              {can(permissions, 'employee.create') && (
+                <button
+                  className="btn btn-primary"
+                  onClick={() => navigate("/hrms/add-employee")}
+                >
+                  Add Employee
+                </button>
+              )}
+            </div>
+          </div>
 
           {/* TABLE */}
           <div className="table-responsive">
@@ -167,50 +167,50 @@ export default function EmployeeOverview() {
                       <td>{emp.position}</td>
                       <td>{emp.hireDate}</td>
 
-                      {/* STATUS BADGE USING EMPLOYMENT CLASSIFICATION */}
+                      {/* STATUS BADGE */}
                       <td>
-  <span
-  className={`badge ${
-    emp.status === "Regular"
-      ? "bg-success"
-      : emp.status === "Probationary"
-      ? "bg-warning"
-      : emp.status === "Resigned"
-      ? "bg-secondary"
-      : emp.status === "Terminated"
-      ? "bg-danger"
-      : emp.status === "Retired"
-      ? "bg-info"
-      : "bg-dark"
-  }`}
->
-  {emp.status}
-</span>
-
-
-</td>
-
-
-
-
-
-                      <td>
-                        <div className="d-flex justify-content-center gap-3">
-                          <FaEye
-                            className="text-primary"
-                            style={{ cursor: "pointer" }}
-                            onClick={() =>
-                              navigate(`/hrms/employee/${emp.biometric_id}`)
-                            }
-                          />
-
-                          <FaTrash
-                            className="text-danger"
-                            style={{ cursor: "pointer" }}
-                            onClick={() => alert("Delete employee")}
-                          />
-                        </div>
+                        <span
+                          className={`badge ${
+                            emp.status === "Regular"
+                              ? "bg-success"
+                              : emp.status === "Probationary"
+                              ? "bg-warning"
+                              : emp.status === "Resigned"
+                              ? "bg-secondary"
+                              : emp.status === "Terminated"
+                              ? "bg-danger"
+                              : emp.status === "Retired"
+                              ? "bg-info"
+                              : "bg-dark"
+                          }`}
+                        >
+                          {emp.status}
+                        </span>
                       </td>
+
+                      <td>
+  <div className="d-flex justify-content-center gap-3">
+    {/* ✅ Always show View icon for users with employee.view permission */}
+    {can(permissions, 'employee.view') && (
+      <FaEye
+        className="text-primary"
+        style={{ cursor: "pointer" }}
+        onClick={() =>
+          navigate(`/hrms/employee/${emp.biometric_id}`)
+        }
+      />
+    )}
+
+    {/* ✅ Only show Delete for system_admin and hr */}
+    {can(permissions, 'employee.delete') && (
+      <FaTrash
+        className="text-danger"
+        style={{ cursor: "pointer" }}
+        onClick={() => alert("Delete employee")}
+      />
+    )}
+  </div>
+</td>
                     </tr>
                   ))
                 )}

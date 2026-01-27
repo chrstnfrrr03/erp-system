@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { FaUserCircle } from "react-icons/fa";
-import api from "../../api";
+import baseApi from "../../api/baseApi";
 import Swal from "sweetalert2";
 
 export default function ApplicationFormsTab({ employee, onApplicationUpdated }) {
@@ -22,7 +22,7 @@ export default function ApplicationFormsTab({ employee, onApplicationUpdated }) 
   const fetchApplications = async () => {
     try {
       setLoading(true);
-      const res = await api.get(`/applications/${employee.biometric_id}`);
+      const res = await baseApi.get(`/api/hrms/applications/${employee.biometric_id}`);
       setApplications(res.data || []);
     } catch (err) {
       console.error("Failed to fetch applications:", err);
@@ -33,7 +33,7 @@ export default function ApplicationFormsTab({ employee, onApplicationUpdated }) 
 
   const handleNewApplication = async (formData) => {
     try {
-      await api.post(`/applications/${employee.biometric_id}`, formData);
+      await baseApi.post(`/api/hrms/applications/${employee.biometric_id}`, formData);
 
       await fetchApplications();
 

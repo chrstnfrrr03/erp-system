@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import Layout from "../../components/layouts/DashboardLayout";
 import { useNavigate } from "react-router-dom";
-import api from "../../api";
-
+import baseApi from "../../api/baseApi";
+import { useAuth } from "../../contexts/AuthContext";
+import { can } from "../../utils/permissions";
 
 import { MdPersonAdd, MdPeople, MdBarChart, MdSchedule} from "react-icons/md";
 
@@ -19,6 +20,7 @@ import {
 
 export default function HRMS() {
   const navigate = useNavigate();
+  const { permissions } = useAuth();
 
   const [departmentData, setDepartmentData] = useState([]);
   const [totalEmployees, setTotalEmployees] = useState(0);
@@ -31,8 +33,8 @@ export default function HRMS() {
 
   const fetchDashboard = async () => {
     try {
-      const statsRes = await api.get("/stats");
-      const deptRes = await api.get("/department-distribution");
+      const statsRes = await baseApi.get("/api/hrms/stats");  
+      const deptRes = await baseApi.get("/api/hrms/department-distribution");  
 
       setTotalEmployees(statsRes.data.totalEmployees);
       setNewHires(statsRes.data.newHires);
@@ -164,13 +166,16 @@ export default function HRMS() {
               </div>
 
               <div className="card-body p-3 d-flex flex-column gap-3">
-                <button
-                  className="btn btn-primary w-100"
-                  style={buttonStyle}
-                  onClick={() => navigate("/hrms/add-employee")}
-                >
-                  <MdPersonAdd size={20} className="me-2" /> Add Employee
-                </button>
+                {/* ✅ Only show Add Employee for system_admin and hr */}
+                {can(permissions, 'employee.create') && (
+                  <button
+                    className="btn btn-primary w-100"
+                    style={buttonStyle}
+                    onClick={() => navigate("/hrms/add-employee")}
+                  >
+                    <MdPersonAdd size={20} className="me-2" /> Add Employee
+                  </button>
+                )}
 
                 <button
                   className="btn w-100"
@@ -189,17 +194,16 @@ export default function HRMS() {
                 </button>
 
                 <button
-  className="btn w-100"
-  style={{
-    ...buttonStyle,
-    backgroundColor: "red",
-    color: "white",
-  }}
-  onClick={() => navigate("/hrms/attendance")}
->
-  <MdSchedule size={20} className="me-2" /> View All Attendance
-</button>
-
+                  className="btn w-100"
+                  style={{
+                    ...buttonStyle,
+                    backgroundColor: "red",
+                    color: "white",
+                  }}
+                  onClick={() => navigate("/hrms/attendance")}
+                >
+                  <MdSchedule size={20} className="me-2" /> View All Attendance
+                </button>
               </div>
             </div>
           </div>

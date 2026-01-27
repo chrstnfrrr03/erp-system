@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Modal } from "react-bootstrap";
-import api from "../../api";
+import baseApi from "../../api/baseApi";
 import Swal from "sweetalert2";
 
 export default function AddLeaveCreditModal({
@@ -49,24 +49,24 @@ export default function AddLeaveCreditModal({
      FETCH EXISTING LEAVE CREDITS
   ============================== */
   useEffect(() => {
-    if (!show) return;
+  if (!show) return;
 
-    api
-      .get(`/employee/${biometricId}/leave-credits`)
-      .then((res) => {
-        if (res.data) {
-          setFormData({
-            vacation_year: res.data.vacation_year ?? "",
-            vacation_credits: res.data.vacation_credits ?? "",
-            sick_year: res.data.sick_year ?? "",
-            sick_credits: res.data.sick_credits ?? "",
-            emergency_year: res.data.emergency_year ?? "",
-            emergency_credits: res.data.emergency_credits ?? "",
-          });
-        }
-      })
-      .catch(() => {});
-  }, [show, biometricId]);
+  baseApi 
+    .get(`/api/hrms/employee/${biometricId}/leave-credits`) 
+    .then((res) => {
+      if (res.data) {
+        setFormData({
+          vacation_year: res.data.vacation_year ?? "",
+          vacation_credits: res.data.vacation_credits ?? "",
+          sick_year: res.data.sick_year ?? "",
+          sick_credits: res.data.sick_credits ?? "",
+          emergency_year: res.data.emergency_year ?? "",
+          emergency_credits: res.data.emergency_credits ?? "",
+        });
+      }
+    })
+    .catch(() => {});
+}, [show, biometricId]);
 
   /* ==============================
      AUTO-FILL CURRENT YEAR
@@ -158,7 +158,7 @@ export default function AddLeaveCreditModal({
     setLoading(true);
 
     try {
-      await api.put(`/employee/${biometricId}/leave-credits`, payload);
+  await baseApi.put(`/api/hrms/employee/${biometricId}/leave-credits`, payload); 
 
       Swal.fire({
         icon: "success",

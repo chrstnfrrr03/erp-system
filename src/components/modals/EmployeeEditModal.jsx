@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Modal } from "react-bootstrap";
 import { FaUserCircle } from "react-icons/fa";
-import api from "../../api";
+import baseApi from "../../api/baseApi";
 import Swal from "sweetalert2";
 
 export default function EmployeeEditModal({ show, onHide, employee, onSave }) {
@@ -51,7 +51,7 @@ export default function EmployeeEditModal({ show, onHide, employee, onSave }) {
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const res = await api.get("/departments");
+        const res = await baseApi.get("/api/hrms/departments");
         setDepartments(res.data.data || res.data || []);
       } catch (err) {
         console.error("Failed to fetch departments:", err);
@@ -64,7 +64,7 @@ export default function EmployeeEditModal({ show, onHide, employee, onSave }) {
   useEffect(() => {
     const fetchShifts = async () => {
       try {
-        const res = await api.get("/shifts");
+        const res = await baseApi.get("/api/hrms/shifts");
         setShifts(res.data);
       } catch (err) {
         console.error("Failed to fetch shifts:", err);

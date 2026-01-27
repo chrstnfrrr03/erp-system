@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Layout from "../../components/layouts/DashboardLayout";
-import aimsApi from "../../aimsApi";
+import baseApi from "../../api/baseApi";
 import Swal from "sweetalert2";
 
 import { MdAdd, MdDelete } from "react-icons/md";
@@ -27,7 +27,7 @@ export default function AIMSPurchaseRequestCreate() {
   ========================================================== */
   const generatePRNumber = async () => {
     try {
-      const res = await aimsApi.get("/purchase-requests/latest");
+      const res = await baseApi.get("/api/aims/purchase-requests/latest");
       const last = Number(res.data?.last_number || 0);
       const next = String(last + 1).padStart(4, "0");
 
@@ -49,7 +49,7 @@ export default function AIMSPurchaseRequestCreate() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await aimsApi.get("/items");
+        const res = await baseApi.get("/api/aims/items");
         setItems(res.data.data || []);
         await generatePRNumber();
       } catch {
@@ -110,7 +110,7 @@ export default function AIMSPurchaseRequestCreate() {
     setSubmitting(true);
 
     try {
-      await aimsApi.post("/purchase-requests", {
+      await baseApi.post("/api/aims/purchase-requests", {
         ...form,
         items: rows,
       });

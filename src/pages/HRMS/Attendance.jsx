@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import Layout from "../../components/layouts/DashboardLayout";
-import api from "../../api";
+import baseApi from "../../api/baseApi";
 import Swal from "sweetalert2";
+import { useAuth } from "../../contexts/AuthContext";
+import { can } from "../../utils/permissions";
 
 // ✅ IMPORT MODAL
 import AddAttendanceModal from "../../components/modals/AddAttendanceModal";
@@ -12,6 +14,7 @@ const formatDate = (dateString) => {
 };
 
 export default function Attendance() {
+    const { permissions } = useAuth();
     const [attendance, setAttendance] = useState([]);
     const [search, setSearch] = useState("");
     const [department, setDepartment] = useState("All");
@@ -29,11 +32,11 @@ export default function Attendance() {
         try {
             setLoading(true);
 
-            const empRes = await api.get("/employees");
+            const empRes = await baseApi.get("/api/hrms/employees");  
             const employees = empRes.data || [];
 
             const requests = employees.map((emp) =>
-                api.get(`/attendance/${emp.biometric_id}`)
+                baseApi.get(`/api/hrms/attendance/${emp.biometric_id}`)
             );
 
             const responses = await Promise.all(requests);
@@ -146,7 +149,7 @@ export default function Attendance() {
         if (!result.isConfirmed) return;
 
         try {
-            await api.post("/attendance/mark-absent", {
+            await baseApi.post("/api/hrms/attendance/mark-absent", {  
                 biometric_id: row.biometric_id,
                 date: row.date,
             });
@@ -231,7 +234,7 @@ export default function Attendance() {
 
                             <div className="col-12 col-lg-3">
                                 <div className="row g-2">
-                                    <div className="col-6">
+                                    <div className={can(permissions, 'attendance.manage') ? "col-6" : "col-12"}>
                                         <button
                                             className="btn btn-success w-100"
                                             onClick={handleExport}
@@ -239,16 +242,18 @@ export default function Attendance() {
                                             Export
                                         </button>
                                     </div>
-                                    <div className="col-6">
-                                        <button
-                                            className="btn btn-primary w-100"
-                                            onClick={() =>
-                                                setShowAddModal(true)
-                                            }
-                                        >
-                                            Add Attendance
-                                        </button>
-                                    </div>
+                                    {can(permissions, 'attendance.manage') && (
+                                        <div className="col-6">
+                                            <button
+                                                className="btn btn-primary w-100"
+                                                onClick={() =>
+                                                    setShowAddModal(true)
+                                                }
+                                            >
+                                                Add Attendance
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -269,7 +274,9 @@ export default function Attendance() {
                                     <th colSpan="2">Morning</th>
                                     <th colSpan="2">Afternoon</th>
                                     <th rowSpan="2">Status</th>
-                                    <th rowSpan="2">Action</th>
+                                    {can(permissions, 'attendance.manage') && (
+                                        <th rowSpan="2">Action</th>
+                                    )}
                                 </tr>
                                 <tr>
                                     <th>In</th>
@@ -283,7 +290,7 @@ export default function Attendance() {
                                 {loading ? (
                                     <tr>
                                         <td
-                                            colSpan="9"
+                                            colSpan={can(permissions, 'attendance.manage') ? "9" : "8"}
                                             className="py-4 text-center"
                                         >
                                             Loading attendance...
@@ -292,7 +299,7 @@ export default function Attendance() {
                                 ) : filteredAttendance.length === 0 ? (
                                     <tr>
                                         <td
-                                            colSpan="9"
+                                            colSpan={can(permissions, 'attendance.manage') ? "9" : "8"}
                                             className="py-4 text-center text-muted"
                                         >
                                             No attendance records found
@@ -324,19 +331,21 @@ export default function Attendance() {
                                                     {row.status}
                                                 </span>
                                             </td>
-                                            <td>
-                                                <button
-                                                    className="btn btn-sm btn-danger px-3"
-                                                    disabled={
-                                                        row.status === "Absent"
-                                                    }
-                                                    onClick={() =>
-                                                        handleMarkAbsent(row)
-                                                    }
-                                                >
-                                                    Mark Absent
-                                                </button>
-                                            </td>
+                                            {can(permissions, 'attendance.manage') && (
+                                                <td>
+                                                    <button
+                                                        className="btn btn-sm btn-danger px-3"
+                                                        disabled={
+                                                            row.status === "Absent"
+                                                        }
+                                                        onClick={() =>
+                                                            handleMarkAbsent(row)
+                                                        }
+                                                    >
+                                                        Mark Absent
+                                                    </button>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))
                                 )}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Layout from "../../components/layouts/DashboardLayout";
-import api from "../../api";
+import baseApi from "../../api/baseApi";
 import Swal from "sweetalert2";
 
 // Tabs
@@ -28,7 +28,7 @@ export default function EditEmployee() {
   useEffect(() => {
     const loadShifts = async () => {
       try {
-        const res = await api.get("/shifts");
+        const res = await baseApi.get("/api/hrms/shifts");
         setShifts(res.data);
       } catch (err) {
         console.error("Failed to load shifts:", err);
@@ -117,7 +117,7 @@ export default function EditEmployee() {
   const fetchEmployeeData = async () => {
     setLoadingData(true);
     try {
-      const res = await api.get(`/employee/${biometric_id}`);
+      const res = await baseApi.get(`/api/hrms/employee/${biometric_id}`); 
       const emp = res.data;
 
       // Pre-fill form data
@@ -219,7 +219,7 @@ export default function EditEmployee() {
   const updateEmployment = async () => {
     setLoading(true);
     try {
-      await api.put(`/employment/${employeeId}`, {
+      await baseApi.put(`/api/hrms/employment/${employeeId}`, { 
         department: formData.department,
         position: formData.position,
         department_head: formData.department_head,
@@ -261,7 +261,7 @@ export default function EditEmployee() {
   const updatePersonal = async () => {
     setLoading(true);
     try {
-      await api.put(`/personal/${employeeId}`, {
+      await baseApi.put(`/api/hrms/personal/${employeeId}`, { 
         birthdate: formData.birthdate,
         age: formData.age,
         birthplace: formData.birthplace,
@@ -304,7 +304,7 @@ export default function EditEmployee() {
   const updateAccount = async () => {
     setLoading(true);
     try {
-      await api.put(`/account/${employeeId}`, {
+      await baseApi.put(`/api/hrms/account/${employeeId}`, {
         nasfund_number: formData.nasfund_number,
         tin_number: formData.tin_number,
         work_permit_number: formData.work_permit_number,
@@ -342,7 +342,7 @@ export default function EditEmployee() {
   const updateLeaveCredits = async () => {
     setLoading(true);
     try {
-      await api.put(`/leave-credits/${employeeId}`, {
+      await baseApi.put(`/api/hrms/leave-credits/${employeeId}`, { 
         vacation_year: formData.vacation_year,
         vacation_credits: formData.vacation_credits,
         sick_year: formData.sick_year,
@@ -376,7 +376,7 @@ export default function EditEmployee() {
   const updateDeminimis = async () => {
     setLoading(true);
     try {
-      await api.put(`/deminimis/${employeeId}`, {
+      await baseApi.put(`/api/hrms/deminimis/${employeeId}`, { 
         clothing_allowance: formData.clothing_allowance,
         meal_allowance: formData.meal_allowance,
         rice_subsidy: formData.rice_subsidy,

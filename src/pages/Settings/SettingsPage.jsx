@@ -1,27 +1,56 @@
 import { useState, useEffect } from "react";
-import {
-  MdSave,
-  MdSettings,
-  MdToggleOn,
-  MdToggleOff,
-} from "react-icons/md";
+import { MdSave, MdSettings } from "react-icons/md";
 import Layout from "../../components/layouts/DashboardLayout";
-import settingsApi from "../../settingsApi";
+import settingsApi from "../../api/settingsApi";
 import Swal from "sweetalert2";
+import { useAuth } from "../../contexts/AuthContext";
+
+/* HRMS SECTIONS */
+import DepartmentsSection from "./sections/Departments/DepartmentsSection";
+import ShiftsSection from "./sections/Shifts/ShiftsSection";
 
 /* =========================
    MAIN SETTINGS PAGE
 ========================= */
 export default function SettingsPage() {
+  const { role, loading } = useAuth();
   const [activeTab, setActiveTab] = useState("general");
+  const [activeHRMS, setActiveHRMS] = useState(null);
 
+  /* WAIT FOR AUTH */
+  if (loading) {
+    return (
+      <Layout>
+        <div style={{ padding: 60 }}>Loading settings...</div>
+      </Layout>
+    );
+  }
+
+  /* 🚫 EMPLOYEE ACCESS BLOCK */
+  if (role === "employee") {
+    return (
+      <Layout>
+        <div style={{ padding: 60, textAlign: "center" }}>
+          <h3>Access Restricted</h3>
+          <p>You do not have permission to access Settings.</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!role) return null;
+
+  /* SETTINGS TABS */
   const tabs = [
-    { id: "general", label: "General" },
-    { id: "users", label: "Users & Roles" },
-    { id: "preferences", label: "System Preferences" },
-    { id: "modules", label: "Modules" },
-    { id: "security", label: "Security" },
+    { id: "general", label: "General", roles: ["system_admin"] },
+    { id: "access", label: "Access & Permissions", roles: ["system_admin"] },
+    { id: "hrms", label: "HRMS", roles: ["system_admin", "hr"] },
+    { id: "payroll", label: "Payroll", roles: ["system_admin", "hr"] },
+    { id: "aims", label: "AIMS", roles: ["system_admin", "hr"] },
+    { id: "security", label: "Security", roles: ["system_admin"] },
   ];
+
+  const visibleTabs = tabs.filter(tab => tab.roles.includes(role));
 
   return (
     <Layout>
@@ -30,19 +59,23 @@ export default function SettingsPage() {
           Settings
         </h1>
 
-        {/* TOP TABS */}
+        {/* TABS */}
         <div
           style={{
             display: "flex",
             gap: 24,
             borderBottom: "1px solid #e5e7eb",
             marginBottom: 24,
+            flexWrap: "wrap",
           }}
         >
-          {tabs.map((tab) => (
+          {visibleTabs.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                setActiveTab(tab.id);
+                setActiveHRMS(null);
+              }}
               style={{
                 background: "none",
                 border: "none",
@@ -62,11 +95,35 @@ export default function SettingsPage() {
           ))}
         </div>
 
-        {/* TAB CONTENT */}
+        {/* ================= CONTENT ================= */}
+
         {activeTab === "general" && <GeneralSettings />}
-        {activeTab === "modules" && <ModulesSettings />}
-        {activeTab !== "general" && activeTab !== "modules" && (
-          <ComingSoon module={tabs.find(t => t.id === activeTab)?.label} />
+
+        {activeTab === "access" && (
+          <ComingSoon module="Access & Permissions" />
+        )}
+
+        {activeTab === "hrms" && (
+          <>
+            {!activeHRMS && (
+              <HRMSSettings onManage={setActiveHRMS} />
+            )}
+
+            {activeHRMS === "departments" && <DepartmentsSection />}
+            {activeHRMS === "shifts" && <ShiftsSection />}
+
+            {activeHRMS &&
+              !["departments", "shifts"].includes(activeHRMS) && (
+                <ComingSoon module="HRMS Module" />
+              )}
+          </>
+        )}
+
+        {activeTab === "payroll" && <PayrollSettings />}
+        {activeTab === "aims" && <AIMSSettings />}
+
+        {activeTab === "security" && (
+          <ComingSoon module="Security" />
         )}
       </div>
     </Layout>
@@ -82,9 +139,6 @@ function GeneralSettings() {
     companyAddress: "",
     email: "",
     phone: "",
-    timezone: "UTC",
-    currency: "USD",
-    dateFormat: "MM/DD/YYYY",
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -95,12 +149,8 @@ function GeneralSettings() {
 
   const fetchSettings = async () => {
     try {
-      const res = await settingsApi.get("/general");
-      setFormData({
-        ...res.data,
-        timezone: "UTC",
-        currency: "USD",
-      });
+      const res = await settingsApi.getGeneral();
+      setFormData(prev => ({ ...prev, ...res.data }));
     } catch {
       Swal.fire("Error", "Failed to load settings", "error");
     } finally {
@@ -111,7 +161,7 @@ function GeneralSettings() {
   const handleSave = async () => {
     try {
       setSaving(true);
-      await settingsApi.post("/general", formData);
+      await settingsApi.saveGeneral(formData);
       Swal.fire("Success", "Settings saved successfully", "success");
     } catch {
       Swal.fire("Error", "Failed to save settings", "error");
@@ -124,173 +174,138 @@ function GeneralSettings() {
 
   return (
     <div style={{ maxWidth: 600 }}>
-      <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 20 }}>
-        Company Information
-      </h3>
+      <h3 className="mb-4">Company Information</h3>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <InputField label="Company Name" value={formData.companyName}
-          onChange={(e) => setFormData({ ...formData, companyName: e.target.value })} />
-        <InputField label="Company Address" value={formData.companyAddress}
-          onChange={(e) => setFormData({ ...formData, companyAddress: e.target.value })} />
-        <InputField label="Email" type="email" value={formData.email}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
-        <InputField label="Phone" value={formData.phone}
-          onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
+      <InputField
+        label="Company Name"
+        value={formData.companyName}
+        onChange={e =>
+          setFormData({ ...formData, companyName: e.target.value })
+        }
+      />
 
-        <SelectField
-          label="Timezone"
-          value={formData.timezone}
-          onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
-          options={[
-            { value: "UTC", label: "UTC (Universal Time)" },
-            { value: "America/New_York", label: "US Eastern Time" },
-            { value: "America/Los_Angeles", label: "US Pacific Time" },
-          ]}
-        />
-
-        <SelectField
-          label="Currency"
-          value={formData.currency}
-          onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-          options={[
-            { value: "USD", label: "US Dollar (USD)" },
-          ]}
-        />
-
-        <SelectField
-          label="Date Format"
-          value={formData.dateFormat}
-          onChange={(e) => setFormData({ ...formData, dateFormat: e.target.value })}
-          options={[
-            { value: "MM/DD/YYYY", label: "MM/DD/YYYY" },
-            { value: "DD/MM/YYYY", label: "DD/MM/YYYY" },
-            { value: "YYYY-MM-DD", label: "YYYY-MM-DD" },
-          ]}
-        />
-      </div>
-
-      <div style={{ marginTop: 24 }}>
-        <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-          <MdSave /> {saving ? "Saving..." : "Save Changes"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/* =========================
-   MODULES SETTINGS (MANAGER)
-========================= */
-function ModulesSettings() {
-  const [modules, setModules] = useState([
-    { id: "hrms", name: "HRMS", enabled: true },
-    { id: "payroll", name: "Payroll", enabled: true },
-    { id: "aims", name: "AIMS", enabled: false },
-    { id: "moms", name: "MOMS", enabled: false },
-  ]);
-
-  const toggleModule = (id) => {
-    setModules((prev) =>
-      prev.map((m) =>
-        m.id === id ? { ...m, enabled: !m.enabled } : m
-      )
-    );
-  };
-
-  const saveModules = async () => {
-    try {
-      await settingsApi.post("/modules", modules);
-      Swal.fire("Success", "Modules updated successfully", "success");
-    } catch {
-      Swal.fire("Error", "Failed to save modules", "error");
-    }
-  };
-
-  return (
-    <div style={{ maxWidth: 700 }}>
-      <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 20 }}>
-        Module Control
-      </h3>
-
-      <table className="table table-bordered">
-        <thead className="table-light">
-          <tr>
-            <th>Module</th>
-            <th style={{ width: 140 }}>Status</th>
-            <th style={{ width: 120 }}>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {modules.map((module) => (
-            <tr key={module.id}>
-              <td>{module.name}</td>
-              <td>
-                <span className={`badge ${module.enabled ? "bg-success" : "bg-secondary"}`}>
-                  {module.enabled ? "Enabled" : "Disabled"}
-                </span>
-              </td>
-              <td>
-                <button
-                  className="btn btn-sm btn-outline-primary"
-                  onClick={() => toggleModule(module.id)}
-                >
-                  {module.enabled ? <MdToggleOff /> : <MdToggleOn />}
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <button className="btn btn-primary" onClick={saveModules}>
-        <MdSave /> Save Module Settings
+      <button
+        className="btn btn-primary"
+        onClick={handleSave}
+        disabled={saving}
+      >
+        <MdSave /> {saving ? "Saving..." : "Save Changes"}
       </button>
     </div>
   );
 }
 
 /* =========================
-   REUSABLE COMPONENTS
+   HRMS SETTINGS
 ========================= */
-function InputField({ label, value, onChange, type = "text" }) {
+function HRMSSettings({ onManage }) {
+  const items = [
+    {
+      key: "departments",
+      title: "Departments",
+      desc: "Manage company departments",
+    },
+    {
+      key: "shifts",
+      title: "Shifts",
+      desc: "Work schedules and shift rules",
+    },
+    {
+      key: "employment",
+      title: "Employment Status",
+      desc: "Employment types",
+    },
+  ];
+
   return (
-    <div>
-      <label style={{ fontSize: 13, fontWeight: 500 }}>{label}</label>
-      <input type={type} value={value} onChange={onChange} className="form-control" />
+    <ModuleSettings
+      title="HRMS Settings"
+      items={items}
+      onManage={onManage}
+    />
+  );
+}
+
+/* =========================
+   PAYROLL SETTINGS
+========================= */
+function PayrollSettings() {
+  const items = [
+    { title: "Salary Grades", desc: "Manage salary structures" },
+    { title: "Deductions", desc: "Tax and deductions" },
+    { title: "Allowances", desc: "Employee allowances" },
+  ];
+
+  return <ModuleSettings title="Payroll Settings" items={items} />;
+}
+
+/* =========================
+   AIMS SETTINGS
+========================= */
+function AIMSSettings() {
+  const items = [
+    { title: "Categories", desc: "Inventory categories" },
+    { title: "Units", desc: "Measurement units" },
+    { title: "Suppliers", desc: "Supplier master list" },
+  ];
+
+  return <ModuleSettings title="AIMS Settings" items={items} />;
+}
+
+/* =========================
+   SHARED COMPONENTS
+========================= */
+function ModuleSettings({ title, items, onManage }) {
+  return (
+    <div style={{ maxWidth: 900 }}>
+      <h3 className="mb-4">{title}</h3>
+
+      <div className="row g-3">
+        {items.map(item => (
+          <div className="col-md-6" key={item.title}>
+            <div className="card h-100">
+              <div className="card-body">
+                <h5>{item.title}</h5>
+                <p className="text-muted">{item.desc}</p>
+
+                <button
+                  className="btn btn-outline-primary btn-sm"
+                  onClick={() => onManage?.(item.key)}
+                >
+                  Manage
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
-function SelectField({ label, value, onChange, options }) {
+function InputField({ label, value, onChange }) {
   return (
-    <div>
-      <label style={{ fontSize: 13, fontWeight: 500 }}>{label}</label>
-      <select value={value} onChange={onChange} className="form-select">
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-      </select>
+    <div className="mb-3">
+      <label className="form-label">{label}</label>
+      <input
+        value={value}
+        onChange={onChange}
+        className="form-control"
+      />
     </div>
   );
 }
 
 function LoadingSpinner() {
-  return (
-    <div style={{ textAlign: "center", padding: 40 }}>
-      <div className="spinner-border text-primary" />
-    </div>
-  );
+  return <div className="spinner-border text-primary" />;
 }
 
 function ComingSoon({ module }) {
   return (
     <div style={{ textAlign: "center", padding: 60 }}>
       <MdSettings size={56} color="#9ca3af" />
-      <h3 style={{ marginTop: 16 }}>{module}</h3>
-      <p style={{ color: "#6b7280" }}>
-        Configuration options will be available soon.
-      </p>
+      <h3>{module}</h3>
+      <p>Configuration options will be available soon.</p>
     </div>
   );
 }
