@@ -13,10 +13,24 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
+
+            // Basic identity
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+
+            // 🔐 Role-based access
+            $table->enum('role', [
+                'system_admin',
+                'hr',
+                'dept_head',
+                'employee'
+            ])->default('system_admin');
+
+            // Optional (future-proofing)
+            $table->boolean('is_active')->default(true);
+
             $table->rememberToken();
             $table->timestamps();
         });

@@ -99,12 +99,16 @@ class RequestOrderController extends Controller
        SHOW ORDER
     =============================== */
     public function show($id)
-    {
-        return RequestOrder::with([
-            'supplier',
-            'items.item'
-        ])->findOrFail($id);
-    }
+{
+    $order = RequestOrder::with([
+        'supplier',
+        'items.item'
+    ])->findOrFail($id);
+
+    return response()->json([
+        'data' => $order
+    ]);
+}
 
     /* ===============================
        UPDATE ORDER (PENDING ONLY)

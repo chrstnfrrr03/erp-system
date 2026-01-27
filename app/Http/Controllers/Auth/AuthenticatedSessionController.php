@@ -3,23 +3,35 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class AuthenticatedSessionController extends Controller
 {
     /**
-     * Handle an incoming authentication request.
+     * Handle an incoming authentication request (SPA / React).
      */
-    public function store(LoginRequest $request): Response
+    public function store(Request $request): Response
     {
-        $request->authenticate();
+        $credentials = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required'],
+        ]);
 
+        if (!Auth::attempt($credentials)) {
+            throw ValidationException::withMessages([
+                'email' => ['The provided credentials are incorrect.'],
+            ]);
+        }
+
+        // Regenerate session to prevent fixation
         $request->session()->regenerate();
 
-        return response()->noContent();
+        return response([
+            'user' => Auth::user(),
+        ], 200);
     }
 
     /**
@@ -30,9 +42,10 @@ class AuthenticatedSessionController extends Controller
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
-
         $request->session()->regenerateToken();
 
-        return response()->noContent();
+        return response([
+            'message' => 'Logged out successfully',
+        ], 200);
     }
 }

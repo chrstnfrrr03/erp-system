@@ -6,13 +6,72 @@ use App\Http\Controllers\Controller;
 use App\Models\HRMS\Application;
 use App\Models\HRMS\Employee;
 use App\Models\HRMS\LeaveCredits;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class ApplicationController extends Controller
 {
+    /**
+     * ✅ NEW: Get all applications with employee details (for managers/HR)
+     */
+    public function getAllApplications()
+    {
+        $user = Auth::user();
+
+        if (!$user instanceof User) {
+            abort(401, 'Unauthenticated.');
+        }
+
+        // Only allow managers/HR to see all applications
+        if (!$user->hasPermission('leave.approve') && 
+            !$user->hasPermission('leave.manage') && 
+            !$user->hasPermission('ot.approve') && 
+            !$user->hasPermission('ot.manage')) {
+            abort(403, 'Unauthorized. You can only view your own applications.');
+        }
+
+        // Fetch all applications with employee information
+        $applications = Application::with(['employee' => function ($query) {
+            $query->select('id', 'biometric_id', 'first_name', 'middle_name', 'last_name');
+        }])
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function ($app) {
+            return [
+                'id' => $app->id,
+                'biometric_id' => $app->biometric_id,
+                'employee_biometric_id' => $app->biometric_id,
+                'employee_name' => $app->employee 
+                    ? trim($app->employee->first_name . ' ' . 
+                           ($app->employee->middle_name ? $app->employee->middle_name . ' ' : '') . 
+                           $app->employee->last_name)
+                    : 'Unknown',
+                'application_type' => $app->application_type,
+                'leave_type' => $app->leave_type,
+                'leave_duration' => $app->leave_duration,
+                'half_day_period' => $app->half_day_period,
+                'overtime_type' => $app->overtime_type,
+                'date_from' => $app->date_from,
+                'date_to' => $app->date_to,
+                'time_from' => $app->time_from,
+                'time_to' => $app->time_to,
+                'purpose' => $app->purpose,
+                'status' => $app->status,
+                'created_at' => $app->created_at,
+                'updated_at' => $app->updated_at,
+            ];
+        });
+
+        return response()->json($applications, 200);
+    }
+
+    /**
+     * Get employee's own applications
+     */
     public function index($biometric_id)
     {
         $employee = Employee::where('biometric_id', $biometric_id)->first();
@@ -142,7 +201,6 @@ class ApplicationController extends Controller
             if ($application->leave_type === 'Unpaid Leave') {
                 return response()->json(['message' => 'Updated'], 200);
             }
-
 
             $employee = Employee::where('biometric_id', $application->biometric_id)->firstOrFail();
 

@@ -2,31 +2,34 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Permission;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
+use App\Models\HRMS\Employee;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $fillable = [
         'name',
         'email',
         'password',
+        'role',
+        'is_active',
     ];
 
     /**
      * The attributes that should be hidden for serialization.
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $hidden = [
         'password',
@@ -34,15 +37,84 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
+     * The attributes that should be cast.
      */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
     }
+
+    /* =====================================================
+     | ROLE HELPERS
+     |===================================================== */
+
+    public function isSystemAdmin(): bool
+    {
+        return $this->role === 'system_admin';
+    }
+
+    public function isHR(): bool
+    {
+        return $this->role === 'hr';
+    }
+
+    public function isDeptHead(): bool
+    {
+        return $this->role === 'dept_head';
+    }
+
+    public function isEmployee(): bool
+    {
+        return $this->role === 'employee';
+    }
+
+    /* =====================================================
+     | PERMISSIONS
+     |===================================================== */
+
+    protected ?Collection $cachedPermissions = null;
+
+    /**
+     * User permissions relationship
+     */
+    public function permissions()
+    {
+        return $this->belongsToMany(Permission::class);
+    }
+
+    /**
+     * Get permission slugs (cached per request)
+     */
+    public function getPermissionSlugs(): Collection
+    {
+        if ($this->cachedPermissions === null) {
+            $this->cachedPermissions = $this->permissions
+                ->pluck('slug')
+                ->values();
+        }
+
+        return $this->cachedPermissions;
+    }
+
+    /**
+     * Check permission (role-aware)
+     */
+    public function hasPermission(string $permission): bool
+    {
+        // System Admin bypass
+        if ($this->isSystemAdmin()) {
+            return true;
+        }
+
+        return $this->getPermissionSlugs()->contains($permission);
+    }
+
+    public function employee()
+{
+    return $this->hasOne(Employee::class, 'user_id', 'id');
+}
 }
