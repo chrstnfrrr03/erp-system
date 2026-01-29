@@ -21,7 +21,6 @@ export default function EmployeePayslips({ employee }) {
         if (employee?.biometric_id) {
             fetchPayslips();
         } else {
-            console.error("Employee biometric_id is missing:", employee);
             setLoading(false);
         }
     }, [employee?.biometric_id]);
@@ -36,9 +35,7 @@ export default function EmployeePayslips({ employee }) {
 
         try {
             setLoading(true);
-            console.log("Fetching payslips for biometric_id:", employee.biometric_id);
             const res = await baseApi.get(`/api/payroll/payslips/${employee.biometric_id}`);
-            console.log("Payslips data:", res.data); 
             setPayslips(res.data || []);
         } catch (err) {
             console.error("Failed to fetch payslips:", err);

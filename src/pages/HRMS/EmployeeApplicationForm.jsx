@@ -16,7 +16,32 @@ export default function ApplicationFormsTab({ employee, onApplicationUpdated }) 
 
   const formatDate = (date) => {
     if (!date) return "N/A";
-    return date.split("T")[0];
+    
+    // Handle both date-only strings and datetime strings
+    // Extract just the date part to avoid timezone conversion
+    const dateOnly = date.includes('T') ? date.split('T')[0] : date.split(' ')[0];
+    
+    // Parse the date components to ensure no timezone conversion
+    const [year, month, day] = dateOnly.split('-');
+    
+    // Return in YYYY-MM-DD format (prevents timezone issues)
+    return `${year}-${month}-${day}`;
+  };
+
+  const formatDateTime = (date, time) => {
+    if (!date) return "N/A";
+    
+    // Format date without timezone issues
+    const dateOnly = date.includes('T') ? date.split('T')[0] : date.split(' ')[0];
+    const [year, month, day] = dateOnly.split('-');
+    const formattedDate = `${year}-${month}-${day}`;
+    
+    // If time is provided, append it
+    if (time) {
+      return `${formattedDate} ${time}`;
+    }
+    
+    return formattedDate;
   };
 
   const fetchApplications = async () => {
@@ -62,16 +87,19 @@ export default function ApplicationFormsTab({ employee, onApplicationUpdated }) 
 
   const getStatusBadge = (status) => {
     const statusMap = {
-      "pending supervisor": { bg: "#ffc107", text: "Pending Supervisor" },
-      "pending hr": { bg: "#ff9800", text: "Pending HR" },
-      approved: { bg: "#28a745", text: "Approved" },
-      rejected: { bg: "#dc3545", text: "Rejected" },
-      cancelled: { bg: "#6c757d", text: "Cancelled" },
+      "draft": { bg: "#9ca3af", text: "Draft" },
+      "pending head": { bg: "#f59e0b", text: "Pending Head" },
+      "approved by head": { bg: "#3b82f6", text: "Approved by Head" },
+      "pending hr": { bg: "#f59e0b", text: "Pending HR" },
+      "approved by hr": { bg: "#10b981", text: "Approved by HR" },
+      "posted": { bg: "#16a34a", text: "Posted" },
+      "rejected": { bg: "#dc2626", text: "Rejected" },
+      "cancelled": { bg: "#6b7280", text: "Cancelled" },
     };
 
     const statusInfo = statusMap[status?.toLowerCase()] || {
-      bg: "#ffc107",
-      text: "Pending",
+      bg: "#9ca3af",
+      text: "Draft",
     };
 
     return (
@@ -185,16 +213,16 @@ export default function ApplicationFormsTab({ employee, onApplicationUpdated }) 
                         Application Type
                       </th>
                       <th style={{ fontSize: "13px", padding: "12px" }}>
-                        Leave Type
+                        Type
                       </th>
                       <th style={{ fontSize: "13px", padding: "12px" }}>
                         Purpose
                       </th>
                       <th style={{ fontSize: "13px", padding: "12px" }}>
-                        Date From
+                        Date/Time From
                       </th>
                       <th style={{ fontSize: "13px", padding: "12px" }}>
-                        Date To
+                        Date/Time To
                       </th>
                       <th style={{ fontSize: "13px", padding: "12px" }}>
                         Status
@@ -206,19 +234,51 @@ export default function ApplicationFormsTab({ employee, onApplicationUpdated }) 
                       applications.map((app) => (
                         <tr key={app.id}>
                           <td style={{ fontSize: "13px", padding: "12px" }}>
-                            {app.application_type || "N/A"}
+                            <span
+                              style={{
+                                backgroundColor:
+                                  app.application_type === "Leave" ? "#2563eb" : "#7c3aed",
+                                color: "#ffffff",
+                                fontSize: "11px",
+                                fontWeight: "600",
+                                padding: "3px 8px",
+                                borderRadius: "999px",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {app.application_type || "N/A"}
+                            </span>
                           </td>
                           <td style={{ fontSize: "13px", padding: "12px" }}>
-                            {app.leave_type || "N/A"}
+                            {app.application_type === "Leave" ? (
+                              <>
+                                {app.leave_type || "N/A"}
+                                {app.leave_duration === "Half Day" && (
+                                  <div>
+                                    <small className="text-muted">
+                                      ({app.half_day_period} - Half Day)
+                                    </small>
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              app.overtime_type || "N/A"
+                            )}
                           </td>
                           <td style={{ fontSize: "13px", padding: "12px" }}>
-                            {app.purpose || "N/A"}
+                            <span
+                              className="text-truncate d-inline-block"
+                              style={{ maxWidth: "150px" }}
+                              title={app.purpose}
+                            >
+                              {app.purpose || "N/A"}
+                            </span>
                           </td>
                           <td style={{ fontSize: "13px", padding: "12px" }}>
-                            {formatDate(app.date_from)}
+                            {formatDateTime(app.date_from, app.time_from)}
                           </td>
                           <td style={{ fontSize: "13px", padding: "12px" }}>
-                            {formatDate(app.date_to)}
+                            {formatDateTime(app.date_to, app.time_to)}
                           </td>
                           <td style={{ fontSize: "13px", padding: "12px" }}>
                             {getStatusBadge(app.status)}
@@ -265,7 +325,7 @@ function NewApplicationModal({ onClose, onSave }) {
     leave_start_time: "",
     leave_end_time: "",
     overtime_type: "Regular OT",
-    status: "Pending Supervisor",
+    status: "Draft",
     overtime_date: "",
     ot_in: "",
     ot_out: "",
@@ -303,50 +363,50 @@ function NewApplicationModal({ onClose, onSave }) {
   const isLeave = formData.application_type === "Leave";
 
   const handleSubmit = (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  let payload = { ...formData };
+    let payload = { ...formData };
 
-  if (formData.application_type === "Overtime") {
-    payload.date_from = formData.overtime_date;
-    payload.date_to = formData.overtime_date;
-    payload.time_from = formData.ot_in;
-    payload.time_to = formData.ot_out;
-    payload.leave_type = null;
-    payload.leave_duration = null;
-    payload.half_day_period = null;
-  }
-
-  if (formData.application_type === "Leave") {
-    payload.overtime_type = null;
-
-    // If half-day leave, set date_to same as date_from and add time
-    if (formData.leave_duration === "Half Day") {
-      payload.date_to = formData.date_from;
-      payload.time_from = formData.leave_start_time;
-      payload.time_to = formData.leave_end_time;
-      // ✅ KEEP these fields - don't delete them!
-      // payload.leave_duration is already set
-      // payload.half_day_period is already set
-    } else {
-      // Full day leave - no time needed
-      payload.time_from = null;
-      payload.time_to = null;
-      payload.half_day_period = null; // Not needed for full day
+    if (formData.application_type === "Overtime") {
+      payload.date_from = formData.overtime_date;
+      payload.date_to = formData.overtime_date;
+      payload.time_from = formData.ot_in;
+      payload.time_to = formData.ot_out;
+      payload.leave_type = null;
+      payload.leave_duration = null;
+      payload.half_day_period = null;
     }
-  }
 
-  // Only delete the temporary UI fields
-  delete payload.overtime_date;
-  delete payload.ot_in;
-  delete payload.ot_out;
-  delete payload.leave_start_time;
-  delete payload.leave_end_time;
+    if (formData.application_type === "Leave") {
+      payload.overtime_type = null;
 
-  console.log('📤 Submitting payload:', payload); // Debug log
+      // If half-day leave, set date_to same as date_from and add time
+      if (formData.leave_duration === "Half Day") {
+        payload.date_to = formData.date_from;
+        payload.time_from = formData.leave_start_time;
+        payload.time_to = formData.leave_end_time;
+        // ✅ KEEP these fields - don't delete them!
+        // payload.leave_duration is already set
+        // payload.half_day_period is already set
+      } else {
+        // Full day leave - no time needed
+        payload.time_from = null;
+        payload.time_to = null;
+        payload.half_day_period = null; // Not needed for full day
+      }
+    }
 
-  onSave(payload);
-};
+    // Only delete the temporary UI fields
+    delete payload.overtime_date;
+    delete payload.ot_in;
+    delete payload.ot_out;
+    delete payload.leave_start_time;
+    delete payload.leave_end_time;
+
+    console.log('📤 Submitting payload:', payload); // Debug log
+
+    onSave(payload);
+  };
 
   return (
     <div
@@ -393,7 +453,7 @@ function NewApplicationModal({ onClose, onSave }) {
               {isOvertime && (
                 <>
                   <div className="row mb-3">
-                    <div className="col-6">
+                    <div className="col-12">
                       <label className="form-label fw-semibold">
                         Overtime Type:
                       </label>
@@ -410,24 +470,6 @@ function NewApplicationModal({ onClose, onSave }) {
                         <option value="Regular OT">Regular OT</option>
                         <option value="Holiday OT">Holiday OT</option>
                         <option value="Rest Day OT">Rest Day OT</option>
-                      </select>
-                    </div>
-
-                    <div className="col-6">
-                      <label className="form-label fw-semibold">Status:</label>
-                      <select
-                        className="form-select"
-                        value={formData.status}
-                        onChange={(e) =>
-                          setFormData({ ...formData, status: e.target.value })
-                        }
-                      >
-                        <option value="Pending Supervisor">
-                          Pending Supervisor
-                        </option>
-                        <option value="Pending HR">Pending HR</option>
-                        <option value="Approved">Approved</option>
-                        <option value="Rejected">Rejected</option>
                       </select>
                     </div>
                   </div>
@@ -454,7 +496,7 @@ function NewApplicationModal({ onClose, onSave }) {
 
                   <div className="row mb-3">
                     <div className="col-6">
-                      <label className="form-label fw-semibold">OT In:</label>
+                      <label className="form-label fw-semibold">OT Start Time:</label>
                       <input
                         type="time"
                         className="form-control"
@@ -467,7 +509,7 @@ function NewApplicationModal({ onClose, onSave }) {
                     </div>
 
                     <div className="col-6">
-                      <label className="form-label fw-semibold">OT Out:</label>
+                      <label className="form-label fw-semibold">OT End Time:</label>
                       <input
                         type="time"
                         className="form-control"
@@ -607,26 +649,6 @@ function NewApplicationModal({ onClose, onSave }) {
                       </div>
                     </>
                   )}
-
-                  <div className="row mb-3">
-                    <div className="col-12">
-                      <label className="form-label fw-semibold">Status:</label>
-                      <select
-                        className="form-select"
-                        value={formData.status}
-                        onChange={(e) =>
-                          setFormData({ ...formData, status: e.target.value })
-                        }
-                      >
-                        <option value="Pending Supervisor">
-                          Pending Supervisor
-                        </option>
-                        <option value="Pending HR">Pending HR</option>
-                        <option value="Approved">Approved</option>
-                        <option value="Rejected">Rejected</option>
-                      </select>
-                    </div>
-                  </div>
 
                   <div className="row mb-3">
                     <div className="col-6">

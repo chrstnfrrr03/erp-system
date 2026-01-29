@@ -17,7 +17,6 @@ export default function PayslipView() {
   const fetchPayslip = async () => {
     try {
       const res = await baseApi.get(`/api/payroll/payslip/${id}`);
-      console.log("Payslip data:", res.data);
       setPayslip(res.data);
     } catch (err) {
       console.error("Failed to fetch payslip:", err);

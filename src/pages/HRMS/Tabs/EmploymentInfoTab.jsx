@@ -18,7 +18,6 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
     baseApi
       .get("/api/hrms/shifts")
       .then((res) => {
-        console.log("Shifts Response:", res.data);
         const shiftList = Array.isArray(res.data)
           ? res.data
           : Array.isArray(res.data.data)
@@ -31,7 +30,6 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
     baseApi
       .get("/api/hrms/departments")
       .then((res) => {
-        console.log("Departments Response:", res.data);
         setDepartments(res.data.data || res.data || []);
       })
       .catch((err) => console.error("Department fetch error:", err));
