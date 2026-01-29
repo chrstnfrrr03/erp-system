@@ -26,11 +26,14 @@ class Application extends Model
         'purpose',
     ];
 
+    /**
+     * CRITICAL FIX: Cast as 'date' NOT 'date:Y-m-d'
+     * This prevents timezone conversion
+     */
     protected $casts = [
-    'date_from' => 'date:Y-m-d',
-    'date_to' => 'date:Y-m-d',
-];
-
+        'date_from' => 'date',
+        'date_to' => 'date',
+    ];
 
     // Relationship with Employee
     public function employee()

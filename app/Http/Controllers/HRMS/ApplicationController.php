@@ -55,8 +55,9 @@ class ApplicationController extends Controller
                 'leave_duration' => $app->leave_duration,
                 'half_day_period' => $app->half_day_period,
                 'overtime_type' => $app->overtime_type,
-                'date_from' => $app->date_from,
-                'date_to' => $app->date_to,
+                // CRITICAL FIX: Format dates as Y-m-d strings to prevent timezone issues
+                'date_from' => $app->date_from ? $app->date_from->format('Y-m-d') : null,
+                'date_to' => $app->date_to ? $app->date_to->format('Y-m-d') : null,
                 'time_from' => $app->time_from,
                 'time_to' => $app->time_to,
                 'purpose' => $app->purpose,
@@ -80,12 +81,32 @@ class ApplicationController extends Controller
             return response()->json(['message' => 'Employee not found'], 404);
         }
 
-        return response()->json(
-            Application::where('biometric_id', $biometric_id)
-                ->orderBy('created_at', 'desc')
-                ->get(),
-            200
-        );
+        // CRITICAL FIX: Format dates in response
+        $applications = Application::where('biometric_id', $biometric_id)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($app) {
+                return [
+                    'id' => $app->id,
+                    'biometric_id' => $app->biometric_id,
+                    'application_type' => $app->application_type,
+                    'leave_type' => $app->leave_type,
+                    'leave_duration' => $app->leave_duration,
+                    'half_day_period' => $app->half_day_period,
+                    'overtime_type' => $app->overtime_type,
+                    // Format dates as Y-m-d strings
+                    'date_from' => $app->date_from ? $app->date_from->format('Y-m-d') : null,
+                    'date_to' => $app->date_to ? $app->date_to->format('Y-m-d') : null,
+                    'time_from' => $app->time_from,
+                    'time_to' => $app->time_to,
+                    'purpose' => $app->purpose,
+                    'status' => $app->status,
+                    'created_at' => $app->created_at,
+                    'updated_at' => $app->updated_at,
+                ];
+            });
+
+        return response()->json($applications, 200);
     }
 
     /**
@@ -167,16 +188,28 @@ class ApplicationController extends Controller
                 $this->processDeduction($application, $employee);
             }
 
+            // Refresh and format dates for response
+            $application->refresh();
+            $response = $application->toArray();
+            $response['date_from'] = $application->date_from ? $application->date_from->format('Y-m-d') : null;
+            $response['date_to'] = $application->date_to ? $application->date_to->format('Y-m-d') : null;
+
             return response()->json([
                 'message' => 'Application created successfully',
-                'data'    => $application
+                'data'    => $response
             ], 201);
         });
     }
 
     public function show($id)
     {
-        return response()->json(Application::findOrFail($id), 200);
+        $app = Application::findOrFail($id);
+        
+        $response = $app->toArray();
+        $response['date_from'] = $app->date_from ? $app->date_from->format('Y-m-d') : null;
+        $response['date_to'] = $app->date_to ? $app->date_to->format('Y-m-d') : null;
+        
+        return response()->json($response, 200);
     }
 
     /**
@@ -212,9 +245,14 @@ class ApplicationController extends Controller
                 $this->processRestore($application, $employee);
             }
 
+            $application->refresh();
+            $response = $application->toArray();
+            $response['date_from'] = $application->date_from ? $application->date_from->format('Y-m-d') : null;
+            $response['date_to'] = $application->date_to ? $application->date_to->format('Y-m-d') : null;
+
             return response()->json([
                 'message' => 'Application updated successfully',
-                'data' => $application->fresh()
+                'data' => $response
             ], 200);
         });
     }
