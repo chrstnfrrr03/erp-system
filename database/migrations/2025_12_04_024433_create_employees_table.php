@@ -11,7 +11,13 @@ return new class extends Migration
         Schema::create('employees', function (Blueprint $table) {
             $table->id();
 
-            // Biometrics
+            // 🔗 Optional link to user account
+            $table->foreignId('user_id')
+                  ->nullable()
+                  ->constrained('users')
+                  ->onDelete('set null');
+
+            // 🧬 Biometrics (HR identity)
             $table->string('biometric_id')->unique();
 
             // Employee Number

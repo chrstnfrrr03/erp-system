@@ -21,21 +21,24 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 */
 Route::get('/me', function (Request $request) {
     $user = $request->user();
-    
-    // Load permissions relationship
-    $user->load('permissions');
+
+    // Load relationships
+    $user->load(['permissions', 'employee']);
 
     return response()->json([
-        'id'          => $user->id,
-        'name'        => $user->name,
-        'email'       => $user->email,
-        'role'        => $user->role,
-        'biometric_id' => $user->biometric_id ?? null, // ✅ Add biometric_id for employee profile link
-        'permissions' => $user->isSystemAdmin() 
-            ? ['*'] 
+        'id' => $user->id,
+        'name' => $user->name,
+        'email' => $user->email,
+        'role' => $user->role,
+
+        'biometric_id' => optional($user->employee)->biometric_id,
+
+        'permissions' => $user->isSystemAdmin()
+            ? ['*']
             : $user->getPermissionSlugs()->toArray(),
     ]);
 })->middleware('auth:sanctum');
+
 
 
 
@@ -92,12 +95,25 @@ Route::middleware('auth:sanctum')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
+    | PAYROLL - EMPLOYEE PAYSLIP ACCESS (UNIVERSAL)
+    | ⚠️ IMPORTANT: This MUST be defined BEFORE the HRMS routes
+    | Roles: ALL authenticated users can view their own payslips
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('payroll')->group(function () {
+        // ✅ Employees can view their own payslips (NO permission check)
+        Route::get('/payslips/{biometric_id}', [PayslipController::class, 'index']);
+        Route::get('/payslip/{id}', [PayslipController::class, 'show']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
     | HRMS
     | Roles: system_admin, hr, dept_head, employee
     |--------------------------------------------------------------------------
     */
     Route::middleware([
-        'role:system_admin,hr,dept_head,employee', // ✅ Added employee role
+        'role:system_admin,hr,dept_head,employee',
         'permission:access_hrms'
     ])
     ->prefix('hrms')
@@ -113,11 +129,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
             Route::get('/deminimis/employee/{employeeId}', [DeminimisController::class, 'getByEmployee']);
 
-            Route::get('/stats', [HRMSDashboardController::class, 'getStats']);
+            Route::get('/stats', [HRMSDashboardController::class, 'getStats'])
+                ->middleware('role:system_admin,hr,dept_head');
             Route::get('/recent-employees', [HRMSDashboardController::class, 'getRecentEmployees']);
             Route::get('/department-distribution', [HRMSDashboardController::class, 'getDepartmentDistribution']);
 
-            Route::get('/employees', [HRMSDashboardController::class, 'getEmployees']);
+            Route::get('/employees', [HRMSDashboardController::class, 'getEmployees'])
+                ->middleware('role:system_admin,hr,dept_head');
             Route::get('/employee/{biometric_id}', [EmploymentInformationController::class, 'getEmployeeDetails']);
 
             Route::get('/export/employees/csv', [EmployeeExportController::class, 'exportCSV']);
@@ -136,6 +154,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::post('{biometric_id}/absent', [AttendanceController::class, 'markAbsent']);
                 Route::put('{id}', [AttendanceController::class, 'update']);
             });
+            
 
             // ✅ APPLICATION ROUTES
             // Get all applications (for managers/HR)
@@ -159,7 +178,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | PAYROLL
+    | PAYROLL - ADMIN ACCESS
     | Roles: system_admin, hr
     |--------------------------------------------------------------------------
     */
@@ -175,8 +194,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
             Route::get('/employees', [PayrollEmployeeController::class, 'index']);
 
-            Route::get('/payslips/{biometric_id}', [PayslipController::class, 'index']);
-            Route::get('/payslip/{id}', [PayslipController::class, 'show']);
             Route::post('/{id}/generate-payslip', [PayslipController::class, 'generate']);
 
             Route::put('/{id}/status', [PayrollController::class, 'updateStatus']);

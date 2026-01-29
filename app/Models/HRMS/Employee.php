@@ -5,6 +5,7 @@ namespace App\Models\HRMS;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+use App\Models\User;
 use App\Models\HRMS\Shift;
 use App\Models\HRMS\EmploymentInformation;
 use App\Models\HRMS\PersonalInformation;
@@ -12,7 +13,7 @@ use App\Models\HRMS\AccountInformation;
 use App\Models\HRMS\LeaveCredits;
 use App\Models\HRMS\Deminimis;
 use App\Models\HRMS\Department;
-use App\Models\HRMS\Application; 
+use App\Models\HRMS\Application;
 
 class Employee extends Model
 {
@@ -21,6 +22,10 @@ class Employee extends Model
     protected $table = 'employees';
 
     protected $fillable = [
+        // 🔗 User link (optional)
+        'user_id',
+
+        // Biometrics
         'biometric_id',
         'employee_number',
 
@@ -34,6 +39,7 @@ class Employee extends Model
     ];
 
     protected $casts = [
+        'user_id' => 'integer',
         'biometric_id' => 'string',
         'employee_number' => 'string',
         'shift_id' => 'integer',
@@ -45,8 +51,16 @@ class Employee extends Model
     ];
 
     // =======================================================================
-    // Relationships
+    // Core Relationships
     // =======================================================================
+
+    /**
+     * Employee may have a system user account
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
     public function employmentInformation()
     {
@@ -79,30 +93,39 @@ class Employee extends Model
     }
 
     // =======================================================================
-    // New Relationships (For Department & Leave Approval Flow)
+    // Department & Approval Flow
     // =======================================================================
 
-    // Employee belongs to a department through EmploymentInformation
+    /**
+     * Employee belongs to a department via employment_information
+     */
     public function department()
     {
         return $this->hasOneThrough(
             Department::class,
             EmploymentInformation::class,
             'employee_id',      // FK on employment_information
-            'id',               // PK on departments table
-            'id',               // PK on employees table
-            'department_id'     // FK on employment_information table
+            'id',               // PK on departments
+            'id',               // PK on employees
+            'department_id'     // FK on employment_information
         );
     }
 
-    // If employee is a department head
+    /**
+     * If employee is a department head
+     */
     public function headedDepartment()
     {
         return $this->hasOne(Department::class, 'department_head_id', 'id');
     }
 
-    // ADD THIS NEW RELATIONSHIP
-    // Employee has many applications
+    // =======================================================================
+    // Applications (Leave, Overtime, etc.)
+    // =======================================================================
+
+    /**
+     * Employee has many applications (linked via biometric_id)
+     */
     public function applications()
     {
         return $this->hasMany(Application::class, 'biometric_id', 'biometric_id');

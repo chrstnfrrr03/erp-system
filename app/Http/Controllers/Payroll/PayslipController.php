@@ -5,18 +5,65 @@ namespace App\Http\Controllers\Payroll;
 use App\Http\Controllers\Controller;
 use App\Models\Payroll\Payslip;
 use App\Models\Payroll\Payroll;
+use App\Models\HRMS\Employee;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class PayslipController extends Controller
 {
     /**
      * HRMS – List payslips for an employee (by biometric_id)
+     * ✅ SECURITY: Employees can only see their own payslips
      */
     public function index($biometric_id)
     {
+        $user = Auth::user();
+        
+        Log::info('Payslip access attempt', [
+            'user_id' => $user->id,
+            'user_role' => $user->role,
+            'requested_biometric_id' => $biometric_id,
+        ]);
+        
+        // ✅ Allow admins/HR to view any employee's payslips
+        if (in_array($user->role, ['system_admin', 'hr'])) {
+            // Admin/HR can view any payslips
+            Log::info('Admin/HR access granted');
+        } else {
+            // ✅ Regular employees can only view their own
+            // Get the employee record linked to this user
+            $userEmployee = Employee::where('user_id', $user->id)->first();
+            
+            Log::info('Employee authorization check', [
+                'user_id' => $user->id,
+                'user_employee_found' => $userEmployee ? 'yes' : 'no',
+                'user_employee_biometric_id' => $userEmployee?->biometric_id ?? 'null',
+                'requested_biometric_id' => $biometric_id,
+            ]);
+            
+            if (!$userEmployee) {
+                Log::warning('User has no linked employee record');
+                return response()->json([
+                    'message' => 'No employee record found for your account.'
+                ], 403);
+            }
+            
+            if ($userEmployee->biometric_id !== $biometric_id) {
+                Log::warning('Unauthorized payslip access attempt', [
+                    'user_biometric_id' => $userEmployee->biometric_id,
+                    'requested_biometric_id' => $biometric_id,
+                ]);
+                return response()->json([
+                    'message' => 'Unauthorized. You can only view your own payslips.'
+                ], 403);
+            }
+            
+            Log::info('Employee authorization successful');
+        }
+
         $payslips = Payslip::with(['employee.employmentInformation', 'payroll'])
             ->whereHas('employee', function ($query) use ($biometric_id) {
                 $query->where('biometric_id', $biometric_id);
@@ -24,21 +71,42 @@ class PayslipController extends Controller
             ->latest()
             ->get();
 
+        Log::info('Payslips fetched successfully', [
+            'count' => $payslips->count(),
+        ]);
+
         return response()->json($payslips);
     }
 
     /**
      * HRMS – Show single payslip details
+     * ✅ SECURITY: Employees can only see their own payslips
      */
    public function show($id)
-{
-    $payslip = Payslip::with([
-        'employee.employmentInformation.department', 
-        'payroll'
-    ])->findOrFail($id);
+   {
+        $payslip = Payslip::with([
+            'employee.employmentInformation.department', 
+            'payroll'
+        ])->findOrFail($id);
 
-    return response()->json($payslip);
-}
+        $user = Auth::user();
+        
+        // ✅ Allow admins/HR to view any payslip
+        if (in_array($user->role, ['system_admin', 'hr'])) {
+            // Allowed
+        } else {
+            // ✅ Regular employees can only view their own
+            $userEmployee = Employee::where('user_id', $user->id)->first();
+            
+            if (!$userEmployee || $payslip->employee->biometric_id !== $userEmployee->biometric_id) {
+                return response()->json([
+                    'message' => 'Unauthorized. You can only view your own payslips.'
+                ], 403);
+            }
+        }
+
+        return response()->json($payslip);
+    }
 
     /**
      * Payroll – Generate payslip + PDF
@@ -186,10 +254,27 @@ class PayslipController extends Controller
 
     /**
      * Download payslip PDF
+     * ✅ SECURITY: Employees can only download their own payslips
      */
     public function download($id)
     {
-        $payslip = Payslip::findOrFail($id);
+        $payslip = Payslip::with('employee')->findOrFail($id);
+        
+        $user = Auth::user();
+        
+        // ✅ Allow admins/HR to download any payslip
+        if (in_array($user->role, ['system_admin', 'hr'])) {
+            // Allowed
+        } else {
+            // ✅ Regular employees can only download their own
+            $userEmployee = Employee::where('user_id', $user->id)->first();
+            
+            if (!$userEmployee || $payslip->employee->biometric_id !== $userEmployee->biometric_id) {
+                return response()->json([
+                    'message' => 'Unauthorized. You can only download your own payslips.'
+                ], 403);
+            }
+        }
         
         if (!$payslip->pdf_path) {
             return response()->json([

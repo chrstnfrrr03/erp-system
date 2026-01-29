@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
@@ -26,11 +27,16 @@ class AuthenticatedSessionController extends Controller
             ]);
         }
 
-        // Regenerate session to prevent fixation
+        // Prevent session fixation
         $request->session()->regenerate();
 
+        $user = Auth::user();
+
+        /** @var User $user */
+        $user->load('employee');
+
         return response([
-            'user' => Auth::user(),
+            'user' => $user,
         ], 200);
     }
 

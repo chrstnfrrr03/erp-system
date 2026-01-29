@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\HRMS\Employee;
 use App\Models\HRMS\EmploymentInformation;
 use App\Models\HRMS\Department;
+use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class HRMSDashboardController extends Controller
@@ -59,7 +62,7 @@ class HRMSDashboardController extends Controller
     }
 
     /**
-     * Get department distribution - FIXED
+     * Get department distribution
      */
     public function getDepartmentDistribution()
     {
@@ -75,26 +78,84 @@ class HRMSDashboardController extends Controller
     }
 
     /**
-     * Get all employees for main table - FIXED
+     * ✅ Get all employees - WITH ROLE-BASED FILTERING
      */
-    public function getEmployees()
+    public function getEmployees(Request $request)
     {
-        $employees = DB::table('employees')
+        $user = Auth::user();
+
+        if (!$user instanceof User) {
+            abort(401, 'Unauthenticated.');
+        }
+
+        // ✅ EMPLOYEES: Can only view themselves
+        if ($user->role === 'employee') {
+            $employee = Employee::with(['employmentInformation.department'])
+                ->where('user_id', $user->id)
+                ->first();
+
+            if (!$employee) {
+                // If no employee record linked, try by biometric_id
+                $employee = Employee::with(['employmentInformation.department'])
+                    ->where('biometric_id', $user->biometric_id)
+                    ->first();
+            }
+
+            if (!$employee) {
+                return response()->json([], 200);
+            }
+
+            return response()->json([
+                [
+                    'id' => $employee->id,
+                    'biometric_id' => $employee->biometric_id,
+                    'employee_number' => $employee->employee_number,
+                    'fullname' => trim($employee->first_name . ' ' . 
+                                 ($employee->middle_name ? $employee->middle_name . ' ' : '') . 
+                                 $employee->last_name),
+                    'department' => $employee->employmentInformation->department->name ?? 'N/A',
+                    'position' => $employee->employmentInformation->position ?? 'N/A',
+                    'status' => $employee->employmentInformation->employment_classification ?? 'N/A',
+                    'hireDate' => $employee->employmentInformation->date_started ?? null,
+                ]
+            ], 200);
+        }
+
+        // ✅ HR, DEPT_HEAD, SYSTEM_ADMIN: Can view all employees
+        $query = DB::table('employees')
             ->leftJoin('employment_information', 'employees.id', '=', 'employment_information.employee_id')
             ->leftJoin('departments', 'employment_information.department_id', '=', 'departments.id')
-            ->leftJoin('personal_information', 'employees.id', '=', 'personal_information.employee_id')
             ->select(
                 'employees.id',
                 'employees.biometric_id',
-                'employees.employee_number',  
+                'employees.employee_number',
                 DB::raw("CONCAT_WS(' ', employees.first_name, employees.middle_name, employees.last_name) AS fullname"),
-                'departments.name as department',  
+                'departments.name as department',
                 'employment_information.position',
                 'employment_information.employment_classification as status',
                 DB::raw('employment_information.date_started as hireDate')
-            )
-            ->orderBy('employees.id', 'DESC')
-            ->get();
+            );
+
+        // ✅ Apply filters if provided
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('employees.first_name', 'like', "%{$search}%")
+                  ->orWhere('employees.last_name', 'like', "%{$search}%")
+                  ->orWhere('employees.biometric_id', 'like', "%{$search}%")
+                  ->orWhere('employees.employee_number', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->has('department') && $request->department !== 'All') {
+            $query->where('departments.name', $request->department);
+        }
+
+        if ($request->has('status') && $request->status !== 'All') {
+            $query->where('employment_information.employment_classification', $request->status);
+        }
+
+        $employees = $query->orderBy('employees.id', 'DESC')->get();
 
         return response()->json($employees);
     }

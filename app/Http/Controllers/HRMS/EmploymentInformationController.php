@@ -215,21 +215,28 @@ class EmploymentInformationController extends Controller
             $userCreated = false;
 
             // ✅ Create user account if requested AND user has permission
-            if ($request->create_user_account) {
-                // Double-check permission on backend
-                $currentUser = Auth::user();
-                if (!$currentUser instanceof User || !$currentUser->hasPermission('user.create')) {
-                    throw new \Exception('You do not have permission to create user accounts.');
-                }
+if ($request->create_user_account) {
+    // Double-check permission on backend
+    $currentUser = Auth::user();
+    if (!$currentUser instanceof User || !$currentUser->hasPermission('user.create')) {
+        throw new \Exception('You do not have permission to create user accounts.');
+    }
 
-                // Create user
-                $user = User::create([
-                    'name' => trim($validated['first_name'] . ' ' . ($validated['middle_name'] ? $validated['middle_name'] . ' ' : '') . $validated['last_name']),
-                    'email' => $validated['user_email'],
-                    'password' => Hash::make($validated['user_password']),
-                    'role' => $validated['user_role'],
-                    'is_active' => true,
-                ]);
+    // Create user
+    $user = User::create([
+    'name' => trim($validated['first_name'] . ' ' . 
+        ($validated['middle_name'] ? $validated['middle_name'] . ' ' : '') . 
+        $validated['last_name']),
+    'email' => $validated['user_email'],
+    'password' => Hash::make($validated['user_password']),
+    'role' => $validated['user_role'],
+    'is_active' => true,
+]);
+
+// 🔗 LINK USER ↔ EMPLOYEE
+$employee->user_id = $user->id;
+$employee->save();
+
 
                 // Assign permissions based on role
                 if ($validated['user_role'] === 'system_admin') {
