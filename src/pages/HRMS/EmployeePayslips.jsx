@@ -17,21 +17,36 @@ export default function EmployeePayslips({ employee }) {
     const [filterStatus, setFilterStatus] = useState("All");
 
     useEffect(() => {
-        fetchPayslips();
-    }, [employee.biometric_id]);
+        // ✅ Only fetch if biometric_id exists
+        if (employee?.biometric_id) {
+            fetchPayslips();
+        } else {
+            console.error("Employee biometric_id is missing:", employee);
+            setLoading(false);
+        }
+    }, [employee?.biometric_id]);
 
     const fetchPayslips = async () => {
+        // ✅ Double-check before making API call
+        if (!employee?.biometric_id) {
+            console.error("Cannot fetch payslips: biometric_id is undefined");
+            setLoading(false);
+            return;
+        }
+
         try {
             setLoading(true);
+            console.log("Fetching payslips for biometric_id:", employee.biometric_id);
             const res = await baseApi.get(`/api/payroll/payslips/${employee.biometric_id}`);
             console.log("Payslips data:", res.data); 
             setPayslips(res.data || []);
         } catch (err) {
             console.error("Failed to fetch payslips:", err);
+            console.error("Error details:", err.response?.data);
             Swal.fire({
                 icon: "error",
                 title: "Error",
-                text: "Failed to load payslips",
+                text: err.response?.data?.message || "Failed to load payslips",
                 confirmButtonColor: "#d33",
             });
         } finally {
@@ -75,6 +90,15 @@ export default function EmployeePayslips({ employee }) {
             </span>
         );
     };
+
+    // ✅ Show error if biometric_id is missing
+    if (!employee?.biometric_id) {
+        return (
+            <div className="alert alert-warning">
+                <strong>Unable to load payslips:</strong> Employee ID is missing. Please refresh the page.
+            </div>
+        );
+    }
 
     const filteredPayslips = payslips.filter((payslip) => {
         // Access payroll data through relationship

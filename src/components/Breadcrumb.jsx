@@ -1,8 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
 import { MdHome, MdChevronRight } from "react-icons/md";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function Breadcrumb({ customPath }) {
   const location = useLocation();
+  const { user } = useAuth();
 
   // Route name mapping
   const routeNames = {
@@ -16,6 +18,7 @@ export default function Breadcrumb({ customPath }) {
     "/hrms/employee": "Employee Details",
     "/hrms/employee-status": "Employee Status",
     "/hrms/attendance": "Attendance",
+    "/hrms/applications": "Leave & OT Requests",
     
     // Payroll
     "/payroll": "Payroll Dashboard",
@@ -49,56 +52,59 @@ export default function Breadcrumb({ customPath }) {
   });
 
   // Build path progressively
- let accumulatedPath = "";
+  let accumulatedPath = "";
+  const isEmployee = user?.role === "employee";
 
-pathSegments.forEach((segment, index) => {
-  accumulatedPath += `/${segment}`;
+  pathSegments.forEach((segment, index) => {
+    accumulatedPath += `/${segment}`;
 
-  const isEmployeeId = segment.match(/^[A-Z]+-\d+$/);
+    const isEmployeeId = segment.match(/^[A-Z]+-\d+$/);
 
-  // ✅ HANDLE EMPLOYEE DETAILS ROUTE
-  if (isEmployeeId) {
+    // ✅ HANDLE EMPLOYEE DETAILS ROUTE
+    if (isEmployeeId) {
+      // ✅ Only show "HRMS Dashboard" and "Employee Overview" for non-employees
+      if (!isEmployee) {
+        breadcrumbs.push({
+          label: "HRMS Dashboard",
+          path: "/hrms",
+        });
+
+        breadcrumbs.push({
+          label: "Employee Overview",
+          path: "/hrms/employee-overview",
+        });
+      }
+
+      breadcrumbs.push({
+        label: isEmployee ? "My Profile" : "Employee Details",
+        path: null,
+      });
+
+      return; // ⛔ stop building more crumbs
+    }
+
+    // Skip numeric IDs
+    if (!isNaN(segment)) return;
+
+    // Skip raw "employee" segment (we handle it above)
+    if (segment === "employee") return;
+
+    let displayName =
+      routeNames[accumulatedPath] ||
+      segment
+        .split("-")
+        .map(
+          (word) => word.charAt(0).toUpperCase() + word.slice(1)
+        )
+        .join(" ");
+
+    const isLast = index === pathSegments.length - 1;
+
     breadcrumbs.push({
-      label: "HRMS Dashboard",
-      path: "/hrms",
+      label: displayName,
+      path: isLast ? null : accumulatedPath,
     });
-
-    breadcrumbs.push({
-      label: "Employee Overview",
-      path: "/hrms/employee-overview",
-    });
-
-    breadcrumbs.push({
-      label: "Employee Details",
-      path: null,
-    });
-
-    return; // ⛔ stop building more crumbs
-  }
-
-  // Skip numeric IDs
-  if (!isNaN(segment)) return;
-
-  // Skip raw "employee" segment (we handle it above)
-  if (segment === "employee") return;
-
-  let displayName =
-    routeNames[accumulatedPath] ||
-    segment
-      .split("-")
-      .map(
-        (word) => word.charAt(0).toUpperCase() + word.slice(1)
-      )
-      .join(" ");
-
-  const isLast = index === pathSegments.length - 1;
-
-  breadcrumbs.push({
-    label: displayName,
-    path: isLast ? null : accumulatedPath,
   });
-});
-
 
   return (
     <nav aria-label="breadcrumb" style={{ marginBottom: "24px" }}>

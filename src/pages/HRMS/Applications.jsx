@@ -7,7 +7,7 @@ import Swal from "sweetalert2";
 
 export default function Applications() {
   const { user, permissions } = useAuth();
-  const biometricId = user?.employee?.biometric_id;
+  const biometricId = user?.biometric_id;
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNewApplicationModal, setShowNewApplicationModal] = useState(false);
@@ -188,27 +188,43 @@ export default function Applications() {
 
   
   const formatDate = (date) => {
-    if (!date) return "N/A";
-    return date.split("T")[0];
-  };
+  if (!date) return "N/A";
+
+  // Treat backend date as DATE, not datetime
+  const [year, month, day] = date.split("T")[0].split("-");
+  return `${year}-${month}-${day}`;
+};
+
 
   const getStatusBadge = (status) => {
-    const statusMap = {
-      "pending supervisor": { bg: "warning", text: "Pending Supervisor" },
-      "pending hr": { bg: "warning", text: "Pending HR" },
-      "approved": { bg: "success", text: "Approved" },
-      "rejected": { bg: "danger", text: "Rejected" },
-      "cancelled": { bg: "secondary", text: "Cancelled" },
-    };
-
-    const statusInfo = statusMap[status?.toLowerCase()] || { bg: "warning", text: "Pending" };
-
-    return (
-      <span className={`badge bg-${statusInfo.bg}`}>
-        {statusInfo.text}
-      </span>
-    );
+  const statusMap = {
+    "pending supervisor": { bg: "#f59e0b", text: "Pending Supervisor" },
+    "pending hr": { bg: "#f59e0b", text: "Pending HR" },
+    approved: { bg: "#16a34a", text: "Approved" },
+    rejected: { bg: "#dc2626", text: "Rejected" },
+    cancelled: { bg: "#6b7280", text: "Cancelled" },
   };
+
+  const s = statusMap[status?.toLowerCase()] || statusMap["pending supervisor"];
+
+  return (
+    <span
+      style={{
+        backgroundColor: s.bg,
+        color: "#fff",
+        padding: "3px 8px",
+        borderRadius: "999px",
+        fontSize: "11px",
+        fontWeight: "600",
+        lineHeight: "1.2",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {s.text}
+    </span>
+  );
+};
+
 
   // Filter applications
   const filteredApplications = applications.filter((app) => {
@@ -229,7 +245,8 @@ export default function Applications() {
     <Layout>
       <div className="container-fluid px-3 px-md-4 py-4">
         {/* Header */}
-        <div className="d-flex justify-content-between align-items-center mb-4">
+        <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+
           <h2 className="fw-bold">
             {isEmployee ? "My Applications" : "Applications Management"}
           </h2>
@@ -261,7 +278,7 @@ export default function Applications() {
                   <label className="form-label fw-semibold">Search Employee:</label>
                   <input
                     type="text"
-                    className="form-control"
+                    className="form-control w-100"
                     placeholder="Search by name or ID..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -273,7 +290,7 @@ export default function Applications() {
               <div className={isEmployee ? "col-md-6" : "col-md-4"}>
                 <label className="form-label fw-semibold">Status:</label>
                 <select
-                  className="form-select"
+                  className="form-select w-100"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                 >
@@ -304,140 +321,203 @@ export default function Applications() {
         </div>
 
         {/* Applications Table */}
-        <div className="card shadow-sm" style={{ borderRadius: "12px" }}>
-          <div className="card-body">
-            {loading ? (
-              <div className="text-center py-5">
-                <div className="spinner-border text-primary" role="status">
-                  <span className="visually-hidden">Loading...</span>
-                </div>
-                <p className="mt-3 text-muted">Loading applications...</p>
-              </div>
-            ) : (
-              <div className="table-responsive">
-                <table className="table table-hover align-middle">
-                  <thead style={{ backgroundColor: "#f8f9fa" }}>
-                    <tr>
-                      {!isEmployee && <th style={{ fontSize: "14px", padding: "12px" }}>Employee</th>}
-                      <th style={{ fontSize: "14px", padding: "12px" }}>Type</th>
-                      <th style={{ fontSize: "14px", padding: "12px" }}>Leave/OT Type</th>
-                      <th style={{ fontSize: "14px", padding: "12px" }}>Date From</th>
-                      <th style={{ fontSize: "14px", padding: "12px" }}>Date To</th>
-                      <th style={{ fontSize: "14px", padding: "12px" }}>Duration</th>
-                      <th style={{ fontSize: "14px", padding: "12px" }}>Purpose</th>
-                      <th style={{ fontSize: "14px", padding: "12px" }}>Status</th>
-                      {canApprove && <th style={{ fontSize: "14px", padding: "12px", textAlign: "center" }}>Action</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredApplications.length > 0 ? (
-                      filteredApplications.map((app) => (
-                        <tr key={app.id}>
-                          {!isEmployee && (
-                            <td style={{ fontSize: "13px", padding: "12px" }}>
-                              <div>
-                                <strong>{app.employee_name || "N/A"}</strong>
-                                <br />
-                                <small className="text-muted">{app.employee_biometric_id || app.biometric_id}</small>
-                              </div>
-                            </td>
-                          )}
-                          <td style={{ fontSize: "13px", padding: "12px" }}>
-                            <span className={`badge ${app.application_type === "Leave" ? "bg-info" : "bg-primary"}`}>
-                              {app.application_type}
-                            </span>
-                          </td>
-                          <td style={{ fontSize: "13px", padding: "12px" }}>
-                            {app.application_type === "Leave" ? (
-                              <div>
-                                {app.leave_type || "N/A"}
-                                {app.leave_duration === "Half Day" && (
-                                  <div>
-                                    <small className="text-muted">
-                                      ({app.half_day_period} - Half Day)
-                                    </small>
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              app.overtime_type || "N/A"
-                            )}
-                          </td>
-                          <td style={{ fontSize: "13px", padding: "12px" }}>{formatDate(app.date_from)}</td>
-                          <td style={{ fontSize: "13px", padding: "12px" }}>{formatDate(app.date_to)}</td>
-                          <td style={{ fontSize: "13px", padding: "12px" }}>
-                            {app.application_type === "Leave" && app.leave_duration === "Half Day" ? (
-                              <div>
-                                <small>{app.time_from} - {app.time_to}</small>
-                              </div>
-                            ) : app.application_type === "Overtime" ? (
-                              <div>
-                                <small>{app.time_from} - {app.time_to}</small>
-                              </div>
-                            ) : (
-                              "—"
-                            )}
-                          </td>
-                          <td style={{ fontSize: "13px", padding: "12px" }}>
-                            <span 
-                              className="text-truncate d-inline-block" 
-                              style={{ maxWidth: "200px" }} 
-                              title={app.purpose}
-                            >
-                              {app.purpose || "N/A"}
-                            </span>
-                          </td>
-                          <td style={{ fontSize: "13px", padding: "12px" }}>{getStatusBadge(app.status)}</td>
-                          {canApprove && (
-                            <td style={{ fontSize: "13px", padding: "12px" }}>
-                              {(app.status === "Pending Supervisor" || app.status === "Pending HR") ? (
-                                <div className="d-flex gap-2 justify-content-center">
-                                  <button
-                                    className="btn btn-sm btn-success"
-                                    onClick={() => handleApprove(app)}
-                                    title="Approve"
-                                  >
-                                    Approve
-                                  </button>
-                                  <button
-                                    className="btn btn-sm btn-danger"
-                                    onClick={() => handleReject(app)}
-                                    title="Reject"
-                                  >
-                                    Reject
-                                  </button>
-                                </div>
-                              ) : (
-                                <span className="text-muted text-center d-block">—</span>
-                              )}
-                            </td>
-                          )}
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td
-                          colSpan={canApprove ? (isEmployee ? 8 : 9) : (isEmployee ? 7 : 8)}
-                          className="text-center py-5"
-                        >
-                          <div className="text-muted">
-                            <p className="mb-2">📋 No applications found</p>
-                            {isEmployee && (
-                              <button
-                                className="btn btn-sm btn-primary"
-                                onClick={() => setShowNewApplicationModal(true)}
-                              >
-                                Create New Application
-                              </button>
-                            )}
+<div className="card shadow-sm" style={{ borderRadius: "12px" }}>
+  <div className="card-body">
+    {loading ? (
+      <div className="text-center py-5">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <p className="mt-3 text-muted">Loading applications...</p>
+      </div>
+    ) : (
+      <div className="table-responsive">
+        <table className="table table-hover align-middle">
+          <thead style={{ backgroundColor: "#f8f9fa" }}>
+            <tr>
+              {!isEmployee && (
+                <th style={{ fontSize: "14px", padding: "12px" }}>Employee</th>
+              )}
+              <th className="text-nowrap" style={{ fontSize: "14px", padding: "12px" }}>
+                Type
+              </th>
+              <th style={{ fontSize: "14px", padding: "12px" }}>
+                Leave/OT Type
+              </th>
+              <th className="text-nowrap" style={{ fontSize: "14px", padding: "12px" }}>
+                Date From
+              </th>
+              <th className="text-nowrap" style={{ fontSize: "14px", padding: "12px" }}>
+                Date To
+              </th>
+              <th className="text-nowrap" style={{ fontSize: "14px", padding: "12px" }}>
+                Duration
+              </th>
+              <th
+                className="d-none d-md-table-cell"
+                style={{ fontSize: "14px", padding: "12px" }}
+              >
+                Purpose
+              </th>
+              <th className="text-nowrap" style={{ fontSize: "14px", padding: "12px" }}>
+                Status
+              </th>
+              {canApprove && (
+                <th
+                  className="text-nowrap text-center"
+                  style={{ fontSize: "14px", padding: "12px" }}
+                >
+                  Action
+                </th>
+              )}
+            </tr>
+          </thead>
+
+          <tbody>
+            {filteredApplications.length > 0 ? (
+              filteredApplications.map((app) => (
+                <tr key={app.id}>
+                  {!isEmployee && (
+                    <td style={{ fontSize: "13px", padding: "12px" }}>
+                      <strong>{app.employee_name || "N/A"}</strong>
+                      <br />
+                      <small className="text-muted">
+                        {app.employee_biometric_id || app.biometric_id}
+                      </small>
+                    </td>
+                  )}
+
+                  <td className="text-nowrap" style={{ fontSize: "13px", padding: "12px" }}>
+                    <span
+                      style={{
+                        backgroundColor:
+                          app.application_type === "Leave" ? "#2563eb" : "#7c3aed",
+                        color: "#ffffff",
+                        fontSize: "11px",
+                        fontWeight: "600",
+                        padding: "3px 8px",
+                        borderRadius: "999px",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {app.application_type}
+                    </span>
+                  </td>
+
+                  <td style={{ fontSize: "13px", padding: "12px" }}>
+                    {app.application_type === "Leave" ? (
+                      <>
+                        {app.leave_type || "N/A"}
+                        {app.leave_duration === "Half Day" && (
+                          <div>
+                            <small className="text-muted">
+                              ({app.half_day_period} - Half Day)
+                            </small>
                           </div>
-                        </td>
-                      </tr>
+                        )}
+                      </>
+                    ) : (
+                      app.overtime_type || "N/A"
                     )}
-                  </tbody>
-                </table>
-              </div>
+                  </td>
+
+                  <td className="text-nowrap" style={{ fontSize: "13px", padding: "12px" }}>
+                    {formatDate(app.date_from)}
+                  </td>
+
+                  <td className="text-nowrap" style={{ fontSize: "13px", padding: "12px" }}>
+                    {formatDate(app.date_to)}
+                  </td>
+
+                  <td className="text-nowrap" style={{ fontSize: "13px", padding: "12px" }}>
+                    {app.time_from && app.time_to
+                      ? `${app.time_from} - ${app.time_to}`
+                      : "—"}
+                  </td>
+
+                  <td
+                    className="d-none d-md-table-cell"
+                    style={{ fontSize: "13px", padding: "12px" }}
+                  >
+                    <span
+                      className="text-truncate d-inline-block"
+                      style={{ maxWidth: "200px" }}
+                      title={app.purpose}
+                    >
+                      {app.purpose || "N/A"}
+                    </span>
+                  </td>
+
+                  <td className="text-nowrap" style={{ fontSize: "13px", padding: "12px" }}>
+                    {getStatusBadge(app.status)}
+                  </td>
+
+                  {canApprove && (
+                    <td style={{ fontSize: "13px", padding: "12px" }}>
+                      {(app.status === "Pending Supervisor" ||
+                        app.status === "Pending HR") ? (
+                        <div className="d-flex flex-column flex-sm-row gap-2 justify-content-center">
+                          <button
+                            className="btn btn-sm w-100 w-sm-auto"
+                            onClick={() => handleApprove(app)}
+                            style={{
+                              backgroundColor: "#16a34a",
+                              color: "#ffffff",
+                              fontSize: "12px",
+                              padding: "4px 10px",
+                              borderRadius: "6px",
+                              border: "none",
+                            }}
+                          >
+                            Approve
+                          </button>
+
+                          <button
+                            className="btn btn-sm w-100 w-sm-auto"
+                            onClick={() => handleReject(app)}
+                            style={{
+                              backgroundColor: "#dc2626",
+                              color: "#ffffff",
+                              fontSize: "12px",
+                              padding: "4px 10px",
+                              borderRadius: "6px",
+                              border: "none",
+                            }}
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-muted text-center d-block">—</span>
+                      )}
+                    </td>
+                  )}
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td
+                  colSpan={canApprove ? (isEmployee ? 8 : 9) : (isEmployee ? 7 : 8)}
+                  className="text-center py-5"
+                >
+                  <div className="text-muted">
+                    <p className="mb-2">📋 No applications found</p>
+                    {isEmployee && (
+                      <button
+                        className="btn btn-sm btn-primary"
+                        onClick={() => setShowNewApplicationModal(true)}
+                      >
+                        Create New Application
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
             )}
+          </tbody>
+        </table>
+      </div>
+    )}
 
             {/* Results Count */}
             {!loading && filteredApplications.length > 0 && (
@@ -587,7 +667,8 @@ function NewApplicationModal({ onClose, onSave }) {
               {isOvertime && (
                 <>
                   <div className="row mb-3">
-                    <div className="col-6">
+                    <div className="col-12 col-md-6">
+
                       <label className="form-label fw-semibold">Overtime Type:</label>
                       <select
                         className="form-select"
@@ -602,7 +683,8 @@ function NewApplicationModal({ onClose, onSave }) {
                       </select>
                     </div>
 
-                    <div className="col-6">
+                    <div className="col-12 col-md-6">
+
                       <label className="form-label fw-semibold">Overtime Date:</label>
                       <input
                         type="date"
@@ -617,7 +699,8 @@ function NewApplicationModal({ onClose, onSave }) {
                   </div>
 
                   <div className="row mb-3">
-                    <div className="col-6">
+                    <div className="col-12 col-md-6">
+
                       <label className="form-label fw-semibold">OT Start Time:</label>
                       <input
                         type="time"
@@ -630,7 +713,8 @@ function NewApplicationModal({ onClose, onSave }) {
                       />
                     </div>
 
-                    <div className="col-6">
+                    <div className="col-12 col-md-6">
+
                       <label className="form-label fw-semibold">OT End Time:</label>
                       <input
                         type="time"
@@ -650,7 +734,8 @@ function NewApplicationModal({ onClose, onSave }) {
               {isLeave && (
                 <>
                   <div className="row mb-3">
-                    <div className="col-6">
+                    <div className="col-12 col-md-6">
+
                       <label className="form-label fw-semibold">Leave Type:</label>
                       <select
                         className="form-select"
@@ -668,7 +753,8 @@ function NewApplicationModal({ onClose, onSave }) {
                       </select>
                     </div>
 
-                    <div className="col-6">
+                    <div className="col-12 col-md-6">
+
                       <label className="form-label fw-semibold">Leave Duration:</label>
                       <select
                         className="form-select"
@@ -704,7 +790,8 @@ function NewApplicationModal({ onClose, onSave }) {
                       </div>
 
                       <div className="row mb-3">
-                        <div className="col-6">
+                        <div className="col-12 col-md-6">
+
                           <label className="form-label fw-semibold">Start Time:</label>
                           <input
                             type="time"
@@ -720,7 +807,8 @@ function NewApplicationModal({ onClose, onSave }) {
                           </small>
                         </div>
 
-                        <div className="col-6">
+                        <div className="col-12 col-md-6">
+
                           <label className="form-label fw-semibold">End Time:</label>
                           <input
                             type="time"
@@ -740,7 +828,8 @@ function NewApplicationModal({ onClose, onSave }) {
                   )}
 
                   <div className="row mb-3">
-                    <div className="col-6">
+                    <div className="col-12 col-md-6">
+
                       <label className="form-label fw-semibold">
                         {formData.leave_duration === "Half Day" ? "Leave Date:" : "Date From:"}
                       </label>
@@ -756,7 +845,8 @@ function NewApplicationModal({ onClose, onSave }) {
                     </div>
 
                     {formData.leave_duration === "Full Day" && (
-                      <div className="col-6">
+                      <div className="col-12 col-md-6">
+
                         <label className="form-label fw-semibold">Date To:</label>
                         <input
                           type="date"
@@ -789,14 +879,39 @@ function NewApplicationModal({ onClose, onSave }) {
               </div>
             </div>
 
-            <div className="modal-footer border-0 pt-0">
-              <button type="button" className="btn btn-secondary" onClick={onClose}>
-                Cancel
-              </button>
-              <button type="submit" className="btn btn-primary">
-                Submit Application
-              </button>
-            </div>
+           <div className="modal-footer border-0 pt-0">
+  {/* Cancel - RED */}
+  <button
+    type="button"
+    className="btn"
+    onClick={onClose}
+    style={{
+      backgroundColor: "#dc2626", 
+      color: "#ffffff",
+      fontWeight: "600",
+      padding: "8px 20px",
+      borderRadius: "6px",
+    }}
+  >
+    Cancel
+  </button>
+
+  {/* Submit - BLUE */}
+  <button
+    type="submit"
+    className="btn"
+    style={{
+      backgroundColor: "#2563eb", 
+      color: "#ffffff",
+      fontWeight: "600",
+      padding: "8px 20px",
+      borderRadius: "6px",
+    }}
+  >
+    Submit Application
+  </button>
+</div>
+
           </form>
         </div>
       </div>

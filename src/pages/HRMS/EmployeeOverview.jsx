@@ -8,22 +8,39 @@ import { can } from "../../utils/permissions";
 
 export default function EmployeeOverview() {
   const navigate = useNavigate();
-  const { permissions } = useAuth();
+  const { user, permissions } = useAuth();
 
   const [employees, setEmployees] = useState([]);
   const [search, setSearch] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
 
+  const canCreate = can(permissions, "employee.create");
+  const canDelete = can(permissions, "employee.delete");
+
+  // Redirect employee users
   useEffect(() => {
+    if (user?.role === "employee" && user?.biometric_id) {
+      navigate(`/hrms/employee/${user.biometric_id}`, { replace: true });
+    }
+  }, [user, navigate]);
+
+  useEffect(() => {
+    if (user?.role !== "employee") {
+      fetchEmployees();
+    }
+  }, [user, search, departmentFilter, statusFilter]);
+
+  const fetchEmployees = () => {
     baseApi
-      .get("/api/hrms/employees")
-      .then((res) => {
-        console.log("EMPLOYEES:", res.data);
-        setEmployees(res.data);
+      .get("/api/hrms/employees", {
+        params: { search, department: departmentFilter, status: statusFilter },
       })
+      .then((res) => setEmployees(res.data))
       .catch((err) => console.error("Error loading employees:", err));
-  }, []);
+  };
+
+  if (user?.role === "employee") return null;
 
   const filteredEmployees = employees.filter((emp) => {
     const matchSearch =
@@ -31,8 +48,7 @@ export default function EmployeeOverview() {
       emp.biometric_id?.toString().includes(search);
 
     const matchDept =
-      departmentFilter === "All" ||
-      emp.department === departmentFilter;
+      departmentFilter === "All" || emp.department === departmentFilter;
 
     const matchStatus =
       statusFilter === "All" || emp.status === statusFilter;
@@ -40,7 +56,6 @@ export default function EmployeeOverview() {
     return matchSearch && matchDept && matchStatus;
   });
 
-  // ✅ Updated export URLs
   const handleExportCSV = () => {
     window.open(
       `http://localhost:8000/api/hrms/export/employees/csv?search=${search}&department=${departmentFilter}&status=${statusFilter}`,
@@ -55,18 +70,33 @@ export default function EmployeeOverview() {
     );
   };
 
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case "Regular":
+        return "bg-success";
+      case "Probationary":
+        return "bg-warning";
+      case "Resigned":
+        return "bg-secondary";
+      case "Terminated":
+        return "bg-danger";
+      case "Retired":
+        return "bg-info";
+      default:
+        return "bg-dark";
+    }
+  };
+
   return (
     <Layout>
       <div className="container-fluid px-3 px-md-4 py-4">
         <h2 className="fw-bold mb-4">Employee Overview</h2>
 
         <div className="card shadow-sm p-4" style={{ borderRadius: "12px" }}>
-
-          <div className="row g-4 align-items-center mb-4">
-
-            {/* SEARCH */}
+          {/* FILTERS */}
+          <div className="row g-4 align-items-end mb-4">
             <div className="col-12 col-md-3">
-              <label className="form-label fw-semibold">Search:</label>
+              <label className="form-label fw-semibold">Search</label>
               <input
                 type="text"
                 className="form-control"
@@ -76,9 +106,8 @@ export default function EmployeeOverview() {
               />
             </div>
 
-            {/* DEPARTMENT FILTER */}
             <div className="col-12 col-md-3">
-              <label className="form-label fw-semibold">Department:</label>
+              <label className="form-label fw-semibold">Department</label>
               <select
                 className="form-select"
                 value={departmentFilter}
@@ -93,9 +122,8 @@ export default function EmployeeOverview() {
               </select>
             </div>
 
-            {/* STATUS FILTER */}
             <div className="col-12 col-md-3">
-              <label className="form-label fw-semibold">Status:</label>
+              <label className="form-label fw-semibold">Status</label>
               <select
                 className="form-select"
                 value={statusFilter}
@@ -111,23 +139,16 @@ export default function EmployeeOverview() {
               </select>
             </div>
 
-            {/* EXPORTS + ADD BUTTON */}
-            <div
-              className="col-12 col-md-3 d-flex flex-wrap justify-content-md-end gap-2"
-              style={{ rowGap: "10px" }}
-            >
-              <button className="btn btn-success" onClick={handleExportCSV}>
+            <div className="col-12 col-md-3 d-flex gap-2 flex-wrap">
+              <button className="btn btn-success w-100 w-md-auto" onClick={handleExportCSV}>
                 Export CSV
               </button>
-
-              <button className="btn btn-danger" onClick={handleExportPDF}>
+              <button className="btn btn-danger w-100 w-md-auto" onClick={handleExportPDF}>
                 Export PDF
               </button>
-
-              {/* ✅ Only show Add Employee for system_admin and hr */}
-              {can(permissions, 'employee.create') && (
+              {canCreate && (
                 <button
-                  className="btn btn-primary"
+                  className="btn btn-primary w-100 w-md-auto"
                   onClick={() => navigate("/hrms/add-employee")}
                 >
                   Add Employee
@@ -136,10 +157,10 @@ export default function EmployeeOverview() {
             </div>
           </div>
 
-          {/* TABLE */}
-          <div className="table-responsive">
+          {/* DESKTOP TABLE */}
+          <div className="d-none d-md-block table-responsive">
             <table className="table table-bordered align-middle text-center">
-              <thead style={{ background: "#f8f9fa" }}>
+              <thead className="table-light">
                 <tr>
                   <th>Employee ID</th>
                   <th>Full Name</th>
@@ -150,7 +171,6 @@ export default function EmployeeOverview() {
                   <th>Action</th>
                 </tr>
               </thead>
-
               <tbody>
                 {filteredEmployees.length === 0 ? (
                   <tr>
@@ -166,51 +186,31 @@ export default function EmployeeOverview() {
                       <td>{emp.department}</td>
                       <td>{emp.position}</td>
                       <td>{emp.hireDate}</td>
-
-                      {/* STATUS BADGE */}
                       <td>
-                        <span
-                          className={`badge ${
-                            emp.status === "Regular"
-                              ? "bg-success"
-                              : emp.status === "Probationary"
-                              ? "bg-warning"
-                              : emp.status === "Resigned"
-                              ? "bg-secondary"
-                              : emp.status === "Terminated"
-                              ? "bg-danger"
-                              : emp.status === "Retired"
-                              ? "bg-info"
-                              : "bg-dark"
-                          }`}
-                        >
+                        <span className={`badge ${getStatusBadge(emp.status)}`}>
                           {emp.status}
                         </span>
                       </td>
-
                       <td>
-  <div className="d-flex justify-content-center gap-3">
-    {/* ✅ Always show View icon for users with employee.view permission */}
-    {can(permissions, 'employee.view') && (
-      <FaEye
-        className="text-primary"
-        style={{ cursor: "pointer" }}
-        onClick={() =>
-          navigate(`/hrms/employee/${emp.biometric_id}`)
-        }
-      />
-    )}
-
-    {/* ✅ Only show Delete for system_admin and hr */}
-    {can(permissions, 'employee.delete') && (
-      <FaTrash
-        className="text-danger"
-        style={{ cursor: "pointer" }}
-        onClick={() => alert("Delete employee")}
-      />
-    )}
-  </div>
-</td>
+                        <div className="d-flex justify-content-center gap-3">
+                          {can(permissions, "employee.view") && (
+                            <FaEye
+                              className="text-primary"
+                              style={{ cursor: "pointer" }}
+                              onClick={() =>
+                                navigate(`/hrms/employee/${emp.biometric_id}`)
+                              }
+                            />
+                          )}
+                          {canDelete && (
+                            <FaTrash
+                              className="text-danger"
+                              style={{ cursor: "pointer" }}
+                              onClick={() => alert("Delete employee")}
+                            />
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -218,6 +218,52 @@ export default function EmployeeOverview() {
             </table>
           </div>
 
+          {/* MOBILE CARDS (OLD COLORS) */}
+          <div className="d-md-none">
+            {filteredEmployees.length === 0 ? (
+              <p className="text-center text-muted">No employees found.</p>
+            ) : (
+              filteredEmployees.map((emp) => (
+                <div key={emp.id} className="card mb-3 shadow-sm">
+                  <div className="card-body">
+                    <h6 className="fw-bold mb-1">{emp.fullname}</h6>
+                    <small className="text-muted">ID: {emp.biometric_id}</small>
+
+                    <div className="mt-2">
+                      <div><strong>Department:</strong> {emp.department}</div>
+                      <div><strong>Position:</strong> {emp.position}</div>
+                      <div><strong>Hire Date:</strong> {emp.hireDate}</div>
+                    </div>
+
+                    <span className={`badge ${getStatusBadge(emp.status)} mt-2`}>
+                      {emp.status}
+                    </span>
+
+                    <div className="d-flex gap-2 mt-3">
+                      {can(permissions, "employee.view") && (
+                        <button
+                          className="btn btn-primary w-100"
+                          onClick={() =>
+                            navigate(`/hrms/employee/${emp.biometric_id}`)
+                          }
+                        >
+                          View
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          className="btn btn-danger w-100"
+                          onClick={() => alert("Delete employee")}
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </Layout>

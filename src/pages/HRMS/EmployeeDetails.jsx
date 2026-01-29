@@ -45,15 +45,19 @@ export default function EmployeeDetails() {
   }, [biometric_id]);
 
   const fetchEmployeeDetails = async () => {
-  try {
-    const res = await baseApi.get(`/api/hrms/employee/${biometric_id}`);  
-    console.log('Employee ID:', res.data.id);
-    setEmployee(res.data);
-  } catch (err) {
-    console.error(err);
-  }
-};
-
+    try {
+      const res = await baseApi.get(`/api/hrms/employee/${biometric_id}`);  
+      setEmployee(res.data);
+    } catch (err) {
+      console.error("Failed to fetch employee details:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to load employee details",
+        confirmButtonColor: "#d33",
+      });
+    }
+  };
 
   const formatDate = (date) => {
     if (!date) return "N/A";
@@ -61,14 +65,14 @@ export default function EmployeeDetails() {
   };
 
   const handleSaveEmployee = async (formData) => {
-  try {
-    await baseApi.post(
-      `/api/hrms/employee/${biometric_id}/update-profile`,  
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      }
-    );
+    try {
+      await baseApi.post(
+        `/api/hrms/employee/${biometric_id}/update-profile`,  
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
 
       await fetchEmployeeDetails();
       setShowEditModal(false);
@@ -91,20 +95,20 @@ export default function EmployeeDetails() {
   };
 
   const handleSavePersonalInfo = async (formData) => {
-  try {
-    const personalInfoId = employee?.personal_info?.id;
+    try {
+      const personalInfoId = employee?.personal_info?.id;
 
-    if (!personalInfoId) {
-      Swal.fire({
-        icon: "error",
-        title: "Missing Information",
-        text: "Cannot update personal info — ID is missing.",
-        confirmButtonColor: "#d33",
-      });
-      return;
-    }
+      if (!personalInfoId) {
+        Swal.fire({
+          icon: "error",
+          title: "Missing Information",
+          text: "Cannot update personal info — ID is missing.",
+          confirmButtonColor: "#d33",
+        });
+        return;
+      }
 
-    await baseApi.put(`/api/hrms/personal/${personalInfoId}`, formData);
+      await baseApi.put(`/api/hrms/personal/${personalInfoId}`, formData);
 
       await fetchEmployeeDetails();
       setShowPersonalModal(false);
@@ -128,33 +132,26 @@ export default function EmployeeDetails() {
   };
 
   const fetchLeaveCredits = async () => {
-  try {
-    const res = await baseApi.get(`/api/hrms/employee/${biometric_id}/leave-credits`);  
-    setLeaveCredits(res.data || null);
-  } catch (err) {
-    console.error("Failed to fetch leave credits", err);
-  }
-};
+    try {
+      const res = await baseApi.get(`/api/hrms/employee/${biometric_id}/leave-credits`);  
+      setLeaveCredits(res.data || null);
+    } catch (err) {
+      console.error("Failed to fetch leave credits", err);
+    }
+  };
 
   const fetchDeminimis = async () => {
-  if (!employee?.id) {
-    console.log('⚠️ Employee ID not available yet');
-    return;
-  }
-  
-  console.log('🔍 Fetching deminimis for employee ID:', employee.id); 
-  
+  if (!employee?.id) return;
+
   try {
     const res = await baseApi.get(`/api/hrms/deminimis/employee/${employee.id}`);
-    console.log('Deminimis Response:', res.data); 
-    console.log('Number of allowances:', res.data?.length); 
     setDeminimisAllowances(res.data || []);
   } catch (err) {
     console.error('Failed to fetch deminimis:', err);
-    console.error('Error details:', err.response?.data); 
     setDeminimisAllowances([]);
   }
 };
+
 
   useEffect(() => {
     if (biometric_id) {
@@ -186,19 +183,19 @@ export default function EmployeeDetails() {
 
     if (!confirm.isConfirmed) return;
 
-   try {
-    await baseApi.put(`/api/hrms/employee/${biometric_id}/leave-credits`, {  
-      [`${type}_total`]: null,
-      [`${type}_credits`]: null,
-    });
+    try {
+      await baseApi.put(`/api/hrms/employee/${biometric_id}/leave-credits`, {  
+        [`${type}_total`]: null,
+        [`${type}_credits`]: null,
+      });
 
-    Swal.fire("Deleted!", "Leave credit removed successfully.", "success");
-    fetchLeaveCredits();
-  } catch (err) {
-    console.error(err);
-    Swal.fire("Error", "Failed to delete leave credit.", "error");
-  }
-};
+      Swal.fire("Deleted!", "Leave credit removed successfully.", "success");
+      fetchLeaveCredits();
+    } catch (err) {
+      console.error(err);
+      Swal.fire("Error", "Failed to delete leave credit.", "error");
+    }
+  };
 
   const handleDeleteDeminimis = async (id) => {
     const confirm = await Swal.fire({
@@ -214,14 +211,14 @@ export default function EmployeeDetails() {
     if (!confirm.isConfirmed) return;
 
     try {
-    await baseApi.delete(`/api/hrms/deminimis/${id}`);  
-    Swal.fire("Deleted!", "Allowance removed successfully.", "success");
-    fetchDeminimis();
-  } catch (err) {
-    console.error(err);
-    Swal.fire("Error", "Failed to delete allowance.", "error");
-  }
-};
+      await baseApi.delete(`/api/hrms/deminimis/${id}`);  
+      Swal.fire("Deleted!", "Allowance removed successfully.", "success");
+      fetchDeminimis();
+    } catch (err) {
+      console.error(err);
+      Swal.fire("Error", "Failed to delete allowance.", "error");
+    }
+  };
 
   const handleExportCV = () => {
     window.open(
@@ -555,7 +552,8 @@ export default function EmployeeDetails() {
         {/* Other Tabs */}
         {activeTab === "attendance" && <AttendanceTab employee={employee} permissions={permissions} />}
         {activeTab === "applications" && <ApplicationFormsTab employee={employee} onApplicationUpdated={fetchLeaveCredits} />}
-        {activeTab === "payslips" && <EmployeePayslips employee={employee} />}
+        {/* ✅ FIXED: Only render EmployeePayslips if biometric_id exists */}
+        {activeTab === "payslips" && employee?.biometric_id && <EmployeePayslips employee={employee} />}
 
       {/* Edit Modals */}
       <EmployeeEditModal show={showEditModal} onHide={() => setShowEditModal(false)} employee={employee} onSave={handleSaveEmployee} />

@@ -129,7 +129,7 @@ export default function DeminimisModal({ show, onHide, employeeId, onSuccess }) 
                           handleAllowanceChange(index, "type", e.target.value)
                         }
                         className="form-control"
-                        placeholder="e.g., Clothing, Meal, Rice"
+                        placeholder="e.g., Transportation, Meal, etc."
                       />
                     </div>
 

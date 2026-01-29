@@ -55,6 +55,10 @@ export default function App() {
 
         <Route path="/" element={<Dashboard />} />
 
+        {/* ================= PAYSLIP VIEW (UNIVERSAL ACCESS) ================= */}
+        {/* ⚠️ IMPORTANT: This MUST be outside PermissionRoute so ALL authenticated users can access */}
+        <Route path="/payslip/:id" element={<PayslipView />} />
+
         {/* ================= HRMS ================= */}
         <Route element={<PermissionRoute permission="access_hrms" />}>
           <Route path="/hrms" element={<HRMS />} />
@@ -68,11 +72,10 @@ export default function App() {
           <Route path="/hrms/applications" element={<Applications />} />
         </Route>
 
-        {/* ================= PAYROLL ================= */}
+        {/* ================= PAYROLL (ADMIN ONLY) ================= */}
         <Route element={<PermissionRoute permission="access_payroll" />}>
           <Route path="/payroll" element={<Payroll />} />
           <Route path="/payroll/run" element={<RunPayroll />} />
-          <Route path="/payslip/:id" element={<PayslipView />} />
           <Route path="/payroll/salary-table" element={<SalaryTable />} />
         </Route>
 

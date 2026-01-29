@@ -73,6 +73,7 @@ export default function Dashboard() {
 
   /* ================= PERMISSION HELPERS ================= */
   const isAdmin = user.role === "system_admin";
+  const isEmployee = user.role === "employee";
 
   const hasPermission = (permission) => {
     if (isAdmin) return true;
@@ -94,8 +95,8 @@ export default function Dashboard() {
       {/* ================= SUMMARY CARDS ================= */}
       <div className="row g-3 mb-4">
 
-        {/* HRMS */}
-        {hasPermission("access_hrms") && (
+        {/* HRMS - ✅ Hide for employees */}
+        {hasPermission("access_hrms") && !isEmployee && (
           <DashboardCard
             title="Employees"
             value={stats.employees}

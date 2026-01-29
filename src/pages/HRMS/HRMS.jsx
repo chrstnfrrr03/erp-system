@@ -20,16 +20,26 @@ import {
 
 export default function HRMS() {
   const navigate = useNavigate();
-  const { permissions } = useAuth();
+  const { user, permissions } = useAuth();
 
   const [departmentData, setDepartmentData] = useState([]);
   const [totalEmployees, setTotalEmployees] = useState(0);
   const [newHires, setNewHires] = useState(0);
   const [activeInactive, setActiveInactive] = useState("0 / 0");
 
+  // ✅ Redirect employees to their profile
   useEffect(() => {
-    fetchDashboard();
-  }, []);
+    if (user?.role === "employee" && user?.biometric_id) {
+      navigate(`/hrms/employee/${user.biometric_id}`, { replace: true });
+    }
+  }, [user, navigate]);
+
+  useEffect(() => {
+    // Only fetch dashboard data for non-employees
+    if (user?.role !== "employee") {
+      fetchDashboard();
+    }
+  }, [user]);
 
   const fetchDashboard = async () => {
     try {
@@ -52,6 +62,11 @@ export default function HRMS() {
       console.error("Error loading dashboard:", error);
     }
   };
+
+  // ✅ If employee, don't render anything (they're being redirected)
+  if (user?.role === "employee") {
+    return null;
+  }
 
   // 🔥 Standardized Button Style (Same Size Across Devices)
   const buttonStyle = {
