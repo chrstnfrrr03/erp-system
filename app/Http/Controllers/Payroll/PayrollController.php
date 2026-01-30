@@ -105,11 +105,11 @@ class PayrollController extends Controller
                     $attendance
                 );
 
-                // ✅ Use total_overtime_hours (attendance + applications combined)
+                // ✅ ONLY use filed/approved overtime (no auto-detection)
                 $overtimePay = $this->calculateOvertimePay(
                     $employment->rate,
                     $employment->rate_type,
-                    $attendance['total_overtime_hours']
+                    $attendance['approved_overtime_hours']
                 );
 
                 $lateDeduction = $this->calculateLateDeduction(
@@ -118,7 +118,7 @@ class PayrollController extends Controller
                     $attendance['late_minutes']
                 );
 
-                // ✅ Enhanced logging for both late and overtime
+                // ✅ Enhanced logging
                 Log::info('PAYROLL CALCULATION DEBUG', [
                     'employee' => $employee->first_name,
                     'rate' => $employment->rate,
@@ -127,10 +127,8 @@ class PayrollController extends Controller
                     'late_minutes' => $attendance['late_minutes'],
                     'days_late' => $attendance['days_late'],
                     'late_deduction' => $lateDeduction,
-                    // Overtime info
-                    'attendance_overtime_hours' => $attendance['attendance_overtime_hours'],
-                    'application_overtime_hours' => $attendance['application_overtime_hours'],
-                    'total_overtime_hours' => $attendance['total_overtime_hours'],
+                    // Overtime info (filed only)
+                    'approved_overtime_hours' => $attendance['approved_overtime_hours'],
                     'overtime_pay' => $overtimePay,
                 ]);
 
@@ -146,7 +144,7 @@ class PayrollController extends Controller
                     'pay_type' => $validated['pay_type'],
                     'base_salary' => $employment->rate,
                     'total_hours' => $attendance['regular_hours'],
-                    'overtime_hours' => $attendance['total_overtime_hours'], // ✅ Combined total
+                    'overtime_hours' => $attendance['approved_overtime_hours'], // ✅ Filed OT only
                     'overtime_pay' => $overtimePay,
                     'gross_pay' => $grossTotal,
                     'bonuses' => 0,
@@ -198,42 +196,42 @@ class PayrollController extends Controller
     }
 
     private function getApprovedOvertimeHours($employeeId, $startDate, $endDate)
-{
-    $employee = Employee::find($employeeId);
-    
-    if (!$employee) {
-        return 0;
-    }
-    
-    // ✅ Query by biometric_id instead of employee_id
-    $applications = DB::table('applications')
-        ->where('biometric_id', $employee->biometric_id)
-        ->where('application_type', 'Overtime')
-        ->where('status', 'Approved')
-        ->whereBetween('date_from', [
-            Carbon::parse($startDate)->toDateString(),
-            Carbon::parse($endDate)->toDateString(),
-        ])
-        ->get();
-
-    $totalOvertimeMinutes = 0;
-
-    foreach ($applications as $app) {
-        if ($app->time_from && $app->time_to) {
-            $timeIn = Carbon::parse($app->date_from . ' ' . $app->time_from);
-            $timeOut = Carbon::parse($app->date_from . ' ' . $app->time_to);
-            
-            
-            if ($timeOut->lt($timeIn)) {
-                $timeOut->addDay();
-            }
-            
-            $totalOvertimeMinutes += $timeIn->diffInMinutes($timeOut);
+    {
+        $employee = Employee::find($employeeId);
+        
+        if (!$employee) {
+            return 0;
         }
-    }
+        
+        // ✅ Only count POSTED overtime (final approval + posted to payroll)
+        $applications = DB::table('applications')
+            ->where('biometric_id', $employee->biometric_id)
+            ->where('application_type', 'Overtime')
+            ->where('status', 'Posted') // ✅ Changed from 'Approved' to 'Posted'
+            ->whereBetween('date_from', [
+                Carbon::parse($startDate)->toDateString(),
+                Carbon::parse($endDate)->toDateString(),
+            ])
+            ->get();
 
-    return round($totalOvertimeMinutes / 60, 2);
-}
+        $totalOvertimeMinutes = 0;
+
+        foreach ($applications as $app) {
+            if ($app->time_from && $app->time_to) {
+                $timeIn = Carbon::parse($app->date_from . ' ' . $app->time_from);
+                $timeOut = Carbon::parse($app->date_from . ' ' . $app->time_to);
+                
+                
+                if ($timeOut->lt($timeIn)) {
+                    $timeOut->addDay();
+                }
+                
+                $totalOvertimeMinutes += $timeIn->diffInMinutes($timeOut);
+            }
+        }
+
+        return round($totalOvertimeMinutes / 60, 2);
+    }
 
     private function calculateAttendanceData($employeeId, $startDate, $endDate)
     {
@@ -248,7 +246,6 @@ class PayrollController extends Controller
             ->get();
 
         $regularMinutes = 0;
-        $overtimeMinutes = 0; 
         $daysWorked = 0;
         $daysLate = 0;
         $lateMinutes = 0;
@@ -296,14 +293,10 @@ class PayrollController extends Controller
 
             $daysWorked++;
 
+            // ✅ CHANGED: Don't auto-detect overtime
+            // Just count all worked minutes as regular hours (up to 8 hours per day max)
             $standardMinutes = self::STANDARD_HOURS_PER_DAY * 60;
-
-            if ($dayMinutes > $standardMinutes) {
-                $regularMinutes += $standardMinutes;
-                $overtimeMinutes += ($dayMinutes - $standardMinutes);
-            } else {
-                $regularMinutes += $dayMinutes;
-            }
+            $regularMinutes += min($dayMinutes, $standardMinutes); // Cap at 8 hours
 
             // Late check (unchanged - working correctly)
             if ($amIn) {
@@ -320,19 +313,17 @@ class PayrollController extends Controller
             }
         }
 
-        // ✅ Get approved overtime from applications
-        $applicationOvertimeHours = $this->getApprovedOvertimeHours(
+        // ✅ Get ONLY approved/posted overtime from filed applications
+        $approvedOvertimeHours = $this->getApprovedOvertimeHours(
             $employeeId, 
             $startDate, 
             $endDate
         );
 
-        // ✅ Return both attendance and application overtime separately + combined total
+        // ✅ Return simplified data (no auto-detected OT)
         return [
             'regular_hours' => round($regularMinutes / 60, 2),
-            'attendance_overtime_hours' => round($overtimeMinutes / 60, 2),  // Auto-detected
-            'application_overtime_hours' => $applicationOvertimeHours,       // Pre-approved
-            'total_overtime_hours' => round($overtimeMinutes / 60, 2) + $applicationOvertimeHours,
+            'approved_overtime_hours' => $approvedOvertimeHours, // Only filed OT
             'days_worked' => $daysWorked,
             'days_absent' => max(0, $totalWorkingDays - $daysWorked),
             'days_late' => $daysLate,

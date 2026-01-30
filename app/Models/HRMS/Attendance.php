@@ -20,7 +20,7 @@ class Attendance extends Model
     ];
 
     protected $casts = [
-        'date' => 'date',
+        
     ];
 
     public function employee()
