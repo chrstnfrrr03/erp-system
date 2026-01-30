@@ -62,7 +62,7 @@ export default function EmployeeDetails() {
   const formatDate = (date) => {
     if (!date) return "N/A";
     return date.split("T")[0];
-  };
+};
 
   const handleSaveEmployee = async (formData) => {
     try {

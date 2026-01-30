@@ -10,7 +10,9 @@ import AddAttendanceModal from "../../components/modals/AddAttendanceModal";
 
 const formatDate = (dateString) => {
     if (!dateString) return "";
-    return dateString.slice(0, 10);
+    // Extract just the date part to avoid timezone conversion
+    const dateOnly = dateString.includes('T') ? dateString.split('T')[0] : dateString.split(' ')[0];
+    return dateOnly;
 };
 
 export default function Attendance() {

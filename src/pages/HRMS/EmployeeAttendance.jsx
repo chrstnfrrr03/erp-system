@@ -17,9 +17,11 @@ export default function AttendanceTab({ employee, permissions }) {
     const [selectedRecord, setSelectedRecord] = useState(null);
 
     const formatDate = (date) => {
-        if (!date) return "N/A";
-        return date.split("T")[0];
-    };
+    if (!date) return "N/A";
+    // Extract just the date part to avoid timezone conversion
+    const dateOnly = date.includes('T') ? date.split('T')[0] : date.split(' ')[0];
+    return dateOnly;
+};
 
     useEffect(() => {
         fetchAttendanceRecords();
