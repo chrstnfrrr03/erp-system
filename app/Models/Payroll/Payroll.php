@@ -4,9 +4,12 @@ namespace App\Models\Payroll;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\HRMS\Employee;
+use App\Traits\Auditable;
 
 class Payroll extends Model
 {
+    use Auditable;
+    
     protected $fillable = [
         'employee_id',
         'pay_period_start',

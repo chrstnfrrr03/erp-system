@@ -3,9 +3,12 @@
 namespace App\Models\AIMS;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
 
 class RequestOrder extends Model
 {
+    use Auditable;
+    
     protected $fillable = [
         'po_number',
         'supplier_id',

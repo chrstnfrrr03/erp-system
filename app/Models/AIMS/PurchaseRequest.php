@@ -5,9 +5,12 @@ namespace App\Models\AIMS;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
 use App\Models\AIMS\PurchaseRequestItem;
+use App\Traits\Auditable;
 
 class PurchaseRequest extends Model
 {
+    use Auditable;
+
     protected $fillable = [
         'pr_number',
         'request_date',

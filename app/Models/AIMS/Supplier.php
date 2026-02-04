@@ -3,9 +3,12 @@
 namespace App\Models\AIMS;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
 
 class Supplier extends Model
 {
+    use Auditable;
+    
     protected $fillable = [
         'name',
         'contact_person',

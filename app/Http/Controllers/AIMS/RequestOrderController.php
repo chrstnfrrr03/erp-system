@@ -29,10 +29,10 @@ class RequestOrderController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'po_number'   => 'required|string|unique:request_orders,po_number',
-            'supplier_id'=> 'required|exists:suppliers,id',
-            'order_date' => 'required|date',
-            'items'      => 'required|array|min:1',
+            'po_number'    => 'required|string|unique:request_orders,po_number',
+            'supplier_id'  => 'required|exists:suppliers,id',
+            'order_date'   => 'required|date',
+            'items'        => 'required|array|min:1',
             'items.*.item_id'    => 'required|exists:items,id',
             'items.*.quantity'   => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
@@ -45,10 +45,11 @@ class RequestOrderController extends Controller
             );
 
             $order = RequestOrder::create([
-                'po_number'    => $request->po_number,
-                'supplier_id'  => $request->supplier_id,
-                'order_date'   => $request->order_date,
-                'total_amount'=> $totalAmount,
+                'po_number'     => $request->po_number,
+                'supplier_id'   => $request->supplier_id,
+                'order_date'    => $request->order_date,
+                'total_amount' => $totalAmount,
+                'status'        => 'pending',
             ]);
 
             foreach ($request->items as $row) {
@@ -66,49 +67,78 @@ class RequestOrderController extends Controller
     }
 
     /* ===============================
-       APPROVE ORDER (AUTO STOCK-IN)
+       APPROVE ORDER
+       (NO STOCK MOVEMENT)
     =============================== */
     public function approve($id)
     {
-        $order = RequestOrder::with('items.item')
-            ->lockForUpdate()
-            ->findOrFail($id);
+        $order = RequestOrder::findOrFail($id);
 
         if ($order->status !== 'pending') {
-            return response()->json(['message' => 'Already processed'], 400);
+            return response()->json([
+                'message' => 'Only pending orders can be approved'
+            ], 400);
         }
 
-        DB::transaction(function () use ($order) {
+        $order->update([
+            'status' => 'approved',
+        ]);
+
+        return response()->json([
+            'message' => 'Request order approved'
+        ]);
+    }
+
+    /* ===============================
+       RECEIVE GOODS
+       (STOCK-IN HAPPENS HERE)
+    =============================== */
+    public function receive($id)
+    {
+        DB::transaction(function () use ($id) {
+
+            $order = RequestOrder::with('items')
+                ->lockForUpdate()
+                ->findOrFail($id);
+
+            if ($order->status !== 'approved') {
+                abort(422, 'Order must be approved before receiving');
+            }
+
             foreach ($order->items as $row) {
                 StockMovement::create([
                     'item_id'   => $row->item_id,
                     'type'      => 'IN',
                     'quantity'  => $row->quantity,
                     'reference' => $order->po_number,
-                    'notes'     => 'Request Order Approved',
+                    'notes'     => 'Goods received from supplier',
                 ]);
             }
 
-            $order->update(['status' => 'approved']);
+            $order->update([
+                'status' => 'received'
+            ]);
         });
 
-        return response()->json(['message' => 'Request order approved']);
+        return response()->json([
+            'message' => 'Goods received successfully'
+        ]);
     }
 
     /* ===============================
        SHOW ORDER
     =============================== */
     public function show($id)
-{
-    $order = RequestOrder::with([
-        'supplier',
-        'items.item'
-    ])->findOrFail($id);
+    {
+        $order = RequestOrder::with([
+            'supplier',
+            'items.item'
+        ])->findOrFail($id);
 
-    return response()->json([
-        'data' => $order
-    ]);
-}
+        return response()->json([
+            'data' => $order
+        ]);
+    }
 
     /* ===============================
        UPDATE ORDER (PENDING ONLY)
@@ -118,7 +148,9 @@ class RequestOrderController extends Controller
         $order = RequestOrder::findOrFail($id);
 
         if ($order->status !== 'pending') {
-            return response()->json(['message' => 'Cannot edit approved order'], 400);
+            return response()->json([
+                'message' => 'Cannot edit non-pending order'
+            ], 400);
         }
 
         $request->validate([
@@ -142,7 +174,9 @@ class RequestOrderController extends Controller
         $order = RequestOrder::findOrFail($id);
 
         if ($order->status !== 'pending') {
-            return response()->json(['message' => 'Already processed'], 400);
+            return response()->json([
+                'message' => 'Only pending orders can be cancelled'
+            ], 400);
         }
 
         $order->update(['status' => 'cancelled']);

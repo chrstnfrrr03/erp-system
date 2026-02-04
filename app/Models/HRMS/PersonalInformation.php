@@ -4,14 +4,16 @@ namespace App\Models\HRMS;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
 
 use App\Models\HRMS\Employee;
 
 class PersonalInformation extends Model
 {
     use HasFactory;
+    use Auditable;
 
-    protected $table = 'personal_information'; // ensures clarity & avoids naming confusion
+    protected $table = 'personal_information'; 
 
     protected $fillable = [
         'employee_id',

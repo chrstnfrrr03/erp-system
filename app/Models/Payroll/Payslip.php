@@ -3,9 +3,12 @@
 namespace App\Models\Payroll;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
 
 class Payslip extends Model
 {
+    use Auditable;
+    
     protected $fillable = [
         'employee_id',
         'payroll_id',

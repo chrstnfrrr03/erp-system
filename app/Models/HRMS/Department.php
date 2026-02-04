@@ -7,10 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 
 use App\Models\HRMS\Employee;
 use App\Models\HRMS\EmploymentInformation;
+use App\Traits\Auditable;
 
 class Department extends Model
 {
     use HasFactory;
+    use Auditable;
 
     protected $table = 'departments';
 

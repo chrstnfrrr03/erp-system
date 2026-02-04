@@ -14,10 +14,11 @@ use App\Models\HRMS\LeaveCredits;
 use App\Models\HRMS\Deminimis;
 use App\Models\HRMS\Department;
 use App\Models\HRMS\Application;
-
+use App\Traits\Auditable;
 class Employee extends Model
 {
     use HasFactory;
+    use Auditable;
 
     protected $table = 'employees';
 

@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use App\Services\AuditService;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -30,6 +31,8 @@ class AuthenticatedSessionController extends Controller
         // Prevent session fixation
         $request->session()->regenerate();
 
+        AuditService::login();
+
         $user = Auth::user();
 
         /** @var User $user */
@@ -45,6 +48,9 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): Response
     {
+        AuditService::logout();
+
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();

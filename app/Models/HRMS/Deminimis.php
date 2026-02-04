@@ -5,10 +5,12 @@ namespace App\Models\HRMS;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\HRMS\Employee;
+use App\Traits\Auditable;
 
 class Deminimis extends Model
 {
     use HasFactory;
+    use Auditable;
 
     protected $table = 'deminimis';
 

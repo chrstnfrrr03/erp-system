@@ -4,12 +4,14 @@ namespace App\Models\HRMS;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
 
 use App\Models\HRMS\Employee;
 
 class AccountInformation extends Model
 {
     use HasFactory;
+    use Auditable;
 
     protected $table = 'account_information';
 

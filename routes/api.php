@@ -48,6 +48,7 @@ Route::get('/me', function (Request $request) {
 |--------------------------------------------------------------------------
 */
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\AuditLogController;
 
 /* ================= HRMS ================= */
 use App\Http\Controllers\HRMS\EmployeeExportController;
@@ -77,6 +78,8 @@ use App\Http\Controllers\AIMS\StockMovementController;
 use App\Http\Controllers\AIMS\RequestOrderController;
 use App\Http\Controllers\AIMS\SupplierController;
 use App\Http\Controllers\AIMS\PurchaseRequestController;
+use App\Http\Controllers\AIMS\CustomerController;
+use App\Http\Controllers\AIMS\SalesOrderController;
 
 
 /*
@@ -243,6 +246,27 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/request-orders', [RequestOrderController::class, 'store']);
             Route::get('/request-orders/{id}', [RequestOrderController::class, 'show']);
             Route::post('/request-orders/{id}/approve', [RequestOrderController::class, 'approve']);
+            Route::post('/request-orders/{id}/receive', [RequestOrderController::class, 'receive']);
             Route::post('/request-orders/{id}/cancel', [RequestOrderController::class, 'cancel']);
+
+            Route::apiResource('customers', CustomerController::class);
+            Route::apiResource('sales-orders', SalesOrderController::class);
+            Route::post('/sales-orders/{id}/fulfill',[SalesOrderController::class, 'fulfill']);
+        });
+
+    /*
+    |--------------------------------------------------------------------------
+    | AUDIT TRAIL
+    | Roles: system_admin, hr
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware(['role:system_admin,hr'])
+        ->prefix('audit-logs')
+        ->group(function () {
+            Route::get('/', [AuditLogController::class, 'index']);
+            Route::get('/statistics', [AuditLogController::class, 'statistics']);
+            Route::get('/recent', [AuditLogController::class, 'recentActivity']);
+            Route::get('/{id}', [AuditLogController::class, 'show']);
+            Route::post('/model-logs', [AuditLogController::class, 'getModelLogs']);
         });
 });
