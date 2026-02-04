@@ -4,40 +4,58 @@ import Layout from "../../components/layouts/DashboardLayout";
 import baseApi from "../../api/baseApi";
 import Swal from "sweetalert2";
 
-export default function AIMSRequestOrderView() {
+/* ==========================================================
+   DATE FORMATTER (FIX – REQUIRED)
+========================================================== */
+const formatDateTime = (value) => {
+  if (!value) return "-";
+
+  const date = new Date(value);
+
+  return date.toLocaleString("en-PH", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
+
+export default function AIMSSalesOrderView() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
 
   /* ==========================================================
-     FETCH REQUEST ORDER
+     FETCH SALES ORDER
   ========================================================== */
-  const fetchOrder = async () => {
-    try {
-      const res = await baseApi.get(`/api/aims/request-orders/${id}`);
-      setOrder(res.data.data);
-    } catch (err) {
-      console.error("Failed to load request order", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchOrder = async () => {
+      try {
+        const res = await baseApi.get(`/api/aims/sales-orders/${id}`);
+        setOrder(res.data.data);
+      } catch (err) {
+        console.error("Failed to load sales order", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchOrder();
   }, [id]);
 
   /* ==========================================================
-     APPROVE REQUEST ORDER (NO STOCK IN)
+     FULFILL SALES ORDER
   ========================================================== */
-  const handleApprove = async () => {
+  const handleFulfill = async () => {
     const confirm = await Swal.fire({
-      title: "Approve Request Order?",
-      text: "Approving will allow this order to be received into inventory.",
+      title: "Fulfill Sales Order?",
+      text: "Fulfilling will automatically stock out all items.",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Approve",
+      confirmButtonText: "Fulfill",
       cancelButtonText: "Cancel",
       confirmButtonColor: "#198754",
       cancelButtonColor: "#dc3545",
@@ -46,53 +64,23 @@ export default function AIMSRequestOrderView() {
     if (!confirm.isConfirmed) return;
 
     try {
-      await baseApi.post(`/api/aims/request-orders/${order.id}/approve`);
+      await baseApi.post(`/api/aims/sales-orders/${order.id}/fulfill`);
 
       Swal.fire({
         icon: "success",
-        title: "Approved",
-        text: "Request order approved successfully.",
+        title: "Fulfilled",
+        text: "Stock updated successfully.",
         timer: 1500,
         showConfirmButton: false,
       });
 
-      fetchOrder();
-    } catch {
-      Swal.fire("Error", "Failed to approve request order", "error");
-    }
-  };
-
-  /* ==========================================================
-     RECEIVE GOODS (STOCK IN HAPPENS HERE)
-  ========================================================== */
-  const handleReceive = async () => {
-    const confirm = await Swal.fire({
-      title: "Receive Goods?",
-      text: "This will stock in all items from this order.",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: "Receive",
-      cancelButtonText: "Cancel",
-      confirmButtonColor: "#0d6efd",
-      cancelButtonColor: "#dc3545",
-    });
-
-    if (!confirm.isConfirmed) return;
-
-    try {
-      await baseApi.post(`/api/aims/request-orders/${order.id}/receive`);
-
-      Swal.fire({
-        icon: "success",
-        title: "Goods Received",
-        text: "Inventory and stock movements updated.",
-        timer: 1500,
-        showConfirmButton: false,
-      });
-
-      navigate("/aims/stock-movements");
-    } catch {
-      Swal.fire("Error", "Failed to receive goods", "error");
+      navigate("/aims/setup/sales-order");
+    } catch (error) {
+      Swal.fire(
+        "Error",
+        error.response?.data?.message || "Failed to fulfill sales order",
+        "error"
+      );
     }
   };
 
@@ -101,10 +89,9 @@ export default function AIMSRequestOrderView() {
   ========================================================== */
   const statusBadge = (status) => {
     let badge = "secondary";
-    if (status === "approved") badge = "success";
+    if (status === "fulfilled") badge = "success";
     if (status === "pending") badge = "warning";
     if (status === "cancelled") badge = "danger";
-    if (status === "received") badge = "primary";
 
     return (
       <span className={`badge rounded-pill bg-${badge}`}>
@@ -120,8 +107,10 @@ export default function AIMSRequestOrderView() {
         {/* HEADER */}
         <div className="row mb-3 align-items-center">
           <div className="col">
-            <h1 className="fw-bold">View Request Order</h1>
-            <p className="text-muted mb-0">Purchase Order Details</p>
+            <h1 className="fw-bold">View Sales Order</h1>
+            <p className="text-muted mb-0">
+              Sales Order Details
+            </p>
           </div>
 
           <div className="col-auto">
@@ -139,7 +128,7 @@ export default function AIMSRequestOrderView() {
           <div className="text-center py-4">Loading...</div>
         ) : !order ? (
           <div className="text-center text-muted py-4">
-            Request order not found
+            Sales order not found
           </div>
         ) : (
           <div className="card shadow-sm">
@@ -148,13 +137,13 @@ export default function AIMSRequestOrderView() {
               {/* ORDER INFO */}
               <div className="row mb-3">
                 <div className="col-md-4">
-                  <strong>PO Number</strong>
-                  <div>{order.po_number}</div>
+                  <strong>SO Number</strong>
+                  <div>{order.so_number}</div>
                 </div>
 
                 <div className="col-md-4">
-                  <strong>Supplier</strong>
-                  <div>{order.supplier?.name || order.supplier}</div>
+                  <strong>Customer</strong>
+                  <div>{order.customer?.name || order.customer}</div>
                 </div>
 
                 <div className="col-md-4">
@@ -166,7 +155,7 @@ export default function AIMSRequestOrderView() {
               <div className="row mb-3">
                 <div className="col-md-4">
                   <strong>Order Date</strong>
-                  <div>{order.order_date}</div>
+                  <div>{formatDateTime(order.order_date)}</div>
                 </div>
 
                 <div className="col-md-4">
@@ -185,7 +174,7 @@ export default function AIMSRequestOrderView() {
                     <tr>
                       <th>Item</th>
                       <th className="text-center">Quantity</th>
-                      <th className="text-end">Unit Cost</th>
+                      <th className="text-end">Unit Price</th>
                       <th className="text-end">Total</th>
                     </tr>
                   </thead>
@@ -195,7 +184,7 @@ export default function AIMSRequestOrderView() {
                         <td>{row.item?.name}</td>
                         <td className="text-center">{row.quantity}</td>
                         <td className="text-end">
-                          {Number(row.unit_cost).toFixed(2)}
+                          {Number(row.unit_price).toFixed(2)}
                         </td>
                         <td className="text-end">
                           {Number(row.subtotal).toFixed(2)}
@@ -209,16 +198,11 @@ export default function AIMSRequestOrderView() {
               {/* ACTIONS */}
               {order.status === "pending" && (
                 <div className="d-flex justify-content-end mt-3">
-                  <button className="btn btn-success" onClick={handleApprove}>
-                    Approve Order
-                  </button>
-                </div>
-              )}
-
-              {order.status === "approved" && (
-                <div className="d-flex justify-content-end mt-3">
-                  <button className="btn btn-primary" onClick={handleReceive}>
-                    Receive Goods
+                  <button
+                    className="btn btn-success"
+                    onClick={handleFulfill}
+                  >
+                    Fulfill Order
                   </button>
                 </div>
               )}
@@ -226,6 +210,7 @@ export default function AIMSRequestOrderView() {
             </div>
           </div>
         )}
+
       </div>
     </Layout>
   );

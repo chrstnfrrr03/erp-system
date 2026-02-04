@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MdSave, MdSettings } from "react-icons/md";
+import { MdSave, MdSettings, MdHistory } from "react-icons/md";
 import Layout from "../../components/layouts/DashboardLayout";
 import settingsApi from "../../api/settingsApi";
 import Swal from "sweetalert2";
@@ -8,6 +8,9 @@ import { useAuth } from "../../contexts/AuthContext";
 /* HRMS SECTIONS */
 import DepartmentsSection from "./sections/Departments/DepartmentsSection";
 import ShiftsSection from "./sections/Shifts/ShiftsSection";
+
+/* AUDIT TRAIL */
+import AuditTrailSection from "./sections/AuditTrail/AuditTrailSection";
 
 /* =========================
    MAIN SETTINGS PAGE
@@ -47,6 +50,7 @@ export default function SettingsPage() {
     { id: "hrms", label: "HRMS", roles: ["system_admin", "hr"] },
     { id: "payroll", label: "Payroll", roles: ["system_admin", "hr"] },
     { id: "aims", label: "AIMS", roles: ["system_admin", "hr"] },
+    { id: "audit", label: "Audit Trail", roles: ["system_admin", "hr"] }, // ✅ ADDED
     { id: "security", label: "Security", roles: ["system_admin"] },
   ];
 
@@ -121,6 +125,9 @@ export default function SettingsPage() {
 
         {activeTab === "payroll" && <PayrollSettings />}
         {activeTab === "aims" && <AIMSSettings />}
+
+        {/* ✅ AUDIT TRAIL SECTION */}
+        {activeTab === "audit" && <AuditTrailSection />}
 
         {activeTab === "security" && (
           <ComingSoon module="Security" />

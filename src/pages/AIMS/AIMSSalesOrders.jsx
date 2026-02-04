@@ -10,7 +10,25 @@ import {
   MdVisibility,
 } from "react-icons/md";
 
-export default function AIMSRequestOrders() {
+/* ==========================================================
+   DATE FORMATTER (FIX – REQUIRED)
+========================================================== */
+const formatDateTime = (value) => {
+  if (!value) return "-";
+
+  const date = new Date(value);
+
+  return date.toLocaleString("en-PH", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
+
+export default function AIMSSalesOrders() {
   const navigate = useNavigate();
 
   const [orders, setOrders] = useState([]);
@@ -26,18 +44,18 @@ export default function AIMSRequestOrders() {
   ========================================================== */
   const fetchOrders = async () => {
     try {
-      const res = await baseApi.get("/api/aims/request-orders");
+      const res = await baseApi.get("/api/aims/sales-orders");
 
       const normalized = (res.data.data || []).map((o) => ({
         ...o,
-        supplier:
-          typeof o.supplier === "object" ? o.supplier?.name : o.supplier,
+        customer:
+          typeof o.customer === "object" ? o.customer?.name : o.customer,
       }));
 
       setOrders(normalized);
       setFilteredOrders(normalized);
     } catch (err) {
-      console.error("Failed to load request orders", err);
+      console.error("Failed to load sales orders", err);
     } finally {
       setLoading(false);
     }
@@ -57,8 +75,8 @@ export default function AIMSRequestOrders() {
       const keyword = search.toLowerCase();
       data = data.filter(
         (o) =>
-          o.po_number?.toLowerCase().includes(keyword) ||
-          o.supplier?.toLowerCase().includes(keyword)
+          o.so_number?.toLowerCase().includes(keyword) ||
+          o.customer?.toLowerCase().includes(keyword)
       );
     }
 
@@ -70,15 +88,15 @@ export default function AIMSRequestOrders() {
   }, [search, status, orders]);
 
   /* ==========================================================
-     APPROVE REQUEST ORDER (AUTO STOCK IN)
+     FULFILL SALES ORDER (AUTO STOCK OUT)
   ========================================================== */
-  const handleApprove = async (orderId) => {
+  const handleFulfill = async (orderId) => {
     const confirm = await Swal.fire({
-      title: "Approve Request Order?",
-      text: "Approving will allow this order to be received into inventory.",
+      title: "Fulfill Sales Order?",
+      text: "Fulfilling will automatically stock out all items.",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Approve",
+      confirmButtonText: "Fulfill",
       cancelButtonText: "Cancel",
       confirmButtonColor: "#198754",
       cancelButtonColor: "#dc3545",
@@ -87,11 +105,11 @@ export default function AIMSRequestOrders() {
     if (!confirm.isConfirmed) return;
 
     try {
-      await baseApi.post(`/api/aims/request-orders/${orderId}/approve`);
+      await baseApi.post(`/api/aims/sales-orders/${orderId}/fulfill`);
 
       Swal.fire({
         icon: "success",
-        title: "Approved",
+        title: "Fulfilled",
         text: "Stock updated successfully.",
         timer: 1500,
         showConfirmButton: false,
@@ -99,7 +117,11 @@ export default function AIMSRequestOrders() {
 
       fetchOrders();
     } catch (error) {
-      Swal.fire("Error", "Failed to approve request order", "error");
+      Swal.fire(
+        "Error",
+        error.response?.data?.message || "Failed to fulfill sales order",
+        "error"
+      );
     }
   };
 
@@ -110,9 +132,9 @@ export default function AIMSRequestOrders() {
         {/* TITLE */}
         <div className="row mb-3 align-items-center">
           <div className="col">
-            <h1 className="fw-bold">Request Orders</h1>
+            <h1 className="fw-bold">Sales Orders</h1>
             <p className="text-muted mb-0">
-              Manage and track purchase order requests
+              Manage and track customer sales orders
             </p>
           </div>
 
@@ -138,7 +160,7 @@ export default function AIMSRequestOrders() {
                   </span>
                   <input
                     className="form-control"
-                    placeholder="Search by PO number or supplier"
+                    placeholder="Search by SO number or customer"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                   />
@@ -153,7 +175,7 @@ export default function AIMSRequestOrders() {
                 >
                   <option value="All">Status: All</option>
                   <option value="pending">Pending</option>
-                  <option value="approved">Approved</option>
+                  <option value="fulfilled">Fulfilled</option>
                   <option value="cancelled">Cancelled</option>
                 </select>
               </div>
@@ -161,10 +183,12 @@ export default function AIMSRequestOrders() {
               <div className="col-6 col-md-5 text-end">
                 <button
                   className="btn btn-primary"
-                  onClick={() => navigate("/aims/request-orders/create")}
+                  onClick={() =>
+                    navigate("/aims/setup/sales-order/create")
+                  }
                 >
                   <MdAdd className="me-1" />
-                  Create Order
+                  Create Sales Order
                 </button>
               </div>
 
@@ -178,8 +202,8 @@ export default function AIMSRequestOrders() {
             <table className="table table-hover align-middle mb-0">
               <thead className="table-light">
                 <tr>
-                  <th>PO Number</th>
-                  <th>Supplier</th>
+                  <th>SO Number</th>
+                  <th>Customer</th>
                   <th>Order Date</th>
                   <th>Status</th>
                   <th>Total Amount</th>
@@ -193,13 +217,13 @@ export default function AIMSRequestOrders() {
                 {loading ? (
                   <tr>
                     <td colSpan="6" className="text-center py-4">
-                      Loading request orders...
+                      Loading sales orders...
                     </td>
                   </tr>
                 ) : filteredOrders.length === 0 ? (
                   <tr>
                     <td colSpan="6" className="text-center text-muted py-4">
-                      No request orders found
+                      No sales orders found
                     </td>
                   </tr>
                 ) : (
@@ -208,9 +232,9 @@ export default function AIMSRequestOrders() {
                       key={order.id}
                       {...order}
                       onView={() =>
-                        navigate(`/aims/request-orders/${order.id}`)
+                        navigate(`/aims/setup/sales-order/${order.id}`)
                       }
-                      onApprove={() => handleApprove(order.id)}
+                      onFulfill={() => handleFulfill(order.id)}
                     />
                   ))
                 )}
@@ -228,24 +252,25 @@ export default function AIMSRequestOrders() {
    TABLE ROW
 ========================================================== */
 function OrderRow({
-  po_number,
-  supplier,
+  so_number,
+  customer,
   order_date,
   status,
   total_amount,
   onView,
-  onApprove,
+  onFulfill,
 }) {
   let badge = "secondary";
-  if (status === "approved") badge = "success";
+  if (status === "fulfilled") badge = "success";
   if (status === "pending") badge = "warning";
   if (status === "cancelled") badge = "danger";
 
   return (
     <tr>
-      <td className="fw-semibold">{po_number}</td>
-      <td>{typeof supplier === "object" ? supplier?.name : supplier}</td>
-      <td>{order_date}</td>
+      <td className="fw-semibold">{so_number}</td>
+      <td>{typeof customer === "object" ? customer?.name : customer}</td>
+      <td>{formatDateTime(order_date)}</td>
+
       <td>
         <span className={`badge rounded-pill bg-${badge}`}>
           {status}
@@ -264,9 +289,9 @@ function OrderRow({
           {status === "pending" && (
             <button
               className="btn btn-sm btn-outline-success"
-              onClick={onApprove}
+              onClick={onFulfill}
             >
-              Approve
+              Fulfill
             </button>
           )}
         </div>
