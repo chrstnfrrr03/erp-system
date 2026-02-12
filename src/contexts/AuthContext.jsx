@@ -11,21 +11,30 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   const fetchUser = async () => {
-  try {
-    const res = await baseApi.get("/api/me");
-    setUser(res.data);
-  } catch (err) {
-    if (err.response?.status === 401) {
-      // ✅ Expected when not logged in
-      setUser(null);
-    } else {
-      console.error(err);
+    try {
+      const res = await baseApi.get("/api/me");
+      setUser(res.data);
+    } catch (err) {
+      if (err.response?.status === 401) {
+        // ✅ Expected when not logged in
+        setUser(null);
+      } else {
+        console.error(err);
+      }
+    } finally {
+      setLoading(false);
     }
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
+  // Refresh user data (for profile updates)
+  const refreshUser = async () => {
+    try {
+      const res = await baseApi.get("/api/me");
+      setUser(res.data);
+    } catch (err) {
+      console.error("Error refreshing user:", err);
+    }
+  };
 
   useEffect(() => {
     if (location.pathname === "/login") {
@@ -49,6 +58,7 @@ export function AuthProvider({ children }) {
         isAuthenticated,
         loading,
         fetchUser,
+        refreshUser, 
       }}
     >
       {children}

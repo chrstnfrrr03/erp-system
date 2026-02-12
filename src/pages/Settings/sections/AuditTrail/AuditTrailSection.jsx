@@ -8,6 +8,8 @@ import {
   MdVisibility,
   MdPerson,
   MdCalendarToday,
+  MdComputer,
+  MdLocationOn,
 } from "react-icons/md";
 
 export default function AuditTrailSection() {
@@ -93,19 +95,28 @@ export default function AuditTrailSection() {
   };
 
   /* ==========================================================
-     ACTION BADGE COLOR
+     ✅ ENHANCED: Action Badge with Better Colors
   ========================================================== */
   const getActionBadge = (action) => {
     const badges = {
+      // Green - Success/Positive actions
       created: "success",
-      updated: "primary",
-      deleted: "danger",
       approved: "success",
-      rejected: "danger",
       fulfilled: "success",
-      cancelled: "warning",
+      
+      // Blue - Information/Updates
+      updated: "info",
       stock_in: "info",
+      
+      // Red - Dangerous/Negative actions
+      deleted: "danger",
+      rejected: "danger",
+      
+      // Orange - Warnings
+      cancelled: "warning",
       stock_out: "warning",
+      
+      // Gray - Neutral
       login: "secondary",
       logout: "secondary",
     };
@@ -405,7 +416,7 @@ function AuditLogRow({ log, onView, getBadge }) {
 }
 
 /* ==========================================================
-   AUDIT LOG MODAL
+   ✅ ENHANCED MODAL - More Detailed Information
 ========================================================== */
 function AuditLogModal({ log, onClose, getBadge }) {
   return (
@@ -419,98 +430,229 @@ function AuditLogModal({ log, onClose, getBadge }) {
 
       {/* MODAL */}
       <div className="modal fade show d-block" tabIndex="-1" style={{ zIndex: 1050 }}>
-        <div className="modal-dialog modal-dialog-centered modal-lg">
+        <div className="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
           <div className="modal-content border-0 shadow-lg">
             
-            {/* HEADER */}
-            <div className="modal-header bg-primary text-white">
+            {/* HEADER - Dynamic color based on action */}
+            <div className={`modal-header bg-${getBadge(log.action)} text-white`}>
               <h5 className="modal-title fw-bold">
                 <MdHistory className="me-2" />
                 Audit Log Details
               </h5>
+              <button
+                type="button"
+                className="btn-close btn-close-white"
+                onClick={onClose}
+              ></button>
             </div>
 
             {/* BODY */}
             <div className="modal-body">
-              <div className="row g-3">
+              
+              {/* Basic Information */}
+              <div className="row g-3 mb-4">
                 
                 <div className="col-md-6">
-                  <strong>Date & Time</strong>
-                  <div>{new Date(log.created_at).toLocaleString()}</div>
+                  <div className="border rounded p-3">
+                    <div className="d-flex align-items-center gap-2 mb-2">
+                      <MdCalendarToday className="text-primary" />
+                      <strong className="text-muted small">Date & Time</strong>
+                    </div>
+                    <div className="fw-semibold">
+                      {new Date(log.created_at).toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </div>
+                    <div className="text-muted small">
+                      {new Date(log.created_at).toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                      })}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="col-md-6">
-                  <strong>User</strong>
-                  <div>{log.user_name || "System"}</div>
-                  {log.user_role && (
-                    <small className="text-muted">{log.user_role}</small>
-                  )}
+                  <div className="border rounded p-3">
+                    <div className="d-flex align-items-center gap-2 mb-2">
+                      <MdPerson className="text-primary" />
+                      <strong className="text-muted small">User</strong>
+                    </div>
+                    <div className="fw-semibold">{log.user_name || "System"}</div>
+                    {log.user_role && (
+                      <div className="text-muted small text-capitalize">
+                        {log.user_role.replace(/_/g, ' ')}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="col-md-6">
-                  <strong>Action</strong>
-                  <div>
-                    <span className={`badge bg-${getBadge(log.action)}`}>
-                      {log.action}
+                  <div className="border rounded p-3">
+                    <strong className="text-muted small d-block mb-2">Action</strong>
+                    <span className={`badge bg-${getBadge(log.action)} px-3 py-2`}>
+                      {log.action.toUpperCase()}
                     </span>
                   </div>
                 </div>
 
                 <div className="col-md-6">
-                  <strong>Module</strong>
-                  <div>{log.module || "—"}</div>
-                </div>
-
-                <div className="col-12">
-                  <strong>Description</strong>
-                  <div>{log.description}</div>
-                </div>
-
-                {log.ip_address && (
-                  <div className="col-md-6">
-                    <strong>IP Address</strong>
-                    <div className="font-monospace small">{log.ip_address}</div>
+                  <div className="border rounded p-3">
+                    <strong className="text-muted small d-block mb-2">Module</strong>
+                    <div className="fw-semibold">{log.module || "General System"}</div>
                   </div>
-                )}
+                </div>
 
-                {log.changes && Object.keys(log.changes).length > 0 && (
-                  <div className="col-12">
-                    <strong>Changes</strong>
-                    <div className="table-responsive mt-2">
-                      <table className="table table-sm table-bordered">
-                        <thead className="table-light">
-                          <tr>
-                            <th>Field</th>
-                            <th>Old Value</th>
-                            <th>New Value</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {Object.entries(log.changes).map(([field, values]) => (
+              </div>
+
+              {/* Description */}
+              <div className="mb-4">
+                <strong className="text-muted small d-block mb-2">Description</strong>
+                <div className="border rounded p-3 bg-light">
+                  <p className="mb-0">{log.description}</p>
+                </div>
+              </div>
+
+              {/* Technical Details */}
+              {(log.ip_address || log.user_agent) && (
+                <div className="mb-4">
+                  <div className="d-flex align-items-center gap-2 mb-2">
+                    <MdComputer className="text-primary" />
+                    <strong className="text-muted small">Technical Information</strong>
+                  </div>
+                  <div className="border rounded p-3">
+                    {log.ip_address && (
+                      <div className="mb-2">
+                        <div className="d-flex align-items-center gap-2">
+                          <MdLocationOn size={16} className="text-muted" />
+                          <small className="text-muted">IP Address:</small>
+                        </div>
+                        <div className="font-monospace small ms-4">
+                          {log.ip_address}
+                        </div>
+                      </div>
+                    )}
+                    {log.user_agent && (
+                      <div>
+                        <div className="d-flex align-items-center gap-2">
+                          <MdComputer size={16} className="text-muted" />
+                          <small className="text-muted">Device/Browser:</small>
+                        </div>
+                        <div className="font-monospace small text-wrap ms-4">
+                          {log.user_agent}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* For CREATED - Show new_values as details */}
+              {log.action === 'created' && log.new_values && Object.keys(log.new_values).length > 0 && (
+                <div>
+                  <strong className="text-muted small d-block mb-2">
+                    Item Details
+                  </strong>
+                  <div className="table-responsive">
+                    <table className="table table-bordered table-hover mb-0">
+                      <thead className="table-light">
+                        <tr>
+                          <th width="30%">Field Name</th>
+                          <th width="70%">Value</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(log.new_values)
+                          .filter(([key]) => !['id', 'created_at', 'updated_at'].includes(key))
+                          .map(([field, value]) => (
                             <tr key={field}>
-                              <td className="fw-semibold">
-                                {field.replace(/_/g, " ").toUpperCase()}
+                              <td className="fw-semibold text-capitalize">
+                                {field.replace(/_/g, " ")}
+                                {field === 'current_stock' && (
+                                  <div className="text-muted small fw-normal">
+                                    (Stock added via Stock In)
+                                  </div>
+                                )}
                               </td>
-                              <td>
-                                <code>{JSON.stringify(values.old)}</code>
-                              </td>
-                              <td>
-                                <code>{JSON.stringify(values.new)}</code>
+                              <td className="bg-success bg-opacity-10">
+                                <code className="text-dark">
+                                  {value === null || value === "" 
+                                    ? <em className="text-muted">(empty)</em> 
+                                    : typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                                </code>
                               </td>
                             </tr>
                           ))}
-                        </tbody>
-                      </table>
-                    </div>
+                      </tbody>
+                    </table>
                   </div>
-                )}
+                </div>
+              )}
 
-              </div>
+              {/* For UPDATED/DELETED - Show changes */}
+              {(log.action === 'updated' || log.action === 'deleted') && 
+               log.changes && Object.keys(log.changes).length > 0 && (
+                <div>
+                  <strong className="text-muted small d-block mb-2">
+                    Changes Made
+                  </strong>
+                  <div className="table-responsive">
+                    <table className="table table-bordered table-hover mb-0">
+                      <thead className="table-light">
+                        <tr>
+                          <th width="30%">Field Name</th>
+                          <th width="35%">Previous Value</th>
+                          <th width="35%">New Value</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(log.changes).map(([field, values]) => (
+                          <tr key={field}>
+                            <td className="fw-semibold text-capitalize">
+                              {field.replace(/_/g, " ")}
+                            </td>
+                            <td className="bg-danger bg-opacity-10">
+                              <code className="text-dark">
+                                {values.old === null || values.old === "" 
+                                  ? <em className="text-muted">(empty)</em> 
+                                  : JSON.stringify(values.old)}
+                              </code>
+                            </td>
+                            <td className="bg-success bg-opacity-10">
+                              <code className="text-dark">
+                                {values.new === null || values.new === "" 
+                                  ? <em className="text-muted">(empty)</em> 
+                                  : JSON.stringify(values.new)}
+                              </code>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* No Data Message */}
+              {log.action !== 'login' && log.action !== 'logout' &&
+               (!log.changes || Object.keys(log.changes).length === 0) &&
+               (!log.new_values || Object.keys(log.new_values).length === 0) && (
+                <div className="alert alert-info mb-0">
+                  <small>
+                    <strong>Note:</strong> No detailed changes were recorded for this action.
+                  </small>
+                </div>
+              )}
+
             </div>
 
             {/* FOOTER */}
             <div className="modal-footer bg-light">
-              <button className="btn btn-danger" onClick={onClose}>
+              <button className="btn btn-secondary" onClick={onClose}>
                 Close
               </button>
             </div>

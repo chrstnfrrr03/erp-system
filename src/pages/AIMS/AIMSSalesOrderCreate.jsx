@@ -76,7 +76,7 @@ export default function AIMSSalesOrderCreate() {
   const addRow = () => {
     setRows((prev) => [
       ...prev,
-      { item_id: "", quantity: 1, unit_price: 0 },
+      { item_id: "", quantity: 1, selling_price: 0 },
     ]);
   };
 
@@ -96,42 +96,53 @@ export default function AIMSSalesOrderCreate() {
      TOTAL
   =============================== */
   const totalAmount = rows.reduce(
-    (sum, r) => sum + r.quantity * r.unit_price,
+    (sum, r) => sum + r.quantity * r.selling_price,
     0
   );
 
   /* ===============================
      SUBMIT
   =============================== */
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+ const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    if (!form.customer_id) {
-      return Swal.fire("Error", "Please select a customer", "error");
-    }
+  if (!form.customer_id) {
+    return Swal.fire("Error", "Please select a customer", "error");
+  }
 
-    if (rows.length === 0) {
-      return Swal.fire("Error", "Add at least one item", "error");
-    }
+  if (rows.length === 0) {
+    return Swal.fire("Error", "Add at least one item", "error");
+  }
 
-    try {
-      await baseApi.post("/api/aims/sales-orders", {
-        ...form,
-        items: rows,
-      });
+  // 🔑 Map selling_price → unit_price for backend
+  const payloadItems = rows.map((row) => ({
+    item_id: row.item_id,
+    quantity: row.quantity,
+    unit_price: row.selling_price,
+  }));
 
-      Swal.fire({
-        icon: "success",
-        title: "Sales Order Created",
-        timer: 1500,
-        showConfirmButton: false,
-      });
+  try {
+    await baseApi.post("/api/aims/sales-orders", {
+      ...form,
+      items: payloadItems,
+    });
 
-      navigate("/aims/setup/sales-order");
-    } catch (err) {
-      Swal.fire("Error", err.response?.data?.message || "Failed to create sales order", "error");
-    }
-  };
+    Swal.fire({
+      icon: "success",
+      title: "Sales Order Created",
+      timer: 1500,
+      showConfirmButton: false,
+    });
+
+    navigate("/aims/setup/sales-order");
+  } catch (err) {
+    Swal.fire(
+      "Error",
+      err.response?.data?.message || "Failed to create sales order",
+      "error"
+    );
+  }
+};
 
   /* ===============================
      LOADING
@@ -214,7 +225,7 @@ export default function AIMSSalesOrderCreate() {
                   <tr>
                     <th>Item</th>
                     <th width="100">Qty</th>
-                    <th width="150">Unit Price</th>
+                    <th width="150">Selling Price</th>
                     <th width="150">Total</th>
                     <th width="80"></th>
                   </tr>
@@ -263,14 +274,20 @@ export default function AIMSSalesOrderCreate() {
                             type="number"
                             step="0.01"
                             className="form-control"
-                            value={row.unit_price}
+                            value={row.selling_price}
                             onChange={(e) =>
-                              updateRow(i, "unit_price", Number(e.target.value))
+                              updateRow(
+                                i,
+                                "selling_price",
+                                Number(e.target.value)
+                              )
                             }
                           />
                         </td>
 
-                        <td>{(row.quantity * row.unit_price).toFixed(2)}</td>
+                        <td>
+                          {(row.quantity * row.selling_price).toFixed(2)}
+                        </td>
 
                         <td>
                           <button

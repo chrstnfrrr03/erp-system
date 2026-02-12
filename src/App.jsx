@@ -13,8 +13,6 @@ import EmployeeOverview from "./pages/HRMS/EmployeeOverview";
 import EmployeeDetails from "./pages/HRMS/EmployeeDetails";
 import EmployeeStatus from "./pages/HRMS/EmployeeStatus";
 import Attendance from "./pages/HRMS/Attendance";
-
-/* ✅ Applications Page */
 import Applications from "./pages/HRMS/Applications";
 
 /* ================= PAYROLL ================= */
@@ -41,8 +39,31 @@ import AIMSSalesOrders from "./pages/AIMS/AIMSSalesOrders";
 import AIMSSalesOrderCreate from "./pages/AIMS/AIMSSalesOrderCreate";
 import AIMSSalesOrderView from "./pages/AIMS/AIMSSalesOrderView";
 
+/* ================= MOMS ================= */
+import MOMS from "./pages/MOMS/MOMS";
+import Machines from "./pages/MOMS/Machines";
+import Operators from "./pages/MOMS/Operators";
+import Assignments from "./pages/MOMS/Assignments";
+import Fuel from "./pages/MOMS/Fuel";
+import Breakdowns from "./pages/MOMS/Breakdowns";
+import MaintenanceLogs from "./pages/MOMS/MaintenanceLogs";
+import MaintenanceSchedules from "./pages/MOMS/MaintenanceSchedules";
+import Fleets from "./pages/MOMS/Fleets";
+import Inventory from "./pages/MOMS/Inventory";
+import StartShift from "./pages/MOMS/StartShift";
+import DailyOps from "./pages/MOMS/DailyOps";
+import FuelCosts from "./pages/MOMS/FuelCosts";
+import Pricing from "./pages/MOMS/Pricing";
+import FuelConsumptionReport from "./pages/MOMS/FuelConsumptionReport";
+
+/* ================= REPORTS ================= */
+import ReportsPage from "./pages/ReportsPage";
+
 /* ================= SETTINGS ================= */
 import SettingsPage from "./pages/Settings/SettingsPage";
+
+/* ================= PROFILE ================= */
+import Profile from "./pages/Profile/Profile";
 
 /* ================= ROUTE GUARDS ================= */
 import ProtectedRoute from "./routes/ProtectedRoute";
@@ -57,6 +78,9 @@ export default function App() {
       {/* ================= AUTHENTICATED ================= */}
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<Dashboard />} />
+
+        {/* ================= PROFILE (UNIVERSAL ACCESS) ================= */}
+        <Route path="/profile" element={<Profile />} />
 
         {/* ================= PAYSLIP VIEW (UNIVERSAL ACCESS) ================= */}
         <Route path="/payslip/:id" element={<PayslipView />} />
@@ -132,6 +156,38 @@ export default function App() {
             path="/aims/setup/sales-order/:id"
             element={<AIMSSalesOrderView />}
           />
+        </Route>
+
+        {/* ================= MOMS ================= */}
+        <Route element={<PermissionRoute permission="access_moms" />}>
+          <Route path="/moms" element={<MOMS />} />
+          <Route path="/moms/machines" element={<Machines />} />
+          <Route path="/moms/operators" element={<Operators />} />
+          <Route path="/moms/assignments" element={<Assignments />} />
+          <Route path="/moms/fuel" element={<Fuel />} />
+          <Route path="/moms/fuel/consumption-report" element={<FuelConsumptionReport />} />
+          <Route path="/moms/breakdowns" element={<Breakdowns />} />
+          
+          {/* Maintenance */}
+          <Route path="/moms/maintenance/logs" element={<MaintenanceLogs />} />
+          <Route path="/moms/maintenance/schedules" element={<MaintenanceSchedules />} />
+          
+          {/* Fleet & Inventory */}
+          <Route path="/moms/fleets" element={<Fleets />} />
+          <Route path="/moms/inventory" element={<Inventory />} />
+          
+          {/* Operations */}
+          <Route path="/moms/operations/start-shift" element={<StartShift />} />
+          <Route path="/moms/operations/daily-ops" element={<DailyOps />} />
+          
+          {/* Finance */}
+          <Route path="/moms/finance/fuel-costs" element={<FuelCosts />} />
+          <Route path="/moms/finance/pricing" element={<Pricing />} />
+        </Route>
+
+        {/* ================= REPORTS ================= */}
+        <Route element={<PermissionRoute permission="access_reports" />}>
+          <Route path="/reports" element={<ReportsPage />} />
         </Route>
 
         {/* ================= SETTINGS ================= */}

@@ -123,6 +123,12 @@ export default function DashboardLayout({ children }) {
 
                                 <Dropdown.Menu className="shadow-sm">
                                     <Dropdown.Item
+                                        onClick={() => navigate("/profile")}
+                                    >
+                                        Profile
+                                    </Dropdown.Item>
+                                    <Dropdown.Divider />
+                                    <Dropdown.Item
                                         onClick={() => setShowLogoutModal(true)}
                                     >
                                         Logout
