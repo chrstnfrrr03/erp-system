@@ -11,30 +11,50 @@ import {
   MdPerson,
   MdExpandMore,
   MdBuild,
+  MdLocalGasStation,
+  MdDirectionsCar,
+  MdInventory,
+  MdPlayArrow,
+  MdBarChart,
+  MdSchedule,
+  MdAssignment,
+  MdWarning,
 } from "react-icons/md";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { can } from "../../utils/permissions";
 import { useState } from "react";
 
 export default function Sidebar({ open, setOpen, user }) {
   const location = useLocation();
-  const navigate = useNavigate();
   const permissions = user?.permissions || [];
   const role = user?.role || "";
   
-  // ✅ State for HRMS submenu
   const [hrmsExpanded, setHrmsExpanded] = useState(
     location.pathname.startsWith("/hrms")
   );
 
-  // ✅ State for AIMS submenu
   const [aimsExpanded, setAimsExpanded] = useState(
     location.pathname.startsWith("/aims")
   );
 
-  // ✅ State for AIMS Setup nested submenu
   const [aimsSetupExpanded, setAimsSetupExpanded] = useState(
     location.pathname.startsWith("/aims/setup")
+  );
+
+  const [momsExpanded, setMomsExpanded] = useState(
+    location.pathname.startsWith("/moms")
+  );
+
+  const [momsMaintenanceExpanded, setMomsMaintenanceExpanded] = useState(
+    location.pathname.startsWith("/moms/maintenance")
+  );
+
+  const [momsOperationsExpanded, setMomsOperationsExpanded] = useState(
+    location.pathname.startsWith("/moms/operations")
+  );
+
+  const [momsFinanceExpanded, setMomsFinanceExpanded] = useState(
+    location.pathname.startsWith("/moms/finance")
   );
 
   const menuItems = [
@@ -51,15 +71,12 @@ export default function Sidebar({ open, setOpen, user }) {
       permission: "access_hrms",
       hasSubmenu: true,
       submenu: [
-        // ✅ My Profile - Only for employees
         ...(role === "employee" ? [{
           name: "My Profile",
           icon: <MdPerson />,
           path: `/hrms/employee/${user?.biometric_id || ''}`,
           permission: "employee.view",
         }] : []),
-        
-        // ✅ Leave & OT Requests
         {
           name: role === "employee" ? "My Requests" : "Leave & OT Requests",
           icon: <MdEventNote />,
@@ -107,9 +124,116 @@ export default function Sidebar({ open, setOpen, user }) {
     {
       name: "MOMS",
       icon: <MdPrecisionManufacturing />,
-      external: true,
-      url: "http://localhost:8001",
+      path: "/moms",
       permission: "access_moms",
+      hasSubmenu: true,
+      submenu: [
+        {
+          name: "Machines",
+          icon: <MdPrecisionManufacturing />,
+          path: "/moms/machines",
+          permission: "access_moms",
+        },
+        {
+          name: "Operators",
+          icon: <MdPeople />,
+          path: "/moms/operators",
+          permission: "access_moms",
+        },
+        {
+          name: "Assignments",
+          icon: <MdAssignment />,
+          path: "/moms/assignments",
+          permission: "access_moms",
+        },
+        {
+          name: "Fuel",
+          icon: <MdLocalGasStation />,
+          path: "/moms/fuel",
+          permission: "access_moms",
+        },
+        {
+          name: "Breakdowns",
+          icon: <MdWarning />,
+          path: "/moms/breakdowns",
+          permission: "access_moms",
+        },
+        {
+          name: "Maintenance",
+          icon: <MdBuild />,
+          path: "/moms/maintenance",
+          permission: "access_moms",
+          hasNestedSubmenu: true,
+          nestedSubmenu: [
+            {
+              name: "Logs",
+              icon: <MdEventNote />,
+              path: "/moms/maintenance/logs",
+              permission: "access_moms",
+            },
+            {
+              name: "Schedules",
+              icon: <MdSchedule />,
+              path: "/moms/maintenance/schedules",
+              permission: "access_moms",
+            },
+          ],
+        },
+        {
+          name: "Fleets",
+          icon: <MdDirectionsCar />,
+          path: "/moms/fleets",
+          permission: "access_moms",
+        },
+        {
+          name: "Inventory",
+          icon: <MdInventory />,
+          path: "/moms/inventory",
+          permission: "access_moms",
+        },
+        {
+          name: "Operations",
+          icon: <MdPlayArrow />,
+          path: "/moms/operations",
+          permission: "access_moms",
+          hasNestedSubmenu: true,
+          nestedSubmenu: [
+            {
+              name: "Start Shift",
+              icon: <MdPlayArrow />,
+              path: "/moms/operations/start-shift",
+              permission: "access_moms",
+            },
+            {
+              name: "Daily Ops",
+              icon: <MdBarChart />,
+              path: "/moms/operations/daily-ops",
+              permission: "access_moms",
+            },
+          ],
+        },
+        {
+          name: "Finance",
+          icon: <MdAttachMoney />,
+          path: "/moms/finance",
+          permission: "access_moms",
+          hasNestedSubmenu: true,
+          nestedSubmenu: [
+            {
+              name: "Fuel Costs",
+              icon: <MdLocalGasStation />,
+              path: "/moms/finance/fuel-costs",
+              permission: "access_moms",
+            },
+            {
+              name: "Pricing",
+              icon: <MdAttachMoney />,
+              path: "/moms/finance/pricing",
+              permission: "access_moms",
+            },
+          ],
+        },
+      ],
     },
     {
       name: "Reports",
@@ -136,25 +260,84 @@ export default function Sidebar({ open, setOpen, user }) {
         transition: "width 0.3s ease",
         background: "#ffffff",
         borderRight: "1px solid #e5e5e5",
-        minHeight: "100vh",
+        height: "100vh",
         position: "fixed",
         top: 0,
         left: 0,
-        padding: "20px 10px",
         boxShadow: "2px 0 8px rgba(0,0,0,0.05)",
         zIndex: 1000,
-        overflowY: "auto",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
-      {/* HEADER */} 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: open ? "center" : "space-between", marginBottom: "30px", }} > 
-        {!open && ( <h2 style={{ fontWeight: 600, fontSize: "20px", color: "#333", margin: 0, whiteSpace: "nowrap", }} > ERP System </h2> )} 
-        <MdMenu size={24} style={{ cursor: "pointer", color: "#444" }} onClick={() => setOpen(!open)} /> 
+      {/* Fixed Header */}
+      <div
+        style={{
+          padding: "20px 10px",
+          borderBottom: "1px solid #f0f0f0",
+          flexShrink: 0,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: open ? "center" : "space-between",
+          }}
+        >
+          {!open && (
+            <h2
+              style={{
+                fontWeight: 600,
+                fontSize: "20px",
+                color: "#333",
+                margin: 0,
+                whiteSpace: "nowrap",
+              }}
+            >
+              ERP System
+            </h2>
+          )}
+          <MdMenu
+            size={24}
+            style={{ cursor: "pointer", color: "#444" }}
+            onClick={() => setOpen(!open)}
+          />
         </div>
+      </div>
 
+      {/* Scrollable Navigation */}
+      <nav
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "4px",
+          padding: "10px",
+          overflowY: "auto",
+          overflowX: "hidden",
+          flex: 1,
+          // Custom scrollbar styling
+          scrollbarWidth: "thin",
+          scrollbarColor: "#cbd5e1 transparent",
+        }}
+        className="custom-scrollbar"
+      >
+        <style>{`
+          .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+          }
+        `}</style>
 
-      {/* MENU */}
-      <nav style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
         {visibleMenuItems.map((item, index) => {
           const isActive =
             !item.external &&
@@ -163,10 +346,9 @@ export default function Sidebar({ open, setOpen, user }) {
               : location.pathname === item.path ||
                 location.pathname.startsWith(item.path + "/"));
 
-          // ✅ External link (MOMS)
           if (item.external) {
             return (
-              <a 
+              <a
                 key={`${item.name}-${index}`}
                 href={item.url}
                 target="_blank"
@@ -176,55 +358,60 @@ export default function Sidebar({ open, setOpen, user }) {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: open ? "center" : "flex-start",
-                  gap: open ? "0px" : "15px",
-                  padding: "12px 15px",
+                  gap: open ? "0px" : "12px",
+                  padding: "10px 12px",
                   borderRadius: "8px",
                   color: "#444",
                   transition: "background 0.2s ease",
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#f5f5f5";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "transparent";
-                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "#f5f5f5")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               >
-                <span style={{ fontSize: "22px" }}>{item.icon}</span>
-                {!open && <span>{item.name}</span>}
+                <span style={{ fontSize: "20px", flexShrink: 0 }}>{item.icon}</span>
+                {!open && <span style={{ fontSize: "14px" }}>{item.name}</span>}
               </a>
             );
           }
 
-          // ✅ Menu item with submenu (HRMS or AIMS)
           if (item.hasSubmenu && !open) {
-            const isExpanded = item.name === "HRMS" ? hrmsExpanded : aimsExpanded;
-            const setExpanded = item.name === "HRMS" ? setHrmsExpanded : setAimsExpanded;
+            const isExpanded =
+              item.name === "HRMS"
+                ? hrmsExpanded
+                : item.name === "AIMS"
+                ? aimsExpanded
+                : item.name === "MOMS"
+                ? momsExpanded
+                : false;
+
+            const setExpanded =
+              item.name === "HRMS"
+                ? setHrmsExpanded
+                : item.name === "AIMS"
+                ? setAimsExpanded
+                : item.name === "MOMS"
+                ? setMomsExpanded
+                : null;
 
             return (
-              <div key={`${item.name}-${index}`}>
-                {/* Main Link */}
+              <div key={`${item.name}-${index}`} style={{ marginBottom: "4px" }}>
                 <div
                   style={{
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    padding: "12px 15px",
+                    padding: "10px 12px",
                     borderRadius: "8px",
-                    background: isActive ? "#667eea" : "transparent",
+                    background: isActive ? "#5b5fc7" : "transparent",
                     color: isActive ? "#fff" : "#444",
                     transition: "background 0.2s ease",
                     cursor: "pointer",
                   }}
-                  onMouseEnter={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.background = "#f5f5f5";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.background = "transparent";
-                    }
-                  }}
+                  onMouseEnter={(e) =>
+                    !isActive && (e.currentTarget.style.background = "#f5f5f5")
+                  }
+                  onMouseLeave={(e) =>
+                    !isActive && (e.currentTarget.style.background = "transparent")
+                  }
                 >
                   <Link
                     to={item.path}
@@ -232,26 +419,26 @@ export default function Sidebar({ open, setOpen, user }) {
                       textDecoration: "none",
                       display: "flex",
                       alignItems: "center",
-                      gap: "15px",
+                      gap: "12px",
                       flex: 1,
                       color: "inherit",
                     }}
                   >
-                    <span style={{ fontSize: "22px" }}>{item.icon}</span>
-                    <span>{item.name}</span>
+                    <span style={{ fontSize: "20px", flexShrink: 0 }}>{item.icon}</span>
+                    <span style={{ fontSize: "14px" }}>{item.name}</span>
                   </Link>
-                  
-                  {/* ✅ Expand/Collapse Icon - Only toggles submenu */}
-                  <span 
-                    style={{ 
-                      fontSize: "20px",
+
+                  <span
+                    style={{
+                      fontSize: "18px",
                       transition: "transform 0.2s ease",
                       transform: isExpanded ? "rotate(0deg)" : "rotate(-90deg)",
                       cursor: "pointer",
-                      padding: "4px",
+                      padding: "2px",
+                      flexShrink: 0,
                     }}
                     onClick={(e) => {
-                      e.stopPropagation(); // ✅ Prevent navigation
+                      e.stopPropagation();
                       setExpanded(!isExpanded);
                     }}
                   >
@@ -259,93 +446,102 @@ export default function Sidebar({ open, setOpen, user }) {
                   </span>
                 </div>
 
-                {/* ✅ Submenu Items - Only show when expanded */}
                 {isExpanded && (
-                  <div style={{ 
-                    marginLeft: "20px", 
-                    marginTop: "5px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "5px",
-                  }}>
+                  <div
+                    style={{
+                      marginLeft: "16px",
+                      marginTop: "4px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "2px",
+                      paddingLeft: "8px",
+                      borderLeft: "2px solid #e5e7eb",
+                    }}
+                  >
                     {item.submenu
-                      .filter(subItem => !subItem.permission || can(permissions, subItem.permission))
+                      .filter((subItem) => !subItem.permission || can(permissions, subItem.permission))
                       .map((subItem, subIndex) => {
-                        const isSubActive = location.pathname === subItem.path ||
+                        const isSubActive =
+                          location.pathname === subItem.path ||
                           location.pathname.startsWith(subItem.path + "/");
-                        
-                        // ✅ Nested submenu (AIMS > Setup)
+
                         if (subItem.hasNestedSubmenu) {
+                          const isNestedExpanded =
+                            (item.name === "AIMS" && subItem.name === "Setup" && aimsSetupExpanded) ||
+                            (item.name === "MOMS" && subItem.name === "Maintenance" && momsMaintenanceExpanded) ||
+                            (item.name === "MOMS" && subItem.name === "Operations" && momsOperationsExpanded) ||
+                            (item.name === "MOMS" && subItem.name === "Finance" && momsFinanceExpanded);
+
                           return (
                             <div key={`${subItem.name}-${subIndex}`}>
-                              {/* Setup Item with expand icon */}
                               <div
                                 style={{
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "space-between",
-                                  padding: "10px 15px",
-                                  borderRadius: "8px",
+                                  padding: "8px 10px",
+                                  borderRadius: "6px",
                                   background: isSubActive ? "#e8eaf6" : "transparent",
-                                  color: isSubActive ? "#667eea" : "#666",
-                                  fontSize: "14px",
+                                  color: isSubActive ? "#5b5fc7" : "#666",
+                                  fontSize: "13px",
                                   transition: "all 0.2s ease",
                                   cursor: "pointer",
                                 }}
-                                onMouseEnter={(e) => {
-                                  if (!isSubActive) {
-                                    e.currentTarget.style.background = "#f5f5f5";
-                                  }
-                                }}
-                                onMouseLeave={(e) => {
-                                  if (!isSubActive) {
-                                    e.currentTarget.style.background = "transparent";
-                                  }
-                                }}
+                                onMouseEnter={(e) =>
+                                  !isSubActive && (e.currentTarget.style.background = "#f5f5f5")
+                                }
+                                onMouseLeave={(e) =>
+                                  !isSubActive && (e.currentTarget.style.background = "transparent")
+                                }
                               >
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "12px",
-                                    flex: 1,
-                                  }}
-                                >
-                                  <span style={{ fontSize: "18px" }}>{subItem.icon}</span>
+                                <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1 }}>
+                                  <span style={{ fontSize: "16px", flexShrink: 0 }}>{subItem.icon}</span>
                                   <span>{subItem.name}</span>
                                 </div>
-                                
-                                {/* Nested expand icon */}
+
                                 <span
                                   style={{
-                                    fontSize: "18px",
+                                    fontSize: "16px",
                                     transition: "transform 0.2s ease",
-                                    transform: aimsSetupExpanded ? "rotate(0deg)" : "rotate(-90deg)",
+                                    transform: isNestedExpanded ? "rotate(0deg)" : "rotate(-90deg)",
+                                    flexShrink: 0,
                                   }}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setAimsSetupExpanded(!aimsSetupExpanded);
+                                    if (item.name === "AIMS" && subItem.name === "Setup") {
+                                      setAimsSetupExpanded(!aimsSetupExpanded);
+                                    } else if (item.name === "MOMS" && subItem.name === "Maintenance") {
+                                      setMomsMaintenanceExpanded(!momsMaintenanceExpanded);
+                                    } else if (item.name === "MOMS" && subItem.name === "Operations") {
+                                      setMomsOperationsExpanded(!momsOperationsExpanded);
+                                    } else if (item.name === "MOMS" && subItem.name === "Finance") {
+                                      setMomsFinanceExpanded(!momsFinanceExpanded);
+                                    }
                                   }}
                                 >
                                   <MdExpandMore />
                                 </span>
                               </div>
 
-                              {/* ✅ Nested submenu items */}
-                              {aimsSetupExpanded && (
-                                <div style={{
-                                  marginLeft: "20px",
-                                  marginTop: "5px",
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  gap: "5px",
-                                }}>
+                              {isNestedExpanded && (
+                                <div
+                                  style={{
+                                    marginLeft: "16px",
+                                    marginTop: "2px",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "2px",
+                                    paddingLeft: "8px",
+                                    borderLeft: "2px solid #e5e7eb",
+                                  }}
+                                >
                                   {subItem.nestedSubmenu
-                                    .filter(nestedItem => !nestedItem.permission || can(permissions, nestedItem.permission))
+                                    .filter((nestedItem) => !nestedItem.permission || can(permissions, nestedItem.permission))
                                     .map((nestedItem, nestedIndex) => {
-                                      const isNestedActive = location.pathname === nestedItem.path ||
+                                      const isNestedActive =
+                                        location.pathname === nestedItem.path ||
                                         location.pathname.startsWith(nestedItem.path + "/");
-                                      
+
                                       return (
                                         <Link
                                           key={`${nestedItem.name}-${nestedIndex}`}
@@ -354,26 +550,22 @@ export default function Sidebar({ open, setOpen, user }) {
                                             textDecoration: "none",
                                             display: "flex",
                                             alignItems: "center",
-                                            gap: "10px",
-                                            padding: "8px 12px",
-                                            borderRadius: "8px",
+                                            gap: "8px",
+                                            padding: "7px 10px",
+                                            borderRadius: "6px",
                                             background: isNestedActive ? "#d5d9f7" : "transparent",
-                                            color: isNestedActive ? "#667eea" : "#777",
-                                            fontSize: "13px",
+                                            color: isNestedActive ? "#5b5fc7" : "#777",
+                                            fontSize: "12px",
                                             transition: "all 0.2s ease",
                                           }}
-                                          onMouseEnter={(e) => {
-                                            if (!isNestedActive) {
-                                              e.currentTarget.style.background = "#f0f0f0";
-                                            }
-                                          }}
-                                          onMouseLeave={(e) => {
-                                            if (!isNestedActive) {
-                                              e.currentTarget.style.background = "transparent";
-                                            }
-                                          }}
+                                          onMouseEnter={(e) =>
+                                            !isNestedActive && (e.currentTarget.style.background = "#f0f0f0")
+                                          }
+                                          onMouseLeave={(e) =>
+                                            !isNestedActive && (e.currentTarget.style.background = "transparent")
+                                          }
                                         >
-                                          <span style={{ fontSize: "16px" }}>{nestedItem.icon}</span>
+                                          <span style={{ fontSize: "14px", flexShrink: 0 }}>{nestedItem.icon}</span>
                                           <span>{nestedItem.name}</span>
                                         </Link>
                                       );
@@ -383,8 +575,7 @@ export default function Sidebar({ open, setOpen, user }) {
                             </div>
                           );
                         }
-                        
-                        // ✅ Regular submenu item
+
                         return (
                           <Link
                             key={`${subItem.name}-${subIndex}`}
@@ -393,26 +584,22 @@ export default function Sidebar({ open, setOpen, user }) {
                               textDecoration: "none",
                               display: "flex",
                               alignItems: "center",
-                              gap: "12px",
-                              padding: "10px 15px",
-                              borderRadius: "8px",
+                              gap: "10px",
+                              padding: "8px 10px",
+                              borderRadius: "6px",
                               background: isSubActive ? "#e8eaf6" : "transparent",
-                              color: isSubActive ? "#667eea" : "#666",
-                              fontSize: "14px",
+                              color: isSubActive ? "#5b5fc7" : "#666",
+                              fontSize: "13px",
                               transition: "all 0.2s ease",
                             }}
-                            onMouseEnter={(e) => {
-                              if (!isSubActive) {
-                                e.currentTarget.style.background = "#f5f5f5";
-                              }
-                            }}
-                            onMouseLeave={(e) => {
-                              if (!isSubActive) {
-                                e.currentTarget.style.background = "transparent";
-                              }
-                            }}
+                            onMouseEnter={(e) =>
+                              !isSubActive && (e.currentTarget.style.background = "#f5f5f5")
+                            }
+                            onMouseLeave={(e) =>
+                              !isSubActive && (e.currentTarget.style.background = "transparent")
+                            }
                           >
-                            <span style={{ fontSize: "18px" }}>{subItem.icon}</span>
+                            <span style={{ fontSize: "16px", flexShrink: 0 }}>{subItem.icon}</span>
                             <span>{subItem.name}</span>
                           </Link>
                         );
@@ -423,7 +610,6 @@ export default function Sidebar({ open, setOpen, user }) {
             );
           }
 
-          // ✅ Regular menu item (no submenu) or sidebar collapsed
           return (
             <Link
               key={`${item.name}-${index}`}
@@ -433,26 +619,23 @@ export default function Sidebar({ open, setOpen, user }) {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: open ? "center" : "flex-start",
-                gap: open ? "0px" : "15px",
-                padding: "12px 15px",
+                gap: open ? "0px" : "12px",
+                padding: "10px 12px",
                 borderRadius: "8px",
-                background: isActive ? "#667eea" : "transparent",
+                background: isActive ? "#5b5fc7" : "transparent",
                 color: isActive ? "#fff" : "#444",
                 transition: "background 0.2s ease",
+                marginBottom: "4px",
               }}
-              onMouseEnter={(e) => {
-                if (!isActive) {
-                  e.currentTarget.style.background = "#f5f5f5";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive) {
-                  e.currentTarget.style.background = "transparent";
-                }
-              }}
+              onMouseEnter={(e) =>
+                !isActive && (e.currentTarget.style.background = "#f5f5f5")
+              }
+              onMouseLeave={(e) =>
+                !isActive && (e.currentTarget.style.background = "transparent")
+              }
             >
-              <span style={{ fontSize: "22px" }}>{item.icon}</span>
-              {!open && <span>{item.name}</span>}
+              <span style={{ fontSize: "20px", flexShrink: 0 }}>{item.icon}</span>
+              {!open && <span style={{ fontSize: "14px" }}>{item.name}</span>}
             </Link>
           );
         })}
