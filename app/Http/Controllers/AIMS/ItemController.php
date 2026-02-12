@@ -5,6 +5,7 @@ namespace App\Http\Controllers\AIMS;
 use App\Http\Controllers\Controller;
 use App\Models\AIMS\Item;
 use App\Models\AIMS\StockMovement;
+use App\Services\AuditService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -73,7 +74,16 @@ class ItemController extends Controller
         $openingStock = $validated['opening_stock'];
         unset($validated['opening_stock']);
 
-        $item = Item::create($validated);
+        // ✅ Create item without triggering auto-audit
+        $item = null;
+        Item::withoutEvents(function () use ($validated, &$item) {
+            $item = Item::create($validated);
+        });
+
+        // Ensure item was created
+        if (!$item) {
+            throw new \Exception('Failed to create item');
+        }
 
         // ✅ AUTO STOCK MOVEMENT (Opening Stock)
         if ($openingStock > 0) {
@@ -84,12 +94,18 @@ class ItemController extends Controller
                 'reference' => 'Opening Stock',
                 'notes'     => 'Initial inventory entry',
             ]);
+
+            // ✅ Refresh item to get updated current_stock
+            $item->refresh();
         }
+
+        // ✅ Manually log audit AFTER opening stock is applied
+        AuditService::created($item, 'AIMS');
 
         return response()->json([
             'success' => true,
             'message' => 'Item created successfully',
-            'data' => $item->fresh(),
+            'data' => $item,
         ], 201);
     }
 

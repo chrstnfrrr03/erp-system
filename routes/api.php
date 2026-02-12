@@ -49,6 +49,8 @@ Route::get('/me', function (Request $request) {
 */
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\UserManagementController;
 
 /* ================= HRMS ================= */
 use App\Http\Controllers\HRMS\EmployeeExportController;
@@ -81,6 +83,12 @@ use App\Http\Controllers\AIMS\PurchaseRequestController;
 use App\Http\Controllers\AIMS\CustomerController;
 use App\Http\Controllers\AIMS\SalesOrderController;
 
+/* ================= REPORTS ================= */
+use App\Http\Controllers\ReportsController;
+
+/* ================= SETTINGS ================= */
+use App\Http\Controllers\SettingsController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -95,6 +103,15 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::get('/dashboard', [DashboardController::class, 'index']);
+
+    /*
+    |--------------------------------------------------------------------------
+    | PROFILE (ALL AUTHENTICATED USERS)
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/profile', [ProfileController::class, 'show']);
+    Route::put('/profile', [ProfileController::class, 'update']);
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword']);
 
     /*
     |--------------------------------------------------------------------------
@@ -256,6 +273,35 @@ Route::middleware('auth:sanctum')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
+    | REPORTS
+    | Roles: system_admin, hr, dept_head
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware([
+        'role:system_admin,hr,dept_head',
+        'permission:access_reports'
+    ])
+    ->prefix('reports')
+    ->group(function () {
+        
+        // Dashboard/Summary data for each tab
+        Route::get('/summary/{module}', [ReportsController::class, 'getSummary']);
+        
+        // Get list of available reports
+        Route::get('/list', [ReportsController::class, 'getReportsList']);
+        
+        // View report data
+        Route::post('/view', [ReportsController::class, 'viewReport']);
+        
+        // Generate report (with data)
+        Route::post('/generate', [ReportsController::class, 'generateReport']);
+        
+        // Export report (CSV or PDF)
+        Route::post('/export', [ReportsController::class, 'exportReport']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
     | AUDIT TRAIL
     | Roles: system_admin, hr
     |--------------------------------------------------------------------------
@@ -268,5 +314,35 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/recent', [AuditLogController::class, 'recentActivity']);
             Route::get('/{id}', [AuditLogController::class, 'show']);
             Route::post('/model-logs', [AuditLogController::class, 'getModelLogs']);
+        });
+
+    /*
+    |--------------------------------------------------------------------------
+    | SETTINGS
+    | Roles: system_admin
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware(['role:system_admin'])
+        ->prefix('settings')
+        ->group(function () {
+
+            Route::get('/general', [SettingsController::class, 'show']);
+            Route::post('/general', [SettingsController::class, 'store']);
+
+            Route::post('/modules', [SettingsController::class, 'saveModules']);
+        });
+
+    /*
+    |--------------------------------------------------------------------------
+    | USER MANAGEMENT
+    | Roles: system_admin ONLY
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware(['role:system_admin'])
+        ->group(function () {
+            Route::get('/users', [UserManagementController::class, 'index']);
+            Route::put('/users/{id}', [UserManagementController::class, 'update']);
+            Route::post('/users/{id}/reset-password', [UserManagementController::class, 'resetPassword']);
+            Route::delete('/users/{id}', [UserManagementController::class, 'destroy']);
         });
 });

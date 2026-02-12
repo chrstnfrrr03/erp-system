@@ -11,18 +11,25 @@ trait Auditable
      */
     protected static function bootAuditable()
     {
-        // Log when model is created
+        // ✅ Log when model is created
         static::created(function ($model) {
+            // Refresh the model to get any database-set values (like current_stock)
+            $model->refresh();
             AuditService::created($model);
         });
 
-        // Log when model is updated
+        // ✅ Log when model is updated (but NOT on creation)
         static::updated(function ($model) {
+            // Skip if model was just created (wasRecentlyCreated)
+            if ($model->wasRecentlyCreated) {
+                return;
+            }
+            
             $oldValues = $model->getOriginal();
             AuditService::updated($model, $oldValues);
         });
 
-        // Log when model is deleted
+        // ✅ Log when model is deleted
         static::deleted(function ($model) {
             AuditService::deleted($model);
         });
