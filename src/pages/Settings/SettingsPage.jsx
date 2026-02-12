@@ -455,9 +455,12 @@ function UsersAndRoles() {
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [editFormData, setEditFormData] = useState({
-    role: "",
-    is_active: true,
-  });
+  name: "",
+  email: "",
+  role: "",
+  is_active: true,
+});
+
   const [newPassword, setNewPassword] = useState("");
 
   const roles = [
@@ -484,13 +487,16 @@ function UsersAndRoles() {
   };
 
   const handleEditUser = (user) => {
-    setSelectedUser(user);
-    setEditFormData({
-      role: user.role,
-      is_active: user.is_active !== false,
-    });
-    setShowEditModal(true);
-  };
+  setSelectedUser(user);
+  setEditFormData({
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    is_active: user.is_active !== false,
+  });
+  setShowEditModal(true);
+};
+
 
   const handleUpdateUser = async () => {
     try {
@@ -715,44 +721,105 @@ function UsersAndRoles() {
       </div>
 
       {/* Edit User Modal */}
-      <Modal show={showEditModal} onHide={() => setShowEditModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Edit User - {selectedUser?.name}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Role</Form.Label>
-              <Form.Select
-                value={editFormData.role}
-                onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })}
-              >
-                {roles.map(role => (
-                  <option key={role.value} value={role.value}>
-                    {role.label}
-                  </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Check
-                type="checkbox"
-                label="Active"
-                checked={editFormData.is_active}
-                onChange={(e) => setEditFormData({ ...editFormData, is_active: e.target.checked })}
-              />
-            </Form.Group>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowEditModal(false)}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={handleUpdateUser}>
-            Save Changes
-          </Button>
-        </Modal.Footer>
-      </Modal>
+<Modal
+  show={showEditModal}
+  onHide={() => setShowEditModal(false)}
+  centered
+>
+  <Modal.Header closeButton>
+    <Modal.Title>
+      Edit User - {selectedUser?.name}
+    </Modal.Title>
+  </Modal.Header>
+
+  <Modal.Body>
+    <Form>
+      {/* Name */}
+      <Form.Group className="mb-3">
+        <Form.Label>Name</Form.Label>
+        <Form.Control
+          type="text"
+          value={editFormData.name}
+          onChange={(e) =>
+            setEditFormData({
+              ...editFormData,
+              name: e.target.value,
+            })
+          }
+          placeholder="Enter full name"
+        />
+      </Form.Group>
+
+      {/* Email */}
+      <Form.Group className="mb-3">
+        <Form.Label>Email</Form.Label>
+        <Form.Control
+          type="email"
+          value={editFormData.email}
+          onChange={(e) =>
+            setEditFormData({
+              ...editFormData,
+              email: e.target.value,
+            })
+          }
+          placeholder="Enter email address"
+        />
+      </Form.Group>
+
+      {/* Role */}
+      <Form.Group className="mb-3">
+        <Form.Label>Role</Form.Label>
+        <Form.Select
+          value={editFormData.role}
+          onChange={(e) =>
+            setEditFormData({
+              ...editFormData,
+              role: e.target.value,
+            })
+          }
+        >
+          {roles.map((role) => (
+            <option key={role.value} value={role.value}>
+              {role.label}
+            </option>
+          ))}
+        </Form.Select>
+      </Form.Group>
+
+      {/* Active Checkbox */}
+      <Form.Group className="mb-3">
+        <Form.Check
+          type="checkbox"
+          label="Active"
+          checked={editFormData.is_active}
+          onChange={(e) =>
+            setEditFormData({
+              ...editFormData,
+              is_active: e.target.checked,
+            })
+          }
+        />
+      </Form.Group>
+    </Form>
+  </Modal.Body>
+
+  <Modal.Footer>
+    <Button
+      variant="secondary"
+      onClick={() => setShowEditModal(false)}
+    >
+      Cancel
+    </Button>
+
+    <Button
+      variant="primary"
+      onClick={handleUpdateUser}
+    >
+      Save Changes
+    </Button>
+  </Modal.Footer>
+</Modal>
+
 
       {/* Reset Password Modal */}
       <Modal show={showResetPasswordModal} onHide={() => setShowResetPasswordModal(false)} centered>
