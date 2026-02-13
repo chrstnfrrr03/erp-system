@@ -316,7 +316,6 @@ export default function Sidebar({ open, setOpen, user }) {
           overflowY: "auto",
           overflowX: "hidden",
           flex: 1,
-          // Custom scrollbar styling
           scrollbarWidth: "thin",
           scrollbarColor: "#cbd5e1 transparent",
         }}
@@ -404,7 +403,6 @@ export default function Sidebar({ open, setOpen, user }) {
                     background: isActive ? "#5b5fc7" : "transparent",
                     color: isActive ? "#fff" : "#444",
                     transition: "background 0.2s ease",
-                    cursor: "pointer",
                   }}
                   onMouseEnter={(e) =>
                     !isActive && (e.currentTarget.style.background = "#f5f5f5")
@@ -423,6 +421,9 @@ export default function Sidebar({ open, setOpen, user }) {
                       flex: 1,
                       color: "inherit",
                     }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
                   >
                     <span style={{ fontSize: "20px", flexShrink: 0 }}>{item.icon}</span>
                     <span style={{ fontSize: "14px" }}>{item.name}</span>
@@ -434,12 +435,20 @@ export default function Sidebar({ open, setOpen, user }) {
                       transition: "transform 0.2s ease",
                       transform: isExpanded ? "rotate(0deg)" : "rotate(-90deg)",
                       cursor: "pointer",
-                      padding: "2px",
+                      padding: "4px 8px",
                       flexShrink: 0,
+                      borderRadius: "4px",
                     }}
                     onClick={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
                       setExpanded(!isExpanded);
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "rgba(0,0,0,0.1)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
                     }}
                   >
                     <MdExpandMore />
@@ -485,7 +494,6 @@ export default function Sidebar({ open, setOpen, user }) {
                                   color: isSubActive ? "#5b5fc7" : "#666",
                                   fontSize: "13px",
                                   transition: "all 0.2s ease",
-                                  cursor: "pointer",
                                 }}
                                 onMouseEnter={(e) =>
                                   !isSubActive && (e.currentTarget.style.background = "#f5f5f5")
@@ -494,7 +502,15 @@ export default function Sidebar({ open, setOpen, user }) {
                                   !isSubActive && (e.currentTarget.style.background = "transparent")
                                 }
                               >
-                                <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1 }}>
+                                <div 
+                                  style={{ 
+                                    display: "flex", 
+                                    alignItems: "center", 
+                                    gap: "10px", 
+                                    flex: 1,
+                                    cursor: "default"
+                                  }}
+                                >
                                   <span style={{ fontSize: "16px", flexShrink: 0 }}>{subItem.icon}</span>
                                   <span>{subItem.name}</span>
                                 </div>
@@ -505,8 +521,12 @@ export default function Sidebar({ open, setOpen, user }) {
                                     transition: "transform 0.2s ease",
                                     transform: isNestedExpanded ? "rotate(0deg)" : "rotate(-90deg)",
                                     flexShrink: 0,
+                                    cursor: "pointer",
+                                    padding: "4px 8px",
+                                    borderRadius: "4px",
                                   }}
                                   onClick={(e) => {
+                                    e.preventDefault();
                                     e.stopPropagation();
                                     if (item.name === "AIMS" && subItem.name === "Setup") {
                                       setAimsSetupExpanded(!aimsSetupExpanded);
@@ -517,6 +537,12 @@ export default function Sidebar({ open, setOpen, user }) {
                                     } else if (item.name === "MOMS" && subItem.name === "Finance") {
                                       setMomsFinanceExpanded(!momsFinanceExpanded);
                                     }
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = "rgba(0,0,0,0.1)";
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = "transparent";
                                   }}
                                 >
                                   <MdExpandMore />
