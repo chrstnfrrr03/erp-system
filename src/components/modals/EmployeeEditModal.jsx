@@ -7,6 +7,8 @@ import Swal from "sweetalert2";
 export default function EmployeeEditModal({ show, onHide, employee, onSave }) {
   const [shifts, setShifts] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [employmentClassifications, setEmploymentClassifications] = useState([]);
+
 
   const [formData, setFormData] = useState({
     biometric_id: "",
@@ -72,6 +74,21 @@ export default function EmployeeEditModal({ show, onHide, employee, onSave }) {
     };
     fetchShifts();
   }, []);
+
+  // FETCH EMPLOYMENT CLASSIFICATIONS
+useEffect(() => {
+  const fetchEmploymentClassifications = async () => {
+    try {
+      const res = await baseApi.get("/api/hrms/employment-classifications");
+      setEmploymentClassifications(res.data.data || res.data || []);
+    } catch (err) {
+      console.error("Failed to fetch employment classifications:", err);
+    }
+  };
+
+  fetchEmploymentClassifications();
+}, []);
+
 
   useEffect(() => {
     if (employee && shifts.length > 0) {
@@ -362,12 +379,17 @@ export default function EmployeeEditModal({ show, onHide, employee, onSave }) {
             <div className="row g-2">
               <div className="col-md-6">
                 <SelectField
-                  label="Employee Classification:"
-                  name="employment_classification"
-                  value={formData.employment_classification}
-                  onChange={handleChange}
-                  options={["Probationary", "Regular", "Resigned", "Terminated", "End of Contract", "Retired"]}
-                />
+  label="Employee Classification:"
+  name="employment_classification"
+  value={formData.employment_classification}
+  onChange={handleChange}
+  options={employmentClassifications.map(ec => ({
+    id: ec.id,
+    name: ec.name
+  }))}
+  isObjectOptions={true}
+/>
+
               </div>
               <div className="col-md-6">
                 <SelectField
