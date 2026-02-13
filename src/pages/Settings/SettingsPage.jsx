@@ -14,6 +14,8 @@ import ShiftsSection from "./sections/Shifts/ShiftsSection";
 /* AUDIT TRAIL */
 import AuditTrailSection from "./sections/AuditTrail/AuditTrailSection";
 
+import EmploymentStatusSection from "./sections/EmploymentStatus/EmploymentStatusSection";
+
 /* =========================
    MAIN SETTINGS PAGE
 ========================= */
@@ -128,16 +130,20 @@ export default function SettingsPage() {
             {!activeModule && <ModulesChooser onSelect={setActiveModule} />}
 
             {activeModule === "hrms" && (
-              <>
-                {!activeHRMS && <HRMSSettings onManage={setActiveHRMS} />}
-                {activeHRMS === "departments" && <DepartmentsSection />}
-                {activeHRMS === "shifts" && <ShiftsSection />}
-                {activeHRMS &&
-                  !["departments", "shifts"].includes(activeHRMS) && (
-                    <ComingSoon module="HRMS Module" />
-                  )}
-              </>
-            )}
+  <>
+    {!activeHRMS && <HRMSSettings onManage={setActiveHRMS} />}
+
+    {activeHRMS === "departments" && <DepartmentsSection />}
+    {activeHRMS === "shifts" && <ShiftsSection />}
+    {activeHRMS === "employment" && <EmploymentStatusSection />}
+
+    {activeHRMS &&
+      !["departments", "shifts", "employment"].includes(activeHRMS) && (
+        <ComingSoon module="HRMS Module" />
+      )}
+  </>
+)}
+
 
             {activeModule === "payroll" && <PayrollSettings />}
             {activeModule === "aims" && <AIMSSettings />}

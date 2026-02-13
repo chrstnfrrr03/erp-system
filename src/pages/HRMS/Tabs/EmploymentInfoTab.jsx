@@ -11,8 +11,9 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
 
   const [shifts, setShifts] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [classifications, setClassifications] = useState([]); // NEW
 
-  // Fetch shifts + departments only
+  // Fetch shifts + departments + classifications
   useEffect(() => {
     // Load shifts
     baseApi
@@ -27,12 +28,22 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
       })
       .catch((err) => console.error("Shift fetch error:", err));
 
+    // Load departments
     baseApi
       .get("/api/hrms/departments")
       .then((res) => {
         setDepartments(res.data.data || res.data || []);
       })
       .catch((err) => console.error("Department fetch error:", err));
+    baseApi
+      baseApi.get("/api/hrms/employment-classifications")
+      .then((res) => {
+        const list = res.data?.data || res.data || [];
+        setClassifications(list);
+      })
+      .catch((err) =>
+        console.error("Employment classification fetch error:", err)
+      );
   }, []);
 
   return (
@@ -84,7 +95,6 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
       {/* Row 2 */}
       <div className="row g-3 mb-3">
 
-        {/* Department */}
         <div className="col-12 col-sm-6 col-lg-3">
           <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Department:</label>
           <select
@@ -104,7 +114,6 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
           </select>
         </div>
 
-        {/* Position */}
         <div className="col-12 col-sm-6 col-lg-3">
           <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Position:</label>
           <input
@@ -118,7 +127,6 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
           />
         </div>
 
-        {/* MANUAL Department Head - FIXED FIELD NAME */}
         <div className="col-12 col-sm-6 col-lg-3">
           <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Department Head:</label>
           <input
@@ -132,7 +140,6 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
           />
         </div>
 
-        {/* MANUAL Supervisor - FIXED FIELD NAME */}
         <div className="col-12 col-sm-6 col-lg-3">
           <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Supervisor:</label>
           <input
@@ -181,7 +188,7 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
       <div className="row g-3 mb-3">
 
         <div className="col-12 col-sm-6 col-lg-3">
-          <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Employee Type:</label>
+          <label className="form-label fw-semibold">Employee Type:</label>
           <select
             name="employee_type"
             className="form-select"
@@ -195,8 +202,9 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
           </select>
         </div>
 
+        {/* KEEP ACTIVE / INACTIVE */}
         <div className="col-12 col-sm-6 col-lg-3">
-          <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Employment Status:</label>
+          <label className="form-label fw-semibold">Employment Status:</label>
           <select
             name="employment_status"
             className="form-select"
@@ -211,27 +219,30 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
           </select>
         </div>
 
+        {/*DYNAMIC */}
         <div className="col-12 col-sm-6 col-lg-3">
-          <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Employment Classification:</label>
+          <label className="form-label fw-semibold">Employment Classification:</label>
           <select
             name="employment_classification"
             className="form-select"
-            value={formData.employment_classification}
+            value={formData.employment_classification || ""}
             onChange={handleInputChange}
             style={baseInputStyle}
           >
             <option value="">Select Classification</option>
-            <option value="Probationary">Probationary</option>
-            <option value="Regular">Regular</option>
-            <option value="Resigned">Resigned</option>
-            <option value="Terminated">Terminated</option>
-            <option value="End of Contract">End of Contract</option>
-            <option value="Retired">Retired</option>
+            {classifications.length === 0 && (
+              <option disabled>Loading classifications...</option>
+            )}
+            {classifications.map((item) => (
+              <option key={item.id} value={item.name}>
+                {item.name}
+              </option>
+            ))}
           </select>
         </div>
 
         <div className="col-12 col-sm-6 col-lg-3">
-          <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Rate:</label>
+          <label className="form-label fw-semibold">Rate:</label>
           <input
             type="number"
             name="rate"
@@ -244,7 +255,7 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
         </div>
 
         <div className="col-12 col-sm-6 col-lg-3">
-          <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Rate Type:</label>
+          <label className="form-label fw-semibold">Rate Type:</label>
           <select
             name="rate_type"
             className="form-select"
@@ -261,10 +272,10 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
         </div>
       </div>
 
-      {/* Row 5: Shifts */}
+      {/* Row 5 */}
       <div className="row g-3 mb-3">
         <div className="col-12 col-md-6">
-          <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Shift:</label>
+          <label className="form-label fw-semibold">Shift:</label>
           <select
             name="shift_id"
             className="form-select"
@@ -286,7 +297,7 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
       {/* Row 6 */}
       <div className="row g-3 mb-4">
         <div className="col-12 col-md-6">
-          <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Date Started:</label>
+          <label className="form-label fw-semibold">Date Started:</label>
           <input
             type="date"
             name="date_started"
@@ -298,7 +309,7 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
         </div>
 
         <div className="col-12 col-md-6">
-          <label className="form-label fw-semibold" style={{ fontSize: "14px" }}>Date Ended:</label>
+          <label className="form-label fw-semibold">Date Ended:</label>
           <input
             type="date"
             name="date_ended"
@@ -310,7 +321,6 @@ export default function EmploymentInfoTab({ formData, handleInputChange, handleN
         </div>
       </div>
 
-      {/* Next */}
       <div className="d-flex justify-content-end mt-4">
         <button
           type="button"
