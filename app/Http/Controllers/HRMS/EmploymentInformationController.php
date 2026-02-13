@@ -340,6 +340,7 @@ $employee->save();
         $employee = Employee::where('biometric_id', $biometric_id)
             ->with([
                 'employmentInformation.department',
+                'employmentInformation.employmentClassification',
                 'personalInformation',
                 'accountInformation',
                 'leaveCredits',
@@ -378,7 +379,7 @@ $employee->save();
             'supervisor' => $employee->employmentInformation->supervisor ?? 'N/A',
             'job_location' => $employee->employmentInformation->job_location ?? 'N/A',
             'employment_status' => $employee->employmentInformation->employment_status ?? 'N/A',
-            'employment_classification' => $employee->employmentInformation->employment_classification ?? 'N/A',
+            'employment_classification' => $employee->employmentInformation->employmentClassification->name ?? 'N/A',
             'employee_type' => $employee->employmentInformation->employee_type ?? 'N/A',
 
             'company_email' => $employee->employmentInformation->company_email ?? 'N/A',
