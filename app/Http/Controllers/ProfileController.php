@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use App\Models\AuditLog;
 
 class ProfileController extends Controller
 {
@@ -31,9 +32,39 @@ class ProfileController extends Controller
         ]);
 
         $user = $request->user();
+        
+        // Store old values for audit (only for admin)
+        $oldData = [
+            'name' => $user->name,
+            'email' => $user->email,
+        ];
+        
         $user->name = $validated['name'];
         $user->email = $validated['email'];
         $user->save();
+
+        // Log profile updates (only if admin is updating their own profile)
+        if ($user->role === 'system_admin') {
+            $changes = [];
+            if ($oldData['name'] !== $user->name) {
+                $changes[] = "name from '{$oldData['name']}' to '{$user->name}'";
+            }
+            if ($oldData['email'] !== $user->email) {
+                $changes[] = "email from '{$oldData['email']}' to '{$user->email}'";
+            }
+
+            if (!empty($changes)) {
+                AuditLog::create([
+                    'user_id' => $user->id,
+                    'action' => 'update',
+                    'model' => 'User',
+                    'model_id' => $user->id,
+                    'description' => 'Updated own profile: ' . implode(', ', $changes),
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ]);
+            }
+        }
 
         return response()->json([
             'message' => 'Profile updated successfully',
@@ -67,6 +98,17 @@ class ProfileController extends Controller
         // Update password
         $user->password = Hash::make($validated['new_password']);
         $user->save();
+
+        // Log password change
+        AuditLog::create([
+            'user_id' => $user->id,
+            'action' => 'password_change',
+            'model' => 'User',
+            'model_id' => $user->id,
+            'description' => "Changed own password",
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
 
         return response()->json([
             'message' => 'Password updated successfully'

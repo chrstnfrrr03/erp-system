@@ -56,6 +56,7 @@ use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\HRMS\EmployeeExportController;
 use App\Http\Controllers\HRMS\AttendanceController;
 use App\Http\Controllers\HRMS\ApplicationController;
+use App\Http\Controllers\HRMS\EmploymentClassificationController;
 use App\Http\Controllers\HRMS\{
     EmploymentInformationController,
     PersonalInformationController,
@@ -146,6 +147,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::apiResource('deminimis', DeminimisController::class);
             Route::apiResource('shifts', ShiftController::class);
             Route::apiResource('departments', DepartmentController::class);
+            Route::apiResource('employment-classifications', EmploymentClassificationController::class);
+
 
             Route::get('/deminimis/employee/{employeeId}', [DeminimisController::class, 'getByEmployee']);
 

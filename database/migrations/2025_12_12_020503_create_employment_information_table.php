@@ -28,8 +28,8 @@ return new class extends Migration
             $table->string('supervisor')->nullable();
             $table->string('job_location')->nullable();
 
-            $table->string('employee_type');        // full-time, contract, etc.
-            $table->string('employment_status');    // active, inactive
+            $table->string('employee_type');        
+            $table->string('employment_status');    
 
             $table->string('employment_classification')->nullable();
 
